@@ -1,0 +1,11 @@
+# Les données ne sont jamais versionnées.
+data/
+*.nc
+*.zarr/
+*.part
+
+venv/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
