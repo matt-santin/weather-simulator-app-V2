@@ -61,7 +61,17 @@ Exemple, nord de l'Islande (66 N, 20 W), janvier, 2071-2100 contre 1976-2005 : P
 
 Étendue : 6 247 mailles sur 53 573 ont, au moins un mois, un biais au P5 de plus de 10 K qui dépasse de plus de 7 K celui du P95 (seuils arbitraires). 1 393 en mer, 543 sur les côtes (`lsm` de 0,5 à 0,9), 4 311 sur terre, surtout en Russie du Nord (2 729) et en Scandinavie (1 517). Le problème est donc surtout celui de la neige sur terre.
 
-Piste retenue pour l'instant : garder le QDM, marquer ces mailles par un indicateur de fiabilité (par exemple la corrélation de rang entre brut et corrigé) et les masquer ou les signaler dans l'application. Le traitement de fond est reporté. Essais sur la glace de mer : `docs/notes_correction_glace.md`.
+Piste retenue pour l'instant : garder le QDM, marquer ces mailles par un indicateur de fiabilité et les masquer ou les signaler dans l'application. Le traitement de fond est reporté. Essais sur la glace de mer : `docs/notes_correction_glace.md`.
+
+**Indicateur de fiabilité (à faire).** Le QDM transforme chaque jour par la courbe x → x + b(τ(x)). L'ordre des jours est respecté tant que cette courbe monte. On retient sa pente minimale, mesurée entre déciles pour ne pas réagir aux irrégularités de b(τ), pour chaque maille, chaque mois et chaque année (la fenêtre glissante change d'une année à l'autre).
+
+| Pente minimale | Signification |
+|---|---|
+| ≈ 1 | correction douce |
+| entre 0 et 1 | jours comprimés |
+| < 0 | ordre des jours inversé (nord de l'Islande, janvier 2071-2100) |
+
+Classes proposées, seuils à fixer : vert au-dessus de 0,5, orange de 0 à 0,5, rouge sous 0. Calcul à partir des tables de quantiles et des quantiles de chaque fenêtre, sans relire les séries journalières ; environ 84 Mo en classes. Première étape : cartes de la pente minimale par mois, pour 1976-2005 et 2071-2100, pour choisir les seuils. Usage dans l'application (masquage ou avertissement) à décider avec l'interface.
 
 ## 5. Correction multivariée (MBCn) : essai
 
