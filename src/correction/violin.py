@@ -3,8 +3,9 @@
     python -m src.correction.violin tas 48.86 2.35 1 Paris
 
 Left: both distributions as violins, the quantiles of same rank joined, which
-is what the QDM matches. Right: the bias table b(tau) = Q_ERA5 - Q_CORDEX of
-that cell, the correction a day of rank tau receives. CORDEX is the field
+is what the QDM matches. Right: the bias table of that cell, the correction a
+day of rank tau receives: b(tau) = Q_ERA5 - Q_CORDEX, added, or r(tau) =
+Q_ERA5 / Q_CORDEX, multiplied, depending on the variable. CORDEX is the field
 remapped to the ERA5 0.25 deg grid, before and after QDM. The corrected years
 used their own sliding window, not 1970-2005, so they need not match ERA5
 exactly.
@@ -20,8 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.config import ARCHIVE
-from src.correction.qdm import CAL, ERA5_NAME, LEVELS, OUT, quantiles
+from src.correction.qdm import CAL, LEVELS, OUT, VARS, model, quantiles, reference, table
 from src.correction.remap import target as remapped
 
 FIG = Path(__file__).resolve().parents[2] / "figures" / "correction"
@@ -43,18 +43,30 @@ def main(argv):
         return 1
     name, lat, lon, month, place = argv[0], float(argv[1]), float(argv[2]), int(argv[3]), argv[4]
     years = range(CAL[0], CAL[1] + 1)
-    v = ERA5_NAME[name]
-    era, cor, fix = [], [], []
+    v = VARS[name]
+    scale, offset, unit = v.display
+    # The corrected file gives the cell; raw CORDEX and ERA5 are read there,
+    # all on the same grid.
+    fix, glat, glon = [], None, None
     for y in years:
-        e, glat, glon = series(ARCHIVE / "era5" / "daily" / f"{v}_ERA5_day_{y}0101-{y}1231.nc",
-                               v, lat, lon, month)
-        era.append(e.values)
-        cor.append(series(remapped(name, y), name, lat, lon, month)[0].values)
-        fix.append(series(OUT / remapped(name, y).name, name, lat, lon, month)[0].values)
-    era = np.concatenate(era) - 273.15
-    cor = np.concatenate(cor) - 273.15
-    fix = np.concatenate(fix) - 273.15
+        f, glat, glon = series(OUT / remapped(name, y).name, name, lat, lon, month)
+        fix.append(f.values)
+    grid = xr.open_dataset(OUT / remapped(name, years[0]).name)
+    flat = np.array([int(np.flatnonzero(grid.latitude.values == glat)[0]) * grid.longitude.size
+                     + int(np.flatnonzero(grid.longitude.values == glon)[0])])
+    cor = []
+    for y in years:
+        x, t = model(name, y)
+        cor.append(x[t.time.dt.month.values == month, flat[0]])
+    era, mo = reference(name, years, flat)
+    era = scale * era[mo == month, 0] + offset
+    cor = scale * np.concatenate(cor) + offset
+    fix = scale * np.concatenate(fix) + offset
     qe, qc = quantiles(era[:, None])[:, 0], quantiles(cor[:, None])[:, 0]
+    # The table in display units: offsets cancel in b, scales in r.
+    tab = table(((qe - offset) / scale)[:, None], ((qc - offset) / scale)[:, None], v)[:, 0]
+    tab = scale * tab if v.kind == "add" else tab
+    sign, tunit = ("b", unit.replace("°C", "K")) if v.kind == "add" else ("r", "")
 
     plt.rcParams.update({"font.size": 10, "axes.edgecolor": MUTED, "axes.labelcolor": INK,
                          "xtick.color": MUTED, "ytick.color": MUTED})
@@ -72,8 +84,11 @@ def main(argv):
         a.plot([0, 1, 2], [ye, yc, yf], color=MUTED, lw=1, ls=":", zorder=1)
         for x, y, color in ((0, ye, ERA5_COLOR), (1, yc, CORDEX_COLOR), (2, yf, FIXED_COLOR)):
             a.plot([x - 0.12, x + 0.12], [y, y], color=color, lw=2)
-        labels.append((yf, f"P{round(100 * p)} : b = {round(ye - yc, 1) + 0:+.1f} K, "
-                           f"corrigé - ERA5 = {round(yf - ye, 1) + 0:+.1f} K"))
+        k = np.abs(LEVELS - p).argmin()
+        b_txt = (f"b = {round(tab[k], 1) + 0:+.1f} {tunit}" if v.kind == "add"
+                 else f"r = {tab[k]:.2f}")
+        labels.append((yf, f"P{round(100 * p)} : {b_txt}, "
+                           f"corrigé - ERA5 = {round(yf - ye, 1) + 0:+.1f} {tunit}"))
     # Labels sit at their corrected quantile, pushed apart when too close.
     lo, hi = a.get_ylim()
     gap, prev = 0.05 * (hi - lo), -np.inf
@@ -83,25 +98,27 @@ def main(argv):
     a.set_xticks([0, 1, 2], [f"ERA5\n({len(era)} jours)", f"CORDEX brut\n({len(cor)} jours)",
                              f"CORDEX corrigé\n({len(fix)} jours)"])
     a.set_xlim(-0.5, 4.3)
-    a.set_ylabel(f"{name} journalière (°C)")
+    a.set_ylabel(f"{name} journalier ({unit})")
     a.grid(axis="y", color="#e6e5df", lw=0.8)
     a.set_axisbelow(True)
     for s in ("top", "right"):
         a.spines[s].set_visible(False)
     a.set_title(f"Distributions, quantiles de même rang reliés", color=INK, loc="left")
 
-    b.axhline(0, color=MUTED, lw=0.8)
-    b.plot(100 * LEVELS, qe - qc, color=INK, lw=2)
+    b.axhline(0 if v.kind == "add" else 1, color=MUTED, lw=0.8)
+    b.plot(100 * LEVELS, tab, color=INK, lw=2)
     for p in MARKS:
         k = np.abs(LEVELS - p).argmin()
-        b.plot(100 * LEVELS[k], qe[k] - qc[k], "o", ms=8, color=INK, mec=INK)
+        b.plot(100 * LEVELS[k], tab[k], "o", ms=8, color=INK, mec=INK)
     b.set_xlabel("rang du jour dans sa distribution CORDEX, tau (%)")
-    b.set_ylabel("correction b(tau) = Q_ERA5 - Q_CORDEX (K)")
+    b.set_ylabel(f"correction b(tau) = Q_ERA5 - Q_CORDEX ({tunit})" if v.kind == "add"
+                 else "correction r(tau) = Q_ERA5 / Q_CORDEX")
     b.grid(color="#e6e5df", lw=0.8)
     b.set_axisbelow(True)
     for s in ("top", "right"):
         b.spines[s].set_visible(False)
-    b.set_title("Correction ajoutée à un jour selon son rang", color=INK, loc="left")
+    b.set_title("Correction " + ("ajoutée à" if v.kind == "add" else "multipliant")
+                + " un jour selon son rang", color=INK, loc="left")
 
     ns, ew = ("N" if glat >= 0 else "S"), ("E" if glon >= 0 else "W")
     fig.suptitle(f"{place} (maille ERA5 {abs(glat):.2f} {ns}, {abs(glon):.2f} {ew}), {MONTHS[month - 1]} "
