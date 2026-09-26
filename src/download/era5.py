@@ -2,6 +2,7 @@
 
     python -m src.download.era5 1970
     python -m src.download.era5 1970-2005
+    python -m src.download.era5 lsm          fixed fields, once
 
 Run from the repo root. Needs the Earth Data Hub API key in ~/.edhrc.
 
@@ -62,7 +63,14 @@ DAILY = {
     "hurs": (["t2m", "d2m"], "mean"),
     "huss": (["d2m", "sp"], "mean"),
     "zg500": (["z"], "mean"),
+    # Sea-ice markers, as Earth Data Hub has no sea-ice cover: sst sits at its
+    # floor, -1.65 C, under ice, and istl1 is -1.65 C exactly where there is
+    # no ice. Both are missing over land.
+    "sst": (["sst"], "mean"),
+    "istl1": (["istl1"], "mean"),
 }
+# Fields that do not change in time: one hour is read, 1970-01-01 00h.
+FIXED = {"lsm": "land-sea mask, fraction of land"}
 SHIFTED = {"tp", "ssrd", "strd", "ssr", "e", "mx2t", "mn2t"}
 # Fields that share hourly sources are computed together, so that dask reads
 # each chunk once: t2m, d2m and sp would otherwise be billed two or three times.
@@ -140,6 +148,21 @@ def attrs(da: xr.DataArray, sources: dict[str, xr.Dataset]) -> xr.DataArray:
     return da
 
 
+def fixed(sources: dict[str, xr.Dataset], name: str) -> None:
+    out = ERA5 / "fixed" / f"{name}_ERA5.nc"
+    if held(out):
+        log.info("%s deja present", out.name)
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    da = box(sources["single"][name].sel(valid_time="1970-01-01T00")).drop_vars(
+        "valid_time").astype("float32").compute()
+    da.attrs = {"units": "1", "long_name": FIXED[name], "source": "ERA5, Earth Data Hub"}
+    part = out.with_suffix(".part")
+    da.to_netcdf(part)
+    part.rename(out)
+    log.info("%s ecrit", out)
+
+
 def years_from(argv: list[str]) -> list[int]:
     out: list[int] = []
     for a in argv:
@@ -169,6 +192,11 @@ def main(argv: list[str]) -> int:
         "single": xr.open_dataset(url + SINGLE, engine="zarr", chunks={}),
         "pressure": xr.open_dataset(url + PRESSURE, engine="zarr", chunks={}),
     }
+
+    if set(argv) <= set(FIXED):
+        for name in argv:
+            fixed(sources, name)
+        return 0
 
     ys = years_from(argv)
     todo = [(y, g) for y in ys for g in GROUPS]
