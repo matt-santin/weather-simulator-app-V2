@@ -4,7 +4,9 @@ Notes de travail, état au 26/09/2026. Méthode de base décrite dans `docs/corr
 
 ## Le problème
 
-Le QDM actuel de `tas` échoue là où le modèle a de la banquise qu'ERA5 n'a pas. La table b(τ) apprend un fort réchauffement de la queue froide (jusqu'à +25 K) sur des jours de banquise. Quand le modèle perd sa glace, ce réchauffement s'applique à des jours d'eau libre. Nord de l'Islande (66 N, 20 W), janvier, 2071-2100 : P50 brut −1,0 °C, corrigé +11,6 °C.
+Le QDM actuel de `tas` échoue là où le modèle a de la banquise qu'ERA5 n'a pas. La table b(τ) apprend un fort réchauffement de la queue froide (jusqu'à +25 K) sur des jours de banquise. Quand le modèle perd sa glace, ce réchauffement s'applique à des jours d'eau libre. Nord de l'Islande (66 N, 20 W), janvier, 2071-2100 : P50 brut −1,0 °C, corrigé +4,8 °C ; 24 % des jours corrigés dépassent le maximum de janvier d'ERA5 (7,0 °C), et l'ordre des jours s'inverse (corrélation de rang brut/corrigé −0,43).
+
+Mise à jour du 26/09/2026 : les chiffres « QDM actuel » cités jusqu'ici venaient de fichiers produits avec un bug de `qdm.py` (fenêtre glissante lue en partie déjà corrigée), corrigé depuis. Le problème de la glace demeure, un peu moins marqué (13/01/2080 : +10,7 °C au lieu de +11,9 °C). Les variantes testées ci-dessous lisaient la fenêtre brute et ne sont pas touchées, sauf leur comparaison au « QDM actuel ». Suite et décision provisoire : `docs/correction.md`, section 4.
 
 ## Données réunies
 
