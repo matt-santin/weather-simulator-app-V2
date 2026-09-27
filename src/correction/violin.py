@@ -21,7 +21,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.correction.qdm import CAL, LEVELS, OUT, SEED, VARS, jitter, model, quantiles, reference, table
+from src.correction.qdm import (CAL, LEVELS, OUT, TEST, VARS, calibrate, model, quantiles, ratio,
+                                reference, table)
 from src.correction.remap import target as remapped
 
 FIG = Path(__file__).resolve().parents[2] / "figures" / "correction"
@@ -63,12 +64,11 @@ def main(argv):
     cor = scale * np.concatenate(cor) + offset
     fix = scale * np.concatenate(fix) + offset
     qe, qc = quantiles(era[:, None])[:, 0], quantiles(cor[:, None])[:, 0]
-    # The table as qdm builds it, with the jitter under the trace amount, then
-    # in display units: offsets cancel in b, scales in r.
-    rng = np.random.default_rng(SEED)
-    tab = table(quantiles(jitter(((era - offset) / scale)[:, None], v, rng)),
-                quantiles(jitter(((cor - offset) / scale)[:, None], v, rng)), v)[:, 0]
-    tab = scale * tab if v.kind == "add" else tab
+    # The table as qdm builds it (wet days only, for precipitation), then in
+    # display units: offsets cancel in b, scales in r.
+    cal = calibrate(((era - offset) / scale)[:, None], ((cor - offset) / scale)[:, None], v)
+    tab = table(cal["ref"], cal["hist"], v)
+    tab = scale * tab[:, 0] if v.kind == "add" else ratio(tab)[:, 0]
     sign, tunit = ("b", unit.replace("°C", "K")) if v.kind == "add" else ("r", "")
 
     plt.rcParams.update({"font.size": 10, "axes.edgecolor": MUTED, "axes.labelcolor": INK,
@@ -90,8 +90,9 @@ def main(argv):
         k = np.abs(LEVELS - p).argmin()
         b_txt = (f"b = {round(tab[k], 1) + 0:+.1f} {tunit}" if v.kind == "add"
                  else f"r = {tab[k]:.2f}")
-        labels.append((yf, f"P{round(100 * p)} : {b_txt}, "
-                           f"corrigé - ERA5 = {round(yf - ye, 1) + 0:+.1f} {tunit}"))
+        # For precipitation the table ranks wet days only, not these quantiles.
+        labels.append((yf, f"P{round(100 * p)} : " + ("" if v.wet else f"{b_txt}, ")
+                           + f"corrigé - ERA5 = {round(yf - ye, 1) + 0:+.1f} {tunit}"))
     # Labels sit at their corrected quantile, pushed apart when too close.
     lo, hi = a.get_ylim()
     gap, prev = 0.05 * (hi - lo), -np.inf
@@ -113,7 +114,8 @@ def main(argv):
     for p in MARKS:
         k = np.abs(LEVELS - p).argmin()
         b.plot(100 * LEVELS[k], tab[k], "o", ms=8, color=INK, mec=INK)
-    b.set_xlabel("rang du jour dans sa distribution CORDEX, tau (%)")
+    b.set_xlabel("rang parmi les jours de pluie CORDEX, tau (%)" if v.wet
+                 else "rang du jour dans sa distribution CORDEX, tau (%)")
     b.set_ylabel(f"correction b(tau) = Q_ERA5 - Q_CORDEX ({tunit})" if v.kind == "add"
                  else "correction r(tau) = Q_ERA5 / Q_CORDEX")
     b.grid(color="#e6e5df", lw=0.8)
@@ -127,11 +129,14 @@ def main(argv):
     fig.suptitle(f"{place} (maille ERA5 {abs(glat):.2f} {ns}, {abs(glon):.2f} {ew}), {MONTHS[month - 1]} "
                  f"{CAL[0]}-{CAL[1]}", color=INK, x=0.01, ha="left", fontsize=12)
     FIG.mkdir(parents=True, exist_ok=True)
-    path = FIG / f"{name}_{place.lower()}_{month:02d}_violin.png"
+    path = FIG / f"{name}_{place.lower()}_{month:02d}_violin{'_test' if TEST else ''}.png"
     fig.savefig(path, dpi=120)
     print(path)
     print("moyenne ERA5 %.2f, CORDEX brut %.2f, CORDEX corrige %.2f" % (era.mean(), cor.mean(), fix.mean()))
     print("min ERA5 %.2f, brut %.2f, corrige %.2f" % (era.min(), cor.min(), fix.min()))
+    if v.wet:
+        print("seuil du modele %.2f %s, jours de pluie sur %d-%d : ERA5 %d, modele %d" % (
+            scale * cal["threshold"][0], unit, *CAL, cal["n_ref"][0], cal["n_hist"][0]))
     return 0
 
 

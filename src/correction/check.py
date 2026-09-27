@@ -26,11 +26,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.config import DATA
-from src.correction.qdm import DAY, OUT, SEED, VARS, apply, jitter, model, quantiles, reference, table
+from src.correction.qdm import DAY, OUT, TABLES, VARS, calibrate, correct, model, reference
 from src.correction.remap import load_weights, target as remapped
 
-FIG = DATA / "correction"
+FIG = TABLES
 
 
 def load(paths, name, cells):
@@ -70,7 +69,6 @@ def at_bound(x, v):
 def split_sample(name, cells):
     v = VARS[name]
     scale, unit = v.display[0], v.display[2].replace("°C", "K")  # differences
-    rng = np.random.default_rng(SEED)
     cal, val = range(1970, 1988), range(1988, 2006)
     ref_c, mc = reference(name, cal, cells)
     ref_v, mv = reference(name, val, cells)
@@ -89,10 +87,8 @@ def split_sample(name, cells):
         if v.derived:
             corr = cor_v[mv == m]
         else:
-            tab = table(quantiles(jitter(ref_c[mc == m], v, rng)),
-                        quantiles(jitter(hist_c[mc == m], v, rng)), v)
-            x = jitter(sim_v[mv == m], v, rng)
-            corr = apply(x, quantiles(x), tab, v)
+            x = sim_v[mv == m]
+            corr = correct(x, x, calibrate(ref_c[mc == m], hist_c[mc == m], v), v)
             cor_v[mv == m] = corr
         x = sim_v[mv == m]
         e = stats(ref_v[mv == m])
@@ -105,12 +101,12 @@ def split_sample(name, cells):
         print("%4d | %s" % (m, " | ".join(cols)))
         if m in (1, 7):
             maps += [(f"mois {m}, P95 brut - ERA5", e_raw[2]), (f"mois {m}, P95 corrige - ERA5", e_fix[2])]
-        if v.trace is not None:
-            extra.append((m, [100 * np.mean(a < v.trace) for a in (ref_v[mv == m], x, corr)]))
+        if v.wet is not None:
+            extra.append((m, [100 * np.mean(a < v.wet) for a in (ref_v[mv == m], x, corr)]))
         elif v.bounds != (None, None):
             extra.append((m, [at_bound(a, v) for a in (ref_v[mv == m], x, corr)]))
-    if v.trace is not None:
-        print(f"\nJours secs (< {v.trace * scale:g} {unit}), en %, moyenne sur les mailles")
+    if v.wet is not None:
+        print(f"\nJours secs (< {v.wet * scale:g} {unit}), en %, moyenne sur les mailles")
         print("mois | ERA5 | brut | corrige")
         for m, (e, r, c) in extra:
             print("%4d | %5.1f | %5.1f | %5.1f" % (m, e, r, c))
@@ -189,7 +185,7 @@ def indices(name, series, yv, mo):
 def change(fut, past, v):
     if v.kind == "add":
         return v.display[0] * (fut - past)
-    ok = past > (v.trace or 0)
+    ok = past > (v.wet or 0)
     return np.where(ok, 100 * (fut / np.where(ok, past, 1) - 1), np.nan)
 
 

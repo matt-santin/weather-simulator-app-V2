@@ -10,31 +10,51 @@ cell and each calendar month:
 
   - calibration, on CAL (1970-2005): NQ quantiles of ERA5 (Q_ref) and of
     CORDEX (Q_hist), and the bias table, b(tau) = Q_ref(tau) - Q_hist(tau)
-    (additive form) or r(tau) = Q_ref(tau) / Q_hist(tau) (multiplicative);
+    (additive form), or the pair Q_ref, Q_hist themselves (multiplicative);
   - correction of a day x of year Y: tau is the rank of x among the quantiles
     of CORDEX over the 30 years around Y (Y-15 to Y+14, held inside
-    1970-2100), and the corrected value is x + b(tau), or x * r(tau).
+    1970-2100), and the corrected value is x + b(tau), or
+    Q_ref(tau) * x / Q_hist(tau): the ERA5 quantile times the change the
+    model gives at that rank, capped at MAX_RATIO. Q_ref and Q_hist are read
+    at tau apart, not their ratio, which jumps between quantiles near 0.
 
 The change the model gives for each quantile is thus kept, as a difference or
 as a ratio, and only the bias of that quantile, measured on CAL, is removed.
 Beyond the extreme quantiles, the correction of the extreme quantile applies.
 
 VARS gives, for each variable, the ERA5 fields and their conversion to CORDEX
-units (and the CORDEX fields, for the albedo, computed from two of them), the form, the physical bounds the corrected values are clipped to, and
-for precipitation a trace amount: values under it, in ERA5 and CORDEX alike,
-are replaced by random values between 0 and the trace before the quantiles are
-taken, and corrected values under it are set to 0 (Cannon et al. 2015). The
-dry-day frequency is then corrected with the rest of the distribution.
+units (and the CORDEX fields, for the albedo, computed from two of them), the
+form and the physical bounds the corrected values are clipped to.
+
+Precipitation is corrected in two steps, occurrence then intensity (frequency
+adaptation of Themessl et al. 2012, as in xclim/xsdba, then QDM on wet days):
+
+  - occurrence: for each cell and month, the model threshold is the value
+    that leaves under it, on CAL, the share of days ERA5 has under its wet
+    threshold (1 mm/day). The same threshold serves 1970-2100, so the change in the
+    number of wet days the model gives is kept. Days under it are set to 0:
+    the days that switch are chosen by their amount, not at random. Where
+    the model has more days at exactly 0 than ERA5 has dry days, the
+    threshold is its smallest positive value: all its wet days are kept, and
+    it stays too dry;
+  - intensity: multiplicative QDM between the wet days of the model (at or
+    above the threshold) and those of ERA5 (at or above 1 mm/day), quantiles
+    taken without the dry days. Where ERA5 or the model has fewer than
+    MIN_WET wet days on CAL, wet days keep their raw amount.
 
 huss and rsus are not corrected here but rebuilt from corrected fields by
 src.correction.derive, which also puts right the days where tasmin > tasmax.
 
-Every year 1970-2100 is corrected; 1970-2005 serves for checks. The whole
-series is first packed into a memmap on the Mac (about 10 GB, deleted at the
-end), so that each month can be read across all years at once.
+Every year 1970-2100 is corrected; 1970-2005 serves for checks. With
+WSA_QDM_TEST=1, files and tables go to test folders (eur11_025_qdm_test,
+data/correction/test), which src.correction.check, spells and violin then
+read. The whole series is first packed into a memmap on the Mac (about
+10 GB, deleted at the end), so that each month can be read across all years
+at once.
 """
 
 import logging
+import os
 import sys
 import time
 from collections.abc import Callable
@@ -46,8 +66,9 @@ import xarray as xr
 from src.config import ARCHIVE, DATA
 from src.correction.remap import load_weights, target as remapped
 
-OUT = ARCHIVE / "cordex" / "eur11_025_qdm"
-TABLES = DATA / "correction"
+TEST = os.environ.get("WSA_QDM_TEST") == "1"
+OUT = ARCHIVE / "cordex" / ("eur11_025_qdm_test" if TEST else "eur11_025_qdm")
+TABLES = DATA / "correction" / ("test" if TEST else "")
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
 
 YEARS = range(1970, 2101)
@@ -55,8 +76,8 @@ CAL = (1970, 2005)
 WINDOW = 30
 NQ = 100
 LEVELS = (np.arange(NQ) + 0.5) / NQ
-MAX_RATIO = 10.0  # cap on r(tau), where Q_hist is close to 0
-SEED = 1  # the jitter under the trace amount is drawn the same on every run
+MAX_RATIO = 10.0  # cap on x / Q_hist(tau), the change the model gives, multiplicative form
+MIN_WET = 30  # wet days on CAL, in ERA5 and the model, under which amounts stay raw
 DAY = 86400.0
 
 
@@ -66,7 +87,7 @@ class Var:
     convert: Callable  # ERA5 fields, in that order, to the CORDEX variable and units
     kind: str  # "add" or "mul"
     bounds: tuple[float | None, float | None] = (None, None)
-    trace: float | None = None  # "mul" only, in CORDEX units
+    wet: float | None = None  # ERA5 wet-day threshold, in CORDEX units: occurrence then intensity
     display: tuple[float, float, str] = (1.0, 0.0, "")  # scale, offset, unit, for printing
     cordex: tuple[str, ...] | None = None  # remapped CORDEX fields, if not the variable itself
     from_cordex: Callable | None = None  # those fields, in that order, to the variable
@@ -88,7 +109,7 @@ VARS = {
     "tas": Var(("t2m",), same, "add", display=K),
     "tasmax": Var(("mx2t",), same, "add", display=K),
     "tasmin": Var(("mn2t",), same, "add", display=K),
-    "pr": Var(("tp",), lambda tp: tp * 1000 / DAY, "mul", (0, None), trace=1 / DAY,
+    "pr": Var(("tp",), lambda tp: tp * 1000 / DAY, "mul", (0, None), wet=1 / DAY,
               display=(DAY, 0, "mm/j")),
     "hurs": Var(("hurs",), same, "add", (0, 100), display=(1, 0, "%")),
     "huss": Var(("huss",), same, "mul", (0, None), display=(1000, 0, "g/kg"), derived=True),
@@ -136,33 +157,58 @@ def model(name: str, year: int) -> tuple[np.ndarray, xr.DataArray]:
     return x.astype("float32"), das[0]
 
 
-def jitter(x: np.ndarray, v: Var, rng: np.random.Generator) -> np.ndarray:
-    """Values under the trace amount replaced by random values in (0, trace)."""
-    if v.trace is None:
-        return x
-    low = x < v.trace
-    x = x.copy()
-    x[low] = rng.uniform(0, v.trace, low.sum()).astype(x.dtype)
-    return x
-
-
 def quantiles(x: np.ndarray) -> np.ndarray:
-    """(days, points) to (NQ, points), as np.quantile (linear) but 4 times faster."""
-    x = np.sort(x, axis=0)
-    pos = LEVELS * (x.shape[0] - 1)
+    """(days, points) to (NQ, points), as np.nanquantile (linear) but faster.
+
+    NaN (dry days, for precipitation) are left out; a point with no value
+    gets NaN quantiles.
+    """
+    x = np.sort(x, axis=0)  # NaN last
+    top = np.maximum((~np.isnan(x)).sum(0) - 1, 0)  # index of the last value, per point
+    pos = LEVELS[:, None] * top
     i = np.floor(pos).astype(int)
-    j = np.minimum(i + 1, x.shape[0] - 1)
-    w = (pos - i)[:, None].astype("float32")
-    return (1 - w) * x[i] + w * x[j]
+    j = np.minimum(i + 1, top)
+    w = (pos - i).astype("float32")
+    return (1 - w) * np.take_along_axis(x, i, axis=0) + w * np.take_along_axis(x, j, axis=0)
+
+
+def threshold(ref: np.ndarray, hist: np.ndarray, wet: float) -> np.ndarray:
+    """Model threshold (points,) leaving under it the share of days ERA5 has under wet."""
+    n = hist.shape[0]
+    dry = np.round((ref < wet).mean(0) * n).astype(int)  # model days to set dry
+    s = np.sort(hist, axis=0)
+    th = np.take_along_axis(s, np.minimum(dry, n - 1)[None], axis=0)[0]
+    th = np.where(dry < n, th, np.inf)
+    # Model too dry: not enough days above 0, all of them are kept.
+    smallest = np.where(s > 0, s, np.inf).min(0)
+    return np.maximum(th, smallest).astype("float32")
+
+
+def calibrate(ref: np.ndarray, hist: np.ndarray, v: Var) -> dict[str, np.ndarray]:
+    """Calibration of one month from ERA5 and CORDEX (days, points) on CAL:
+    quantiles of both, (NQ, points), and for precipitation the model threshold
+    and the number of wet days of each, (points,)."""
+    if v.wet is None:
+        return {"ref": quantiles(ref), "hist": quantiles(hist)}
+    th = threshold(ref, hist, v.wet)
+    ref_wet, hist_wet = ref >= v.wet, hist >= th
+    return {"ref": quantiles(np.where(ref_wet, ref, np.nan)),
+            "hist": quantiles(np.where(hist_wet, hist, np.nan)),
+            "threshold": th, "n_ref": ref_wet.sum(0), "n_hist": hist_wet.sum(0)}
 
 
 def table(ref_q: np.ndarray, hist_q: np.ndarray, v: Var) -> np.ndarray:
-    """Bias table: b(tau) for the additive form, r(tau) for the multiplicative."""
+    """Bias table: b(tau) (NQ, points) for the additive form, Q_ref and Q_hist
+    stacked (2, NQ, points) for the multiplicative."""
     if v.kind == "add":
         return ref_q - hist_q
-    # Where CORDEX is 0 (a night of the polar winter), there is nothing to scale.
-    r = np.where(hist_q > 0, ref_q / np.where(hist_q > 0, hist_q, 1), 1)
-    return np.clip(r, 0, MAX_RATIO).astype("float32")
+    return np.stack([ref_q, hist_q])
+
+
+def ratio(tab: np.ndarray) -> np.ndarray:
+    """r(tau) = Q_ref / Q_hist of a multiplicative table, for display."""
+    ref_q, hist_q = tab
+    return np.where(hist_q > 0, ref_q / np.where(hist_q > 0, hist_q, 1), 1)
 
 
 def rank(x: np.ndarray, q: np.ndarray) -> np.ndarray:
@@ -192,14 +238,34 @@ def lookup(table: np.ndarray, f: np.ndarray) -> np.ndarray:
 
 def apply(x: np.ndarray, sim_q: np.ndarray, tab: np.ndarray, v: Var) -> np.ndarray:
     """Days x (days, points) corrected, given the quantiles of their window."""
-    c = lookup(tab, rank(x, sim_q))
-    y = x + c if v.kind == "add" else x * c
-    if v.trace is not None:
-        y = np.where(y < v.trace, 0, y)
+    f = rank(x, sim_q)
+    if v.kind == "add":
+        y = x + lookup(tab, f)
+    else:
+        ref, hist = lookup(tab[0], f), lookup(tab[1], f)
+        # Where CORDEX is 0 (a night of the polar winter), there is nothing to scale.
+        change = np.clip(x / np.where(hist > 0, hist, 1), 0, MAX_RATIO)
+        y = np.where(hist > 0, ref * change, x)
     lo, hi = v.bounds
     if lo is not None or hi is not None:
         y = np.clip(y, lo, hi)
     return y.astype("float32")
+
+
+def correct(x: np.ndarray, win: np.ndarray, cal: dict[str, np.ndarray], v: Var) -> np.ndarray:
+    """Days x (days, points) of one month and year corrected, given the raw
+    CORDEX days of that month over their window, win, and the calibration."""
+    tab = table(cal["ref"], cal["hist"], v)
+    if v.wet is None:
+        return apply(x, quantiles(win), tab, v)
+    th = cal["threshold"]
+    y = np.where(x >= th, x, 0).astype("float32")
+    sim_q = quantiles(np.where(win >= th, win, np.nan))
+    # Enough wet days on CAL, and at least one in the window (then x has some).
+    ok = (cal["n_ref"] >= MIN_WET) & (cal["n_hist"] >= MIN_WET) & ~np.isnan(sim_q[0])
+    fixed = apply(x[:, ok], sim_q[:, ok], tab[:, :, ok], v)
+    y[:, ok] = np.where(x[:, ok] >= th[ok], fixed, 0)
+    return y
 
 
 def main(argv: list[str]) -> int:
@@ -208,10 +274,10 @@ def main(argv: list[str]) -> int:
         return 1
     name = argv[0]
     v = VARS[name]
-    rng = np.random.default_rng(SEED)
     _, keep = load_weights()
     cells = np.flatnonzero(keep.ravel())
     OUT.mkdir(parents=True, exist_ok=True)
+    TABLES.mkdir(parents=True, exist_ok=True)
 
     # All days of all years, as (days, cells), with their dates.
     days = np.concatenate([np.arange(f"{y}-01-01", f"{y + 1}-01-01", dtype="datetime64[D]")
@@ -232,21 +298,18 @@ def main(argv: list[str]) -> int:
     in_cal = (year >= CAL[0]) & (year <= CAL[1])
     log.info("ERA5 lu en %.0f s", time.time() - t0)
 
-    ref_q = np.empty((12, NQ, cells.size), "float32")
-    hist_q = np.empty((12, NQ, cells.size), "float32")
+    cal = []
     for m in range(1, 13):
         t0 = time.time()
-        ref_q[m - 1] = quantiles(jitter(era[era_month == m], v, rng))
         rows = np.flatnonzero(month == m)
-        raw = jitter(np.asarray(series[rows]), v, rng)  # windows are always read raw
-        hist_q[m - 1] = quantiles(raw[in_cal[rows]])
-        tab = table(ref_q[m - 1], hist_q[m - 1], v)
+        raw = np.asarray(series[rows])  # windows are always read raw
+        cal.append(calibrate(era[era_month == m], raw[in_cal[rows]], v))
         yr = year[rows]
         x = np.empty_like(raw)
         for y in YEARS:
             lo, hi = window(y)
             now = yr == y
-            x[now] = apply(raw[now], quantiles(raw[(yr >= lo) & (yr <= hi)]), tab, v)
+            x[now] = correct(raw[now], raw[(yr >= lo) & (yr <= hi)], cal[-1], v)
         series[rows] = x
         log.info("mois %02d corrige en %.0f s", m, time.time() - t0)
     del era
@@ -254,17 +317,21 @@ def main(argv: list[str]) -> int:
 
     grid = model(name, YEARS[0])[1]
     lat, lon = grid.latitude, grid.longitude
+    dims = {2: ("month", "cell"), 3: ("month", "quantile", "cell")}
+    tables = {k: np.stack([c[k] for c in cal]) for k in cal[0]}
     xr.Dataset(
-        {"ref": (("month", "quantile", "cell"), ref_q),
-         "hist": (("month", "quantile", "cell"), hist_q)},
+        {k: (dims[a.ndim], a) for k, a in tables.items()},
         coords={"month": np.arange(1, 13), "quantile": LEVELS, "cell": cells},
         attrs={"ref": f"ERA5 {', '.join(v.era5)}, in CORDEX units", "hist": f"CORDEX {name} remapped",
                "kind": v.kind, "period": f"{CAL[0]}-{CAL[1]}", "grid": "ERA5 0.25 deg",
                "cell": "flat index into (latitude, longitude)",
-               "latitude": lat.values, "longitude": lon.values},
+               "latitude": lat.values, "longitude": lon.values}
+        | ({"threshold": "model wet-day threshold", "n_ref": "ERA5 wet days on CAL",
+            "n_hist": "model wet days on CAL", "wet": f"ERA5 wet day: >= {v.wet:g}",
+            "quantiles": "wet days only"} if v.wet else {}),
     ).to_netcdf(TABLES / f"{name}_quantiles_{CAL[0]}-{CAL[1]}.nc")
 
-    form = "additive" if v.kind == "add" else f"multiplicative, ratio capped at {MAX_RATIO:g}"
+    form = "additive" if v.kind == "add" else f"multiplicative, model change capped at {MAX_RATIO:g}"
     for y in YEARS:
         src = model(name, y)[1]
         out = np.full((src.time.size, keep.size), np.nan, "float32")
@@ -276,7 +343,9 @@ def main(argv: list[str]) -> int:
             f"QDM {form} (Cannon 2015) against ERA5 {', '.join(v.era5)}, "
             f"{CAL[0]}-{CAL[1]}, per calendar month, {NQ} quantiles, "
             f"{WINDOW}-year sliding window"
-            + (f", trace amount {v.trace:g} {da.attrs.get('units', '')}" if v.trace else "")
+            + (f", occurrence first (model threshold matching ERA5 days under {v.wet:g} "
+               f"{da.attrs.get('units', '')}), then wet days only, raw amounts under "
+               f"{MIN_WET} wet days" if v.wet else "")
             + (f", clipped to {v.bounds}" if v.bounds != (None, None) else ""))
         path = OUT / remapped(name, y).name
         part = path.with_suffix(".part")
