@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.correction.qdm import CAL, LEVELS, OUT, VARS, model, quantiles, reference, table
+from src.correction.qdm import CAL, LEVELS, OUT, SEED, VARS, jitter, model, quantiles, reference, table
 from src.correction.remap import target as remapped
 
 FIG = Path(__file__).resolve().parents[2] / "figures" / "correction"
@@ -63,8 +63,11 @@ def main(argv):
     cor = scale * np.concatenate(cor) + offset
     fix = scale * np.concatenate(fix) + offset
     qe, qc = quantiles(era[:, None])[:, 0], quantiles(cor[:, None])[:, 0]
-    # The table in display units: offsets cancel in b, scales in r.
-    tab = table(((qe - offset) / scale)[:, None], ((qc - offset) / scale)[:, None], v)[:, 0]
+    # The table as qdm builds it, with the jitter under the trace amount, then
+    # in display units: offsets cancel in b, scales in r.
+    rng = np.random.default_rng(SEED)
+    tab = table(quantiles(jitter(((era - offset) / scale)[:, None], v, rng)),
+                quantiles(jitter(((cor - offset) / scale)[:, None], v, rng)), v)[:, 0]
     tab = scale * tab if v.kind == "add" else tab
     sign, tunit = ("b", unit.replace("°C", "K")) if v.kind == "add" else ("r", "")
 

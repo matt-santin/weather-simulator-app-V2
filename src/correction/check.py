@@ -9,6 +9,9 @@
    for bounded variables, the share of days at a bound. Derived variables
    (huss, rsus) are rebuilt from fields calibrated on 1970-2005: their files
    are compared as they are, so 1988-2005 is not independent there.
+   Then, on the same 1988-2005 series, indices of what the app will show
+   (hot days, frost days, dry spells, 5-day rainfall, day-to-day persistence),
+   each computed year by year and averaged over the years.
 2. Change signal: 2071-2100 against 1976-2005, raw against corrected, for the
    mean and the 95th percentile, as a difference (additive form) or in %
    (multiplicative). QDM should keep it.
@@ -24,7 +27,7 @@ import numpy as np
 import xarray as xr
 
 from src.config import DATA
-from src.correction.qdm import OUT, SEED, VARS, apply, jitter, model, quantiles, reference, table
+from src.correction.qdm import DAY, OUT, SEED, VARS, apply, jitter, model, quantiles, reference, table
 from src.correction.remap import load_weights, target as remapped
 
 FIG = DATA / "correction"
@@ -80,6 +83,8 @@ def split_sample(name, cells):
         print(f"Validation croisee (calibre 1970-1987, teste 1988-2005), ecart au ERA5 en {unit}")
     print("mois | moyenne brut/corrige (biais moyen, RMS sur les mailles) | P5 | P95")
     maps, extra = [], []
+    if not v.derived:
+        cor_v = np.empty_like(sim_v)
     for m in range(1, 13):
         if v.derived:
             corr = cor_v[mv == m]
@@ -88,17 +93,18 @@ def split_sample(name, cells):
                         quantiles(jitter(hist_c[mc == m], v, rng)), v)
             x = jitter(sim_v[mv == m], v, rng)
             corr = apply(x, quantiles(x), tab, v)
+            cor_v[mv == m] = corr
         x = sim_v[mv == m]
         e = stats(ref_v[mv == m])
-        raw, fix = scale * (stats(x) - e), scale * (stats(corr) - e)
+        e_raw, e_fix = scale * (stats(x) - e), scale * (stats(corr) - e)
         cols = []
         for k in range(3):
             cols.append("%+6.2f/%+6.2f (%5.2f/%5.2f)" % (
-                raw[k].mean(), fix[k].mean(), np.sqrt((raw[k] ** 2).mean()),
-                np.sqrt((fix[k] ** 2).mean())))
+                e_raw[k].mean(), e_fix[k].mean(), np.sqrt((e_raw[k] ** 2).mean()),
+                np.sqrt((e_fix[k] ** 2).mean())))
         print("%4d | %s" % (m, " | ".join(cols)))
         if m in (1, 7):
-            maps += [(f"mois {m}, P95 brut - ERA5", raw[2]), (f"mois {m}, P95 corrige - ERA5", fix[2])]
+            maps += [(f"mois {m}, P95 brut - ERA5", e_raw[2]), (f"mois {m}, P95 corrige - ERA5", e_fix[2])]
         if v.trace is not None:
             extra.append((m, [100 * np.mean(a < v.trace) for a in (ref_v[mv == m], x, corr)]))
         elif v.bounds != (None, None):
@@ -112,7 +118,72 @@ def split_sample(name, cells):
         print(f"\nJours a une borne {v.bounds}, en %, ERA5 | brut | corrige")
         for m, (e, r, c) in extra:
             print("%4d | %s | %s | %s" % (m, *(" ".join("%5.1f" % s for s in a) for a in (e, r, c))))
+    del ref_c, hist_c
+    yv = np.concatenate([np.full(366 if y % 4 == 0 else 365, y) for y in val])
+    indices(name, {"ERA5": ref_v, "brut": sim_v, "corrige": cor_v}, yv, mv)
     return maps
+
+
+def run_max(cond):
+    """Longest run of True along days, per cell."""
+    cur = np.zeros(cond.shape[1], "int32")
+    best = cur.copy()
+    for row in cond:
+        cur = (cur + 1) * row
+        np.maximum(best, cur, out=best)
+    return best
+
+
+def run_mean(cond):
+    """Mean length of the runs of True, per cell (0 where there is none)."""
+    starts = cond[0] + (cond[1:] & ~cond[:-1]).sum(0)
+    return np.where(starts > 0, cond.sum(0) / np.maximum(starts, 1), 0)
+
+
+def persistence(x, mo):
+    """Correlation of each day's anomaly (to its calendar-month mean) with the next."""
+    a = x.astype("float32")
+    for m in range(1, 13):
+        a[mo == m] -= a[mo == m].mean(0)
+    a0, a1 = a[:-1], a[1:]
+    return (a0 * a1).mean(0) / np.sqrt((a0 ** 2).mean(0) * (a1 ** 2).mean(0))
+
+
+C0, MM = 273.15, 1 / DAY  # 0 degC in K, 1 mm/day in kg m-2 s-1
+# name: [(label, function of one year (days, cells) to (cells,))]
+INDICES = {
+    "tasmax": [("jours Tx > 25 C (/an)", lambda x: (x > C0 + 25).sum(0)),
+               ("jours Tx > 30 C (/an)", lambda x: (x > C0 + 30).sum(0)),
+               ("Tx max de l'annee (C)", lambda x: x.max(0) - C0),
+               ("plus longue serie Tx > 30 C (j)", lambda x: run_max(x > C0 + 30))],
+    "tasmin": [("nuits tropicales Tn > 20 C (/an)", lambda x: (x > C0 + 20).sum(0)),
+               ("jours de gel Tn < 0 C (/an)", lambda x: (x < C0).sum(0)),
+               ("Tn min de l'annee (C)", lambda x: x.min(0) - C0),
+               ("plus longue serie de gel (j)", lambda x: run_max(x < C0))],
+    "pr": [("cumul annuel (mm)", lambda x: x.sum(0) * DAY),
+           ("jours >= 1 mm (/an)", lambda x: (x >= MM).sum(0)),
+           ("pluie max en 1 jour (mm)", lambda x: x.max(0) * DAY),
+           ("pluie max en 5 jours (mm)",
+            lambda x: np.lib.stride_tricks.sliding_window_view(x, 5, axis=0).sum(-1).max(0) * DAY),
+           ("plus longue serie seche (j)", lambda x: run_max(x < MM)),
+           ("duree moyenne des series seches (j)", lambda x: run_mean(x < MM))],
+}
+
+
+def indices(name, series, yv, mo):
+    """Indices per year, averaged over the years, then compared over the cells."""
+    rows = []
+    for label, f in INDICES.get(name, []):
+        val = {k: np.mean([f(x[yv == y]) for y in np.unique(yv)], axis=0) for k, x in series.items()}
+        rows.append((label, val))
+    rows.append(("persistance jour a jour", {k: persistence(x, mo) for k, x in series.items()}))
+    print("\nIndices 1988-2005 (par an, moyennes sur les annees) : moyenne sur les mailles "
+          "ERA5 | brut | corrige, puis RMS sur les mailles brut/corrige - ERA5")
+    for label, val in rows:
+        e = val["ERA5"]
+        rms = [np.sqrt(np.nanmean((val[k] - e) ** 2)) for k in ("brut", "corrige")]
+        print("%-38s %8.2f | %8.2f | %8.2f   (%6.2f/%6.2f)" % (
+            label, np.nanmean(e), np.nanmean(val["brut"]), np.nanmean(val["corrige"]), *rms))
 
 
 def change(fut, past, v):
