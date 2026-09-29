@@ -87,7 +87,7 @@ Calculées après le QDM par `python -m src.correction.derive <étape>` :
 
 L'écart résiduel aux extrêmes a deux causes. D'une part, chaque année est classée dans sa propre fenêtre de 30 ans, pas dans 1970-2005. D'autre part, les quantiles extrêmes reposent sur une dizaine de jours.
 
-Autres figures : `figures/correction/<variable>_paris_{01,07}_violin.png` pour `tasmax`, `tasmin`, `hurs` et `pr`. Pour `pr`, la courbe de droite porte sur le rang parmi les jours de pluie.
+Autres figures : `figures/correction/<variable>_paris_{01,07}_violin.png` pour `tasmax`, `tasmin`, `hurs` et `pr`. Pour `pr`, la courbe de droite porte sur le rang parmi les jours de pluie. Deux cas extrêmes de `pr` en janvier : `pr_coni_01_violin.png` (44,5 N 7,5 E), modèle bien trop sec, facteur de 3 à 80 selon le rang ; `pr_foret-noire_01_violin.png` (48,25 N 8,25 E), modèle deux fois trop pluvieux, facteur de 0,45 à 0,6.
 
 `python -m src.correction.violin <variable> 48.86 2.35 <mois> Paris`
 
@@ -245,7 +245,7 @@ Lecture :
 - Sur A, le corrigé reproduit ERA5, sauf le cumul de `pr` : +8 à +29 % au lieu de +15 à +38 %, la bruine étant mise à 0 (section 5).
 - ERA5 est trop froid sur Tx (−0,55 à −1,2 K), trop venteux (+0,3 à +0,7 m/s), trop pluvieux (+15 à +38 %) et trop lumineux hors été. Le corrigé en hérite. Au-delà du plancher (W1 de Tx : ERA5 1,0 à 1,3 K contre 0,4 à 0,8 K d'avril à septembre), l'écart est réel et pas seulement de l'échantillonnage.
 - Sur B, la correction divise les biais du brut par 3 à 5. Elle tient hors de l'échantillon de calage.
-- Défaut de tendance : en été, Tx corrigé −1,75 à −2,2 K et `rsds` −8 W/m², contre −1,2 K et −2 W/m² pour ERA5 sur A. Juillet : E-OBS se réchauffe de 1,35 K entre A et B, le modèle de 0,6 K. Même mécanisme que la non-stationnarité de `rsds` (section 5) : l'éclaircissement européen, absent du modèle. Fort en Europe de l'Est (−3 K en juillet).
+- Défaut de tendance : en été, Tx corrigé −1,75 à −2,2 K et `rsds` −8 W/m², contre −1,2 K et −2 W/m² pour ERA5 sur A. Juillet : E-OBS se réchauffe de 1,35 K entre A et B, le modèle de 0,6 K. Voir la non-stationnarité de `rsds` (section 5). Fort en Europe de l'Est (−3 K en juillet).
 - Novembre : −1,2 à −1,9 K sur les trois températures en B. Probablement de la variabilité naturelle (un seul membre), non vérifié.
 - `pr`, B : cumul corrigé +39 à +42 % en mars et avril, contre +21 à +29 % sur A. Non analysé.
 - Bruine (jours de 0,1 à 1 mm), A : E-OBS 4 à 6 % des jours, ERA5 24 à 31 %, corrigé 0. La bruine d'ERA5 est largement absente des stations.
@@ -260,6 +260,8 @@ Dans une partie des mailles, le modèle a une surface qu'ERA5 n'a pas, ou pas au
 Exemple, nord de l'Islande (66 N, 20 W), janvier, 2071-2100 contre 1976-2005 : P50 +6,8 K brut, +6,3 K corrigé ; P95 +2,5 K brut, +5,9 K corrigé. La table passe de +25 K pour les jours les plus froids à +3 K pour les jours médians, plus vite que la température du modèle ne monte : l'ordre des jours s'inverse (corrélation de rang brut/corrigé −0,43), et 24 % des jours de janvier 2071-2100 corrigés dépassent le maximum de janvier d'ERA5 (7,0 °C). Le 13/01/2080, −12,9 °C brut devient +10,7 °C.
 
 ![Nord de l'Islande, janvier, 2071-2100](../figures/correction/tas_islande-nord_01_futur_violin.png)
+
+Même maille sur 1970-2005, période de calibration : `tas_islande-nord_01_violin.png`.
 
 Étendue : 6 247 mailles sur 53 573 ont, au moins un mois, un biais au P5 de plus de 10 K qui dépasse de plus de 7 K celui du P95 (seuils arbitraires). 1 393 en mer, 543 sur les côtes (`lsm` de 0,5 à 0,9), 4 311 sur terre, surtout en Russie du Nord (2 729) et en Scandinavie (1 517). Le problème est donc surtout celui de la neige sur terre.
 
@@ -281,7 +283,7 @@ La forme additive pousse les journées très couvertes au-delà de 100 %, ramen�
 
 ### Non-stationnarité du biais : `rsds`, `hurs`
 
-En validation croisée, `rsds` corrigé reste trop sombre de 4 à 7 W/m² d'avril à août : ERA5 s'éclaircit entre 1970-1987 et 1988-2005 par rapport au modèle. Explication probable, à vérifier : la baisse des aérosols en Europe (éclaircissement), que RCA4, à aérosols constants, ne représente pas (Boé et al. 2020, Schumacher et al. 2024). Le même mécanisme sous-estime le réchauffement estival du modèle, de 1,5 à 2 K en fin de siècle en RCP8.5 selon Boé et al. La correction ne peut pas le rattraper : elle conserve le signal du modèle.
+En validation croisée, `rsds` corrigé reste trop sombre de 4 à 7 W/m² d'avril à août : ERA5 s'éclaircit entre 1970-1987 et 1988-2005 par rapport au modèle. Explication probable, à vérifier : la baisse des aérosols en Europe (éclaircissement), que RCA4, à aérosols constants, ne représente pas (Boé et al. 2020, Schumacher et al. 2024). Le même mécanisme sous-estime le réchauffement estival du modèle, de 1,5 à 2 K en fin de siècle en RCP8.5 selon Boé et al. La correction ne peut pas le rattraper : elle conserve le signal du modèle. Confirmé contre E-OBS sur 2006-2024 (section 4, « Validation contre E-OBS »).
 
 `hurs` : biais résiduel de +0,5 à +1 % d'avril à septembre, ERA5 s'asséchant sur terre entre les deux périodes, pas le modèle.
 
