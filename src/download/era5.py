@@ -70,7 +70,11 @@ DAILY = {
     "istl1": (["istl1"], "mean"),
 }
 # Fields that do not change in time: one hour is read, 1970-01-01 00h.
-FIXED = {"lsm": "land-sea mask, fraction of land"}
+FIXED = {
+    "lsm": ("1", "land-sea mask, fraction of land"),
+    # Orography: altitude of the ERA5 cells, to set against the station grid of E-OBS.
+    "z": ("m2 s-2", "surface geopotential"),
+}
 SHIFTED = {"tp", "ssrd", "strd", "ssr", "e", "mx2t", "mn2t"}
 # Fields that share hourly sources are computed together, so that dask reads
 # each chunk once: t2m, d2m and sp would otherwise be billed two or three times.
@@ -156,7 +160,8 @@ def fixed(sources: dict[str, xr.Dataset], name: str) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     da = box(sources["single"][name].sel(valid_time="1970-01-01T00")).drop_vars(
         "valid_time").astype("float32").compute()
-    da.attrs = {"units": "1", "long_name": FIXED[name], "source": "ERA5, Earth Data Hub"}
+    units, long_name = FIXED[name]
+    da.attrs = {"units": units, "long_name": long_name, "source": "ERA5, Earth Data Hub"}
     part = out.with_suffix(".part")
     da.to_netcdf(part)
     part.rename(out)

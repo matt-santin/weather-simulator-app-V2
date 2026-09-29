@@ -111,7 +111,7 @@ Pourquoi deux tables : sur ses propres années de calibration, la correction rep
 
 Conséquences :
 - les résultats du test sont un peu pessimistes : 18 ans de calibration au lieu de 36, donc plus de bruit d'échantillonnage dans la table ;
-- on suppose que la table de production, sur 36 ans, fera au moins aussi bien sur les années futures. Supposition, pas preuve : la table de production n'a jamais été testée sur des années indépendantes. E-OBS, disponible après 2005, permettrait de la tester sur 2006-2024 (proposé, non décidé).
+- la table de production, sur 36 ans, est testée sur 2006-2024 contre E-OBS, des stations indépendantes d'ERA5 (voir « Validation contre E-OBS »).
 
 ### Contrôles
 
@@ -213,6 +213,44 @@ Signal : au P95, écart brut/corrigé jusqu'à 7,9 K en hiver, dans les mailles 
 
 Sorties : `check_pr.log`, `pr_spells.log`, `pr_analyse.log` (signal en montagne, jours qui basculent, mailles sèches), `pr_series_seches.log`.
 
+### Validation contre E-OBS
+
+`python -m src.correction.eobs <variable>`, sorties dans `data/correction/<variable>_eobs.log` et `<variable>_eobs.png` (cartes du biais de la moyenne, janvier et juillet). 2 min 30 s par variable.
+
+E-OBS v33.0e (KNMI, ECA&D) : analyse sur grille des stations européennes, 0,25°, 1950-2025, téléchargée par `python -m src.download.eobs`. Sept variables comparables : `tas`, `tasmax`, `tasmin`, `pr`, `hurs`, `sfcWind` (à partir de 1980), `rsds`. Les autres n'existent pas dans E-OBS (`pp` est réduite au niveau de la mer, non comparable à `ps`).
+
+Méthode :
+- chaque maille ERA5 reçoit la moyenne des 4 mailles E-OBS qui l'entourent (grilles décalées d'une demi-maille), si au moins 3 sont valides ce jour-là ;
+- les jours manquants dans E-OBS sont retirés d'ERA5 et de CORDEX à la même date ; une maille compte pour un mois si E-OBS en a au moins 80 % des jours ;
+- seules les distributions sont comparées, par maille et par mois : CORDEX ne suit pas la météo réelle au jour le jour ;
+- A, 1970-2005 : ERA5, brut et corrigé contre E-OBS. Le corrigé reproduit ERA5 par construction ; A mesure l'écart entre ERA5, cible de la correction, et les stations. Plancher : E-OBS d'une moitié des années, tirées au hasard, contre l'autre moitié (un découpage chronologique ajoutait le réchauffement de A, +1 à +1,9 K) ;
+- B, 2006-2024 : brut et corrigé contre E-OBS, années jamais vues par la correction. Pas d'ERA5 ni de plancher. L'écart mêle l'erreur de la correction, l'écart ERA5/E-OBS (lu sur A), l'erreur de tendance du modèle et 19 ans de variabilité naturelle.
+
+Régions retenues : Europe terre et nord de 60 N. Écartés : la mer (139 mailles côtières, estimées à partir de stations à terre) et le sud de 35 N (réseau de stations clairsemé et changeant : environ 2 000 mailles valides sur A, 735 sur B ; Tx de juillet baisse de 3,5 K entre A et B sur les mailles communes). Sous-ensemble à faible dispersion de l'ensemble E-OBS (`tasmax`, `tasmin`, `pr` : la moitié des mailles les plus sûres) : mêmes conclusions.
+
+Europe terre, biais de la moyenne (modèle moins E-OBS), plage sur les 12 mois :
+
+| Variable | A : ERA5 | B : brut | B : corrigé |
+|---|---|---|---|
+| `tas` (K) | +0,05 à +0,3 | −0,6 à −3,3 | −1,3 à +0,6 |
+| `tasmin` (K) | −0,15 à +0,9 | −0,5 à −3,8 | −1,2 à +0,8 |
+| `tasmax` (K) | −0,55 à −1,2 | −0,8 à −4,1 | 0 à −2,2 |
+| `hurs` (%) | −1,3 à +0,9 | −1,1 à +7,9 | −0,6 à +1,5 |
+| `sfcWind` (m/s) | +0,3 à +0,7 | +1,1 à +2,0 | +0,3 à +0,8 |
+| `rsds` (W/m²) | −2 à +15 | +13 à +29 | −8 à +6 |
+| `pr`, jours ≥ 1 mm (points) | +3 à +9 | +3 à +11 | +0,5 à +12,5 |
+| `pr`, cumul (%, médiane) | +15 à +38 | +12 à +59 | 0 à +42 |
+
+Lecture :
+- Sur A, le corrigé reproduit ERA5, sauf le cumul de `pr` : +8 à +29 % au lieu de +15 à +38 %, la bruine étant mise à 0 (section 5).
+- ERA5 est trop froid sur Tx (−0,55 à −1,2 K), trop venteux (+0,3 à +0,7 m/s), trop pluvieux (+15 à +38 %) et trop lumineux hors été. Le corrigé en hérite. Au-delà du plancher (W1 de Tx : ERA5 1,0 à 1,3 K contre 0,4 à 0,8 K d'avril à septembre), l'écart est réel et pas seulement de l'échantillonnage.
+- Sur B, la correction divise les biais du brut par 3 à 5. Elle tient hors de l'échantillon de calage.
+- Défaut de tendance : en été, Tx corrigé −1,75 à −2,2 K et `rsds` −8 W/m², contre −1,2 K et −2 W/m² pour ERA5 sur A. Juillet : E-OBS se réchauffe de 1,35 K entre A et B, le modèle de 0,6 K. Même mécanisme que la non-stationnarité de `rsds` (section 5) : l'éclaircissement européen, absent du modèle. Fort en Europe de l'Est (−3 K en juillet).
+- Novembre : −1,2 à −1,9 K sur les trois températures en B. Probablement de la variabilité naturelle (un seul membre), non vérifié.
+- `pr`, B : cumul corrigé +39 à +42 % en mars et avril, contre +21 à +29 % sur A. Non analysé.
+- Bruine (jours de 0,1 à 1 mm), A : E-OBS 4 à 6 % des jours, ERA5 24 à 31 %, corrigé 0. La bruine d'ERA5 est largement absente des stations.
+- `hurs` : E-OBS perd environ 2 400 mailles valides entre A et B ; `rsds` : 10 000 à 12 500 mailles valides seulement.
+
 ## 5. Défauts connus
 
 ### Neige et glace (`tas`, `tasmax`, `tasmin`) : à traiter
@@ -264,7 +302,7 @@ W1 sur les jours de pluie, Europe terre : le corrigé fait moins bien que le bru
 | juillet | 5 585, 1,07 → 1,51 | 9 734, 2,2 → 1,5 à 1,6 |
 | octobre | 7 443, 1,02 → 1,47 | 9 138, 1,6 à 2,1 → 1,5 à 1,7 |
 
-Le corrigé se place vers 1,3 à 1,6 fois le plancher quel que soit le brut : il améliore les mailles biaisées (61 à 74 % des mailles améliorées) et dégrade les mailles justes (16 à 24 % améliorées). Le 9e décile passe de 3,0-3,8 à 2,4-3,1 fois le plancher, la part des mailles au-delà de 2 fois le plancher de 21-40 % à 18-30 %. Janvier : Russie et Ukraine, brut juste (0,70 fois le plancher), corrigé 1,42 ; Alpes, 1,59 et 1,21. Script : `pr_mailles.py` (bloc-notes, non versionné).
+Le corrigé se place vers 1,3 à 1,6 fois le plancher quel que soit le brut : il améliore les mailles biaisées (61 à 74 % des mailles améliorées) et dégrade les mailles justes (16 à 24 % améliorées). Le 9e décile passe de 3,0-3,8 à 2,4-3,1 fois le plancher, la part des mailles au-delà de 2 fois le plancher de 21-40 % à 18-30 %. Janvier : Russie et Ukraine, brut juste (0,70 fois le plancher), corrigé 1,42 ; Alpes, 1,59 et 1,21. Script : `data/correction/pr_mailles.py` (non versionné).
 
 La calibration définitive porte sur 36 ans, deux fois plus de jours : le bruit y est plus faible que dans ce test. Pistes, non décidées : calibrer chaque mois avec les mois voisins (fenêtre de 3 mois, trois fois plus de jours), réduire le nombre de quantiles, ne corriger l'intensité que là où le biais dépasse le bruit. Les autres variables sont probablement concernées dans une moindre mesure (`hurs`, `clt` : corrigé à 1,3 fois le plancher). Cartes : `pr_scores.png`.
 
@@ -281,7 +319,7 @@ Les jours sous le seuil sont mis à 0 ; la bruine d'ERA5 (jours de 0 à 1 mm) n'
 
 Moyenne corrigée trop basse de 6,5 % en janvier, 4,5 % en juillet. Sur 1988-2005, le corrigé est au contraire trop pluvieux (janvier +13 %, juillet +4 %) : il garde l'évolution du modèle, qui gagne des jours de pluie quand ERA5 en perd.
 
-Options : (1) multiplier les jours de pluie par le rapport cumul total / cumul des jours ≥ 1 mm d'ERA5, par maille et par mois ; (2) seuil à 0,1 mm, au risque de reproduire la bruine excessive des réanalyses (51 % des jours de janvier dans ERA5) ; (3) accepter. Script : `pr_signe.py` (bloc-notes, non versionné).
+Options : (1) multiplier les jours de pluie par le rapport cumul total / cumul des jours ≥ 1 mm d'ERA5, par maille et par mois ; (2) seuil à 0,1 mm, au risque de reproduire la bruine excessive des réanalyses (51 % des jours de janvier dans ERA5) ; (3) accepter. Script : `data/correction/pr_signe.py` (non versionné).
 
 ### Persistance de `alb`
 
@@ -350,7 +388,7 @@ Classes proposées, seuils à fixer : vert au-dessus de 0,5, orange de 0 à 0,5,
 
 ## 8. État
 
-Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
+Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Au 29/09/2026 : 7 variables validées contre E-OBS sur 1970-2005 et 2006-2024. Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
 
 Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le Mac se met en veille profonde, ce qui suspend le calcul et peut provoquer un message de disque mal éjecté. Durées observées : remappage 8 min par variable, QDM 32 à 43 min, `check` 4 à 8 min, `scores` 2 à 5 min.
 
@@ -363,6 +401,8 @@ Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le 
 | `data/correction/remap.log`, `qdm_<variable>.log`, `derive_<étape>.log` | journaux des calculs |
 | `data/correction/check_<variable>.log`, `<variable>_validation.png` | contrôles |
 | `data/correction/scores_<variable>.log`, `<variable>_scores.png` | distance aux distributions (W1) et cohérence spatiale |
+| `data/correction/<variable>_eobs.log`, `<variable>_eobs.png` | validation contre E-OBS |
+| `data/eobs/` | E-OBS v33.0e, moyenne d'ensemble, dispersion (`tx`, `tn`, `rr`), altitude ; archivé sur le LaCie |
 | `data/correction/pr_spells.log`, `pr_spells.png`, `pr_analyse.log`, `pr_series_seches.log` | contrôles propres à `pr` ; `*_v2` : version 2 |
 | `figures/correction/` | figures de distribution (`violin.py`) |
 | `LaCie/.../cordex/eur11_025/` | CORDEX remappé à 0,25°, brut |
