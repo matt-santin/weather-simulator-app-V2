@@ -6,7 +6,8 @@
 Run from the repo root, with the drive plugged in. Downloads keep landing in
 ./data on the Mac, so the drive need not stay plugged in.
 
-Every .nc file under DATA is copied to the same path under ARCHIVE, read back
+Every .nc file under DATA, and every file inside a .zarr folder (the serving
+store, src.store.build), is copied to the same path under ARCHIVE, read back
 from the drive and compared with the local one by MD5, then listed in MANIFEST.
 Only a file listed there is ever deleted from the Mac. The downloaders read
 MANIFEST, so they skip what is on the drive.
@@ -15,6 +16,9 @@ A file younger than SETTLE seconds is left alone: CORDEX extracts straight to
 the final name, so a young file may still be written. Folders whose name starts
 with "_" (tests) stay on the Mac. Logs and provenance notes are copied at every
 run and never deleted.
+
+A .zarr store can be rebuilt: its files are copied again when their MD5 no
+longer matches the one in MANIFEST.
 """
 
 import fcntl
@@ -51,6 +55,19 @@ def local(pattern: str) -> list[tuple[Path, Path]]:
     return out
 
 
+def stores() -> list[tuple[Path, Path]]:
+    """Files inside .zarr folders under DATA."""
+    return [(p, rel) for p, rel in local("*")
+            if p.is_file() and any(part.endswith(".zarr") for part in rel.parts)]
+
+
+def digests() -> dict[str, str]:
+    """Archived files, as path relative to DATA: MD5, the last one listed."""
+    if not MANIFEST.exists():
+        return {}
+    return {rel: md5 for rel, _, md5 in (l.split("\t") for l in MANIFEST.read_text().splitlines())}
+
+
 def copy(src: Path, dst: Path) -> None:
     # copyfile moves the data only: no extended attributes, so no "._" files
     # on the exFAT drive. The .part name keeps a cut copy from passing as whole.
@@ -66,10 +83,12 @@ def main(argv: list[str]) -> int:
         print(f"Disque absent : {ARCHIVE.parents[1]} introuvable.")
         return 1
 
-    done = archived()
-    files = [(p, rel) for p, rel in local("*.nc") if time.time() - p.stat().st_mtime >= SETTLE]
-    todo = [(p, rel) for p, rel in files if str(rel) not in done]
-    print(f"{len(files)} fichiers .nc sur le Mac, {len(todo)} a archiver, "
+    done, md5s = archived(), digests()
+    files = [(p, rel) for p, rel in local("*.nc") + stores()
+             if time.time() - p.stat().st_mtime >= SETTLE]
+    todo = [(p, rel) for p, rel in files
+            if str(rel) not in done or (".zarr" in str(rel) and digest(p) != md5s[str(rel)])]
+    print(f"{len(files)} fichiers .nc et .zarr sur le Mac, {len(todo)} a archiver, "
           f"{sum(p.stat().st_size for p, _ in todo) / 1e9:.1f} Go", flush=True)
 
     t0, moved, failed = time.time(), 0, []
