@@ -1,0 +1,2556 @@
+/*
+ * One sheet, built on custom properties. Every rule reads a token and none
+ * holds a raw value, so a reskin moves numbers at the top rather than hunting
+ * through the file.
+ *
+ * **One theme, and it is dark.** Not a preference honoured but a decision: the
+ * page has one look, warm near-black under ivory. `color-scheme` is declared so
+ * that what the browser draws itself — the date pickers, the scrollbars, the
+ * focus rings — comes out dark too rather than flashing white in the middle of
+ * it.
+ *
+ * Four habits carry the look, and they are the whole of it:
+ *
+ * **Nothing is in a box.** No panel, no card around the form, no shadow. A
+ * field is a line of type with a hairline under it. What separates two things
+ * is space, and where space is not enough, one rule of one pixel.
+ *
+ * **Two type registers.** A serif for everything the visitor reads as content —
+ * titles, what they type, the temperatures. A sans, small and letterspaced and
+ * in capitals, for everything that only names a thing: field labels, measure
+ * labels, the button. The second register never competes with the first.
+ *
+ * **Air.** The vertical rhythm is deliberately loose; the reference this was
+ * drawn from breathes more than it shows.
+ *
+ * **No saturated colour.** The two temperatures keep a warm and a cool, both
+ * muted to earth, because position and a spoken label carry that distinction
+ * too — colour is never alone in saying anything here. The only pure colour on
+ * the page is the emoji, and that is the point of it.
+ */
+
+@font-face {
+  font-family: "Inter";
+  src: url("/static/fonts/inter.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+/* Two files, not one, and the second is the point: EB Garamond ships a drawn
+   italic, where the sheet used to leave the browser to slant the roman itself.
+   The promise under the question is set in it, and a real italic is a different
+   alphabet rather than the same one pushed over. */
+@font-face {
+  font-family: "EB Garamond";
+  src: url("/static/fonts/eb-garamond.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  src: url("/static/fonts/eb-garamond-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  --paper: #17140f;
+  --ink: #ece7dd;
+  --ink-soft: #8d867a;
+  --rule: #332e26;
+  --rule-strong: #5a5245;
+  /* The submit band, translucent on purpose — see the rule near the bottom of
+     the form section. Burnt brown rather than the earth grey it replaces, and
+     an edge drawn in the page's own ivory. */
+  --button: rgb(28 14 6 / 45%);
+  --button-hover: rgb(28 14 6 / 62%);
+  --button-edge: rgb(236 231 221 / 22%);
+  /* The mode bands, lighter than the submit one and deliberately so. At 45 %
+     they sit high enough on the sky to composite over blue rather than over the
+     sunset, and they read as two slabs pasted on the photograph — the very
+     thing the submit band gave up its opaque fill to avoid. At 24 % the sky
+     goes through them and they are still measured, not hoped for: 9,7:1 at
+     rest. Choosing one deepens it to the submit band's own fill, so the ratio
+     rises on the way in and the chosen band weighs what the action weighs. */
+  --mode: rgb(28 14 6 / 24%);
+  --raised: #1e1a15;
+  /* The candidate list is the one thing on the site that covers another
+     control, and it covers it whole. Ninety-seven percent was tried and looks
+     opaque on paper — the date underneath measured 1.06:1 against the panel —
+     but the ratio is the wrong instrument here: it is built for text on a
+     ground, and six levels apart down in the shadows is plainly legible. The
+     eye resolves in the dark what the formula rounds away.
+     The home page overrides this with the sunset's own foot; this neutral is
+     what any page without a sky would get. */
+  --overlay: var(--raised);
+  /* A shade apart, not a wash of colour. Scrolled past the written seam, a
+     card must still say which side of it it is on. */
+  --raised-simulated: #241f18;
+
+  /* Muted to earth. Doubled by position — minimum left, maximum right — and by
+     a label read aloud, so neither ever carries the distinction alone. */
+  --warm: #c98a5e;
+  --cool: #8fa6ae;
+
+  --space: 4px;
+  --width: 1100px;
+  --measure: 62ch;
+  /* The home column: the promise, the form, and the note at the foot. Narrower
+     than the reading measure, and deliberately — set to 62ch they sprawl under
+     a heading that runs edge to edge.
+     It was 30rem while it held short lines and three fields only. The note is
+     the first prose to join it, and 30rem broke it over four lines with three
+     words alone on the last; 33rem carries it in three. That is the ceiling
+     rather than a preference — a hair more and the column passes the reading
+     measure it is defined against. */
+  --column: 33rem;
+  --card: 13rem;
+
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Garamond before Georgia: the fallbacks are ordered by how little the page
+     moves if the file has not arrived, and Georgia is the closest thing to a
+     Garamond that a machine is likely to already have. */
+  --font-display: "EB Garamond", Garamond, Georgia, "Times New Roman", serif;
+
+  /* The small-capitals register, in one place: labels, the button, the seam. */
+  --label-size: 0.6875rem;
+  --label-tracking: 0.14em;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/*
+ * `hidden` wins over any layout this sheet sets. The browser's own
+ * `[hidden] { display: none }` weighs the same as a class selector and an
+ * author sheet outranks it, so `.chosen { display: flex }` quietly un-hid the
+ * element — the "changer" button was on screen from the first paint.
+ */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  /* `vw` counts the scrollbar, so the full-bleed heading comes out a scrollbar
+     wider than the room it has. Invisible on macOS, where scrollbars overlay
+     and measure nothing; a horizontal scrollbar everywhere else. `clip` rather
+     than `hidden`, which would make this a scroll container and break
+     `position: sticky` for anything added later. */
+  overflow-x: clip;
+  padding: calc(var(--space) * 16) calc(var(--space) * 6) calc(var(--space) * 20);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The sky, on the home page alone.
+ *
+ * Written as a gradient rather than served as the mock-up's PNG: the photograph
+ * carries no detail — it is a smooth wash — so the stops below, sampled every
+ * ten percent of its height, reproduce it exactly for no bytes at all and stay
+ * sharp on a display of any density. A 540-pixel-wide image stretched across a
+ * 5K screen would not.
+ *
+ * **Anchored to the document, not to the window.** `fixed` was the first
+ * instinct — the sky staying put while the page moves — and it makes the
+ * colour under any given element depend on the height of the reader's window.
+ * Measured under the footer warning, it ran from #d89470 on a 700-pixel window
+ * to #124a73 on a 2000-pixel one: the bright band at one size, deep blue at
+ * another. No single ink serves both. Left to scroll with the document, the
+ * same spot is #e28f5b at every height tried, and the ink below can be chosen
+ * rather than hoped for.
+ *
+ * **Nothing is laid over it.** A darkening scrim was tried and dropped: it buys
+ * contrast by muddying the photograph, which is the wrong currency. Legibility
+ * is bought with ink instead — the two overrides below, and the warning, which
+ * goes dark because it is the one thing that always sits on the bright band.
+ * Every figure here was measured against the gradient as rendered.
+ */
+body.home {
+  /* The muted ink was set against flat paper and does not survive a sky:
+     measured over the gradient it fell to 3.8:1 on the promise. Lifted here, on
+     this page alone — twice, the second time because shortening the page to fit
+     a window slid the form down onto lighter blue and took the small field
+     labels to 4.4:1. Layout and legibility are the same question here, and only
+     a measurement asks it. Hierarchy still holds: these labels are eleven
+     pixels, letterspaced and capitalised, which separates them from the text
+     they name more surely than a tone does. */
+  --ink-soft: #dad3c6;
+  --rule: #6b6153;
+
+  /* The foot of the sunset, lifted out of the gradient because a second thing
+     reads it now: the candidate panel below borrows this exact colour, and a
+     panel meant to be the sky's own dark would drift the day someone resampled
+     the photograph and edited only the stop. Served, not copied. */
+  --sky-foot: #27030a;
+
+  /* Declared once, painted twice: the still layer and the shimmering copy over
+     it read the same variable, so the sky cannot come to exist in two versions
+     that drift apart. */
+  --sky: linear-gradient(
+    to bottom,
+    #011b3c 0%,
+    #00264b 10%,
+    #01345c 20%,
+    #08426b 30%,
+    #1b527a 40%,
+    #3b6187 50%,
+    #5f7090 60%,
+    #908490 70%,
+    #cf9880 80%,
+    #f58738 90%,
+    var(--sky-foot) 100%
+  );
+
+  /* On this page the overlay stops being a neutral dark and becomes the sky's
+     own: the panel reads as the sunset's deepest tone brought forward, not as a
+     piece of the results page laid on the photograph. The same reasoning that
+     took the earth grey off the button. */
+  --overlay: var(--sky-foot);
+
+  background-color: var(--paper);
+  /* The layer below is absolutely positioned against this. */
+  position: relative;
+}
+
+/* The sky layer: the document's height, behind everything, and out of the flow
+   so it costs the flex column nothing. Absolute rather than fixed, which is
+   what keeps the gradient anchored to the document — see above. */
+.sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--sky);
+  background-repeat: no-repeat;
+}
+
+/*
+ * The results page, on the season it was asked about.
+ *
+ * **Four grounds, one structure.** `season.js` counts the days of the range —
+ * the season holding most of them wins — and writes `data-season` on the body
+ * before the first paint. Everything below reads that attribute; nothing in this
+ * sheet knows a date.
+ *
+ * **This page inverts as it descends, and that is the whole difficulty.** The
+ * home sky runs dark-to-bright and one ivory serves the lot. Here the first
+ * screen is near-white and the last near-black, on all four seasons. No single
+ * ink serves both ends, so the ink is dark by default and turns pale where the
+ * ground goes dark, at the provenance. Every figure is measured on the render;
+ * the tables are in scripts/ink_contrast.md.
+ *
+ * What this block holds is what does not touch the ground. What the season
+ * changes is six tokens, below.
+ */
+body.results {
+  /* The cards are the one white in the project, and they have to be: a card is
+     what the eye lands on, and on this ground nothing quieter would hold. White
+     on all four seasons, which is also what keeps the two temperatures out of
+     the palettes — they are measured against a card, not against a sky. */
+  --raised: #fffdf7;
+  --raised-simulated: #fdefdc;
+
+  /* The mock-up's two, and they are saturated where the rest of the site is
+     not. On a white card they are unambiguous, which is what the page needs:
+     these two numbers are what a read comes for. */
+  --warm: #d40000;
+  --cool: #0044aa;
+
+  /* The compared year, and it sits here beside the other two for the reason
+     they do: it is a colour of the chart, and the chart is on paper that does
+     not turn with the season. Written as an ink that rotates it would be a
+     seventh seasonal variable, and the six are six.
+
+     Grey and only grey, because the compared year says nothing about warm or
+     cool: it is the ground the two saturated curves are read against. Dark
+     enough to be followed across ninety days at one pixel, light enough that
+     the eye never takes it for the subject.
+
+     **The first try was #9b948a and it measured 2,95:1 on the card's paper**,
+     just under the 3:1 a line meant to be followed needs — a curve is not text,
+     but it is not decoration either, and at one pixel it has nothing else to
+     hold it. This one is 3,44:1, and it stays subordinate by being thinner and
+     desaturated rather than by being faint. */
+  --past: #8f8880;
+
+  /* The band between its two readings, declared here rather than written as an
+     opacity on the shape — the legend beside the chart has to show the same
+     wash, and a 22 % kept in two places is the second copy this whole project
+     is organised against. It lands on #ebe8e2 over the card's paper. */
+  --past-fill: color-mix(in srgb, var(--past) 22%, transparent);
+
+  /* Narrower than the dark card was, and narrower again since. The mock-up's
+     are portrait, and a portrait card puts the two temperatures under the
+     pictogram instead of beside it — which is what buys the room to set them
+     large. The width is what the widest line inside actually needs: "100 km/h"
+     at its size, plus the padding, and nothing spare. */
+  --card: 8.25rem;
+
+  /* Served, not copied: this is the gradient's own first stop, and the sky layer
+     stops where the document does. The same reasoning as `--sky-foot` on the
+     home page, from the other end. */
+  background-color: var(--sky-head);
+  position: relative;
+  color: var(--ink);
+
+  /*
+   * Tighter than the shared rhythm, and for a reason the home page does not
+   * have: this page is meant to be seen whole. It carries a fixed set of blocks
+   * — a heading, a warning, one strip, one folded note — and the strip scrolls
+   * sideways rather than down, so nothing is gained by putting part of it below
+   * the fold. Measured at 893 px against the shared spacing, which fits a
+   * 960-pixel window exactly and overran a 800-pixel one by 93.
+   *
+   * The air comes off the two ends, where there is nothing to separate, before
+   * it comes off the gaps between blocks.
+   */
+  padding-top: calc(var(--space) * 12);
+  padding-bottom: calc(var(--space) * 10);
+
+  /*
+   * The page is the window, exactly as the home page is, and for a second
+   * reason on top of the first.
+   *
+   * The first is a hole: the sky layer is `inset: 0` on this element, so it
+   * stops where the content stops. Trimmed to 789 px in a 960-pixel window,
+   * the gradient ended 171 px above the bottom edge and left a band of bare
+   * cream under it.
+   *
+   * The second is why the provenance is pushed down rather than merely
+   * followed. It is the one block on this page that reads pale, and it can do
+   * that only where the gradient has gone dark. Left to sit under the strip, a
+   * tall window would stretch the gradient beneath it and land it on orange,
+   * where pale ink is unreadable — the failure the home page's own note
+   * describes from the other side. Held at the foot, it is at 100 % of the
+   * gradient whatever the window, and its ink can be chosen instead of hoped
+   * for.
+   */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * The four palettes.
+ *
+ * Six tokens each and no more: the gradient, its head, and the four inks that
+ * sit on it. Everything else on this page is the same whatever the season,
+ * because everything else is drawn on a card rather than on the sky.
+ *
+ * **Summer is read, the other three are drawn.** Its eleven stops were decoded
+ * from the raster embedded in design/summer_result.svg and sampled every ten
+ * percent. There is no mock-up for the other three, and inventing eleven stops
+ * for them would be a precision that measured nothing — they carry five, chosen
+ * for the hue of the middle. That middle stop is the whole of the work: white to
+ * brown interpolated in sRGB passes through a dirty beige, and white to navy
+ * through a dead grey. Left to two stops these would be washes of nothing.
+ *
+ * **The shape is summer's, and it has to be.** Light down to the middle, the
+ * darkening concentrated past 70 %. That is what carries the bare date above a
+ * card — measured on summer at 6,6:1, and the same spot gives 10,7 on winter,
+ * 11,8 on spring and 10,2 on autumn — and it is what lets the provenance stay
+ * pale at the foot on all four, where white measures between 9,6 and 20,8.
+ *
+ * **The secondary ink is barely softer than the ink**, on all four and for the
+ * reason summer established: it lands on the saturated middle of the gradient,
+ * where a tone that reads as secondary falls to 2,6:1. What separates those
+ * texts from what they name is their form — eleven pixels, letterspaced,
+ * capitalised — exactly as on the home page. Hierarchy carried by form when tone
+ * can no longer afford it.
+ *
+ * The full table is in scripts/ink_contrast.md, and `scripts/ink_contrast.py`
+ * re-measures it on the render whenever one of these numbers moves.
+ */
+
+/* Winter, 21 December to 20 March. White above, deep blue below. */
+body.results[data-season="winter"] {
+  --sky-head: #f7fbfe;
+  --sky: linear-gradient(
+    to bottom,
+    var(--sky-head) 0%,
+    #dbeaf7 20%,
+    #b3d0e8 40%,
+    #6f9dc9 60%,
+    #2c5b90 80%,
+    #0a1b33 100%
+  );
+
+  --ink: #0b1c30;
+  --ink-soft: #12293f;
+  --rule: #5b87b5;
+  --rule-strong: #2f5b87;
+}
+
+/* Spring, 21 March to 20 June. White through yellow-green, and down to the dark
+   green of a wood — the foot has to go dark for the provenance to keep reading
+   pale, which is the one thing the four grounds must agree on. */
+body.results[data-season="spring"] {
+  --sky-head: #f9fcef;
+  --sky: linear-gradient(
+    to bottom,
+    var(--sky-head) 0%,
+    #eaf3c8 20%,
+    #d8e894 40%,
+    #c8d94a 60%,
+    #5f8a22 80%,
+    #0f2409 100%
+  );
+
+  --ink: #17280c;
+  --ink-soft: #24380f;
+  --rule: #7d9438;
+  --rule-strong: #4c6d1e;
+}
+
+/* Summer, 21 June to 20 September — the mock-up's own, and the page was drawn on
+   it. Not one value here has moved; only the selector around them has. */
+body.results[data-season="summer"] {
+  --sky-head: #fafdea;
+  --sky: linear-gradient(
+    to bottom,
+    var(--sky-head) 0%,
+    #f9deb1 10%,
+    #fbbe7f 20%,
+    #fe9e52 30%,
+    #ff7b30 40%,
+    #fd5816 50%,
+    #fd3a0c 60%,
+    #fd2101 70%,
+    #d60e01 80%,
+    #810402 90%,
+    #070000 100%
+  );
+
+  /* Dark ink on a bright ground — the reverse of every other surface here. The
+     brown is the sunset's own, not a black: the warning on the home page picks
+     its ink the same way. */
+  --ink: #21100a;
+  --ink-soft: #3d1608;
+  --rule: #c9793f;
+  --rule-strong: #8f3f16;
+}
+
+/* Autumn, 21 September to 20 December. White through the orange of the leaves,
+   into the brown they end as. */
+body.results[data-season="autumn"] {
+  --sky-head: #fdf7ec;
+  --sky: linear-gradient(
+    to bottom,
+    var(--sky-head) 0%,
+    #fae2bd 20%,
+    #f3bb72 40%,
+    #e08a35 60%,
+    #a4501a 80%,
+    #1e0c03 100%
+  );
+
+  --ink: #2a1206;
+  --ink-soft: #3d1c07;
+  --rule: #bd7734;
+  --rule-strong: #8c4315;
+}
+
+body.results main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+body.results .provenance {
+  margin-top: auto;
+}
+
+body.results .warning {
+  margin-top: calc(var(--space) * 8);
+}
+
+/* The link out to the documentation, on this page only.
+ *
+ * On the accueil it sits inside the centred footer banner, set in the serif
+ * that carries the whole of that page. Here it lands between the warning and
+ * the strip, among blocks the results page sets in the sans — left-aligned on
+ * the same measure, at the warning's own size, so it reads as one more line of
+ * that block rather than as something pasted under it. */
+body.results .doc-link {
+  text-align: left;
+  font-family: var(--font);
+  font-size: 0.9375rem;
+}
+
+body.results .band {
+  margin-top: calc(var(--space) * 8);
+}
+
+/* No margin of its own here on purpose: the auto margin above is what holds it
+   at the foot of the window, and a fixed one written below would quietly win on
+   equal specificity — which it did, landing the pale block at 52 % of the
+   gradient on a tall window, in the middle of the orange. */
+
+/*
+ * And a second turn of the same screw, for windows the first does not reach.
+ *
+ * Trimmed once, the page stands at 789 px and fits anything from 800 up. Below
+ * that it scrolls again, and a laptop at 1280 × 720 is not an exotic size. The
+ * air comes off in the same order — the two ends first, then the gaps — and no
+ * content moves.
+ *
+ * **Two geometries means two sets of contrasts**, since the gradient is
+ * anchored to the document and a shorter page slides every block onto a
+ * different part of it. Both were measured; the tightened one is the safer of
+ * the two, everything landing a shade higher on the gradient.
+ */
+@media (max-height: 800px) {
+  body.results {
+    padding-top: calc(var(--space) * 8);
+    padding-bottom: calc(var(--space) * 6);
+  }
+
+  body.results .warning {
+    margin-top: calc(var(--space) * 6);
+    padding: calc(var(--space) * 3) 0;
+  }
+
+  body.results .band {
+    margin-top: calc(var(--space) * 6);
+  }
+
+  /* Still held at the foot; the auto margin only stops mattering once the
+     content is taller than the window, which is when it collapses on its own. */
+  body.results .provenance {
+    margin-top: auto;
+    padding-top: calc(var(--space) * 4);
+  }
+}
+
+/* The heat, coming off the warm end of it.
+ *
+ * Faint bands drifting upward over the lower part of the sky, fading in and out
+ * at both ends so the haze belongs to the horizon. Heat rises from hot ground;
+ * over the whole sky it stops reading as heat and starts reading as a broken
+ * display.
+ *
+ * **Not the SVG displacement filter this was first written with**, and the
+ * reason is measured. `feTurbulence` feeding `feDisplacementMap` is rasterised
+ * per pixel per frame, and it took 120 frames a second down to 41 on a laptop
+ * and to 12 on a 2560-wide display. Masking it to a narrow band changed
+ * nothing — the filter processes the element, not the part of it that shows.
+ * Drawing it at half size and scaling back up changed nothing either: the
+ * browser rasterises after the transform.
+ *
+ * What makes the substitution honest is what lies underneath. Displacement
+ * moves pixels, and moving the pixels of a smooth vertical wash only changes
+ * each one's colour by a little — which is exactly what a translucent band
+ * passing over it does. There is no detail here to distort, so the expensive
+ * operation and the cheap one converge, and only one of them costs a frame.
+ *
+ * Measured after the change: 121 frames a second at both sizes. */
+body.home .sky::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 45%;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 6%) 0 2px,
+    rgb(0 0 0 / 6%) 2px 7px
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 35%, #000 80%, transparent 100%);
+  animation: heat-haze 2.4s linear infinite;
+}
+
+@keyframes heat-haze {
+  from {
+    background-position: 0 42px;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* The warning, on the sunset.
+ *
+ * It is the one sentence CLAUDE.md rule 1 makes non-negotiable, and the only
+ * one that lands on the bright band whatever the window — so it turns dark
+ * instead of pale. Burnt brown rather than black: it belongs to the sky it sits
+ * on. Measured 6.6:1 against #e28f5b, where the page's usual muted ink gave 1.5.
+ */
+body.home footer .tagline,
+body.home footer .doc-link {
+  color: #331708;
+}
+
+/* The note takes the column the form takes, and by reading the same token
+   rather than by landing on the same number.
+ *
+ * `--column` is what the promise and the search are set to, and this is the
+ * third block of running text on the page: left at `--measure` it drew a
+ * second, wider edge under a page that has exactly one. The two widths were
+ * within thirty pixels of each other, which is worse than a frank difference —
+ * it reads as a misalignment rather than as an intention.
+ *
+ * `pretty` and not `balance`. Balance shrinks the block to even the lines,
+ * which is right for two or three words under a heading and wrong here: it
+ * would pull the note back off the edge that was just given to it. `pretty`
+ * leaves the width alone and only refuses the orphan on the last line. */
+body.home footer .tagline {
+  max-width: var(--column);
+  text-wrap: pretty;
+}
+
+/* The note runs to two paragraphs — where the boundary falls, then what lies on
+   the far side of it — and the second is the next line of the same note, not a
+   new subject. `.tagline` opens on twice `--space`, which is the gap that says
+   "something else starts here"; halved, it separates the two sentences and
+   keeps them one block. Written on the sibling rather than on a class of its
+   own: what earns the tighter gap is following the first, and nothing else. */
+body.home footer .tagline + .tagline {
+  margin-top: var(--space);
+}
+
+/* The link lands on the same bright band as the note, so it takes the same ink
+   rather than the page's pale one — `a { color: var(--ink) }` would otherwise
+   put ivory on orange, at about 1.5:1. Its underline is drawn in that ink too:
+   `--rule-strong` is chosen against the near-black paper and has nothing to do
+   here.
+
+   **It stopped landing there once, and the fix was the layout and not the ink.**
+   The note grew from one line to four; the page grew with it; the footer slid
+   down to where the sunset goes to its dark red, and the link came out at 2,9:1.
+   Written white it read, and looked like a patch on a page that has no other
+   white. The room under the footer is what puts it back on the orange — see
+   `body.home`. */
+body.home footer .doc-link a {
+  color: inherit;
+  text-decoration-color: currentColor;
+}
+
+/* The banner sits lower than the page's own top padding would put it, so the
+   question and its promise fall nearer the middle of the screen than the top
+   edge. Only here: the results page leads with a place name and a range, which
+   belong at the top where a heading is looked for.
+ *
+ * Measured in `vh` rather than in pixels. A fixed offset holds its place on a
+ * laptop and loses it on a large display — the same 104 pixels put the question
+ * at 21% of a 900-pixel window and back at 13% of a 1440-pixel one, which is
+ * where it started. The clamp keeps a short window from spending half its
+ * height on emptiness, and a very tall one from pushing the form off screen.
+ *
+ * `header.banner`, not `.banner`: the footer carries the same class, and left
+ * unqualified this rule gave it the same hollow — 100 to 170 pixels of nothing
+ * above the warning, growing with the screen, which is most of what pushed the
+ * page past the window. */
+body.home > header.banner {
+  /* Six vh rather than ten, and that is where the mode bands are paid for. The
+     clamp's purpose is untouched — it still keeps a short window from spending
+     its height on emptiness and a tall one from pushing the form off screen;
+     it simply spends thirty-six pixels fewer on a 900-pixel window. This is the
+     one place on the page where height buys nothing but air, and the fields
+     below were the ones closest to the sunset's pale band. */
+  padding-top: clamp(calc(var(--space) * 8), 6vh, calc(var(--space) * 36));
+}
+
+/* The page is the window, and the warning sits at the foot of it.
+ *
+ * A landing page carrying one form has no business scrolling. Laid out as a
+ * column with the footer pushed down by `margin-top: auto`, the page is exactly
+ * as tall as the screen whenever the content fits, and scrolls only when it
+ * genuinely does not — a short window, a large text size. The fixed gap the
+ * footer used to carry could not do that: it was the same 96 pixels whether
+ * there was room to spare or none at all.
+ *
+ * `dvh` rather than `vh`: on a phone the address bar retracts as the page
+ * scrolls, and `vh` measures against the taller state — the page would stand a
+ * toolbar too long and scroll for that alone. */
+body.home {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  /* **The room under the footer is what keeps the note on the orange.** It was
+     forty pixels: enough while the note was one line, and not enough once it
+     became four — the block slid into the dark red end of the sunset and the
+     link under it measured 2,9:1. Raising it lifts the whole footnote back
+     onto the bright band, ink untouched.
+
+     Eighty, and the steps were measured: 48 px gives the link 3,5:1, 64 px
+     4,9 and 72 px 5,6. Eighty puts it at 6,5, which is what the note above it
+     reads — the two are one block and should not be legible to different
+     degrees. Past that the gain stops: 160 px buys a tenth of a point, and
+     the reason is that the page grows with the padding and the gradient,
+     anchored to the document, grows with the page. */
+  padding-bottom: calc(var(--space) * 20);
+}
+
+body.home > footer.banner {
+  margin-top: auto;
+}
+
+.banner,
+main {
+  width: 100%;
+  max-width: var(--width);
+  margin-inline: auto;
+}
+
+.tagline,
+.warning,
+.doc-link,
+.provenance,
+.export,
+.failure,
+.search {
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+.banner {
+  text-align: center;
+}
+
+.warning,
+.failure {
+  text-align: left;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+/* The rotating question.
+ *
+ * Every question occupies the same grid cell, so the cell is as tall as the
+ * longest of them and the subtitle below never moves — a question running to
+ * three lines where the last ran to two would otherwise shove the whole form
+ * down, every five seconds.
+ *
+ * `align-items: end` keeps them sitting on the same baseline rather than each
+ * centring itself in a box sized for another. */
+/* The question runs the full width of the screen, and everything under it is
+ * narrow. That contrast is the layout: the question addresses the room, the
+ * form is something you lean in to fill.
+ *
+ * `50% - 50vw` is what breaks it out. The banner is centred and capped at
+ * --width, so a child needs a negative margin equal to half the difference —
+ * a figure only the viewport knows. It also has to escape the body's own side
+ * padding, which the same margin covers, and `padding-inline` puts back as
+ * breathing room rather than as a cap.
+ */
+.prompt {
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  max-width: none;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: calc(var(--space) * 6);
+  /* Even lines rather than a long one and an orphan — the questions differ in
+     length and none of them can be typeset by hand. */
+  text-wrap: balance;
+}
+
+.prompt-item {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(0.25em);
+  transition:
+    opacity 600ms ease,
+    transform 600ms ease;
+}
+
+.prompt-item.is-current {
+  opacity: 1;
+  transform: none;
+}
+
+/* Serif under the title, and upright.
+ *
+ * It was set in italic, after the reference this was drawn from. EB Garamond
+ * ended that: its italic has the smallest lower case of the faces looked at —
+ * 41 pixels of x-height against 44 to 53 — and at seventeen pixels over a
+ * sunset the warning stopped being comfortably readable. Measured contrast said
+ * it passed, which is exactly the limit of that measure: a ratio counts the
+ * colours of two areas and knows nothing of how thin the strokes between them
+ * are.
+ *
+ * The face was kept and the slope given up rather than the reverse. An italic
+ * here was a habit, not a meaning: nothing in these lines is a title, a foreign
+ * term or an emphasis, which are what an italic is for. */
+.tagline {
+  margin-top: calc(var(--space) * 2);
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  color: var(--ink-soft);
+}
+
+.banner p + p {
+  margin-top: calc(var(--space) * 4);
+}
+
+/* The promise stands off from the question. The shared rule above was set
+   against a one-line site name; under a heading of two or three lines of
+   display type it reads as a subtitle stuck to its title. */
+.prompt + .tagline {
+  margin-top: calc(var(--space) * 6);
+}
+
+/* The narrow column, under the wide question. Both of these carry
+   `max-width: var(--measure)` from the rule above; these come later and win.
+   `.search` is the home form and exists on no other page, so naming it here
+   changes nothing on the results page. */
+.prompt + .tagline,
+.search {
+  max-width: var(--column);
+}
+
+/* The promise carries the whole offer of the site in one line, so it is set
+   larger than the taglines that only caption something. Balanced, because it is
+   three short sentences and the column is narrow: left to itself the last one
+   drops alone onto a third line. */
+.prompt + .tagline {
+  font-size: 1.3125rem;
+  text-wrap: balance;
+}
+
+/*
+ * The footnote mark, at both ends of the reference.
+ *
+ * The promise claims something — simulate the weather of the future, anywhere,
+ * any time — and the sentence at the foot of the page is the qualification of
+ * that claim. An asterisk is the shortest way of saying so; it costs the
+ * headline nothing and it puts the caveat one click away instead of one scroll
+ * of hope.
+ *
+ * Neither end is a link. The note sits at the foot of a page 960 pixels tall,
+ * half a screen from the promise on any ordinary window, and the star already
+ * says which way to look; an anchor would have bought a target, a focus stop
+ * and an accessible name for a scroll the reader was going to make anyway.
+ * Both marks are `aria-hidden` in the markup for the matching reason — read
+ * aloud, a bare star is "astérisque", pointing at nothing.
+ *
+ * `line-height: 0` is not cosmetic. A raised glyph is still part of its line
+ * box, and left with the inherited leading it grows the line it sits on — the
+ * promise would gain a couple of pixels of height and the form under it would
+ * shift down, on the one page whose vertical placement is measured in `vh`.
+ */
+.note-ref,
+.note-mark {
+  font-size: 0.68em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+/* The mark precedes the note rather than following it, so the gap goes on the
+   right. Set in `em` so it tracks the glyph and not the page. */
+.note-mark {
+  margin-right: 0.35em;
+}
+
+#count:not(:empty)::before {
+  content: " · ";
+}
+
+a {
+  color: var(--ink);
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 4px;
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+/* No rule above the warning. The sky already separates it from the form — the
+   band it sits on is a boundary of its own, and a hairline drawn across it only
+   cuts the photograph in two. The footer exists on the home page alone, so
+   nothing else loses a line. */
+footer.banner {
+  margin-top: calc(var(--space) * 24);
+  padding-top: calc(var(--space) * 6);
+}
+
+:focus-visible {
+  outline: 1px solid var(--ink-soft);
+  outline-offset: 4px;
+}
+
+.skip {
+  position: absolute;
+  left: calc(var(--space) * 3);
+  top: calc(var(--space) * 3);
+  padding: calc(var(--space) * 2) calc(var(--space) * 4);
+  background: var(--raised);
+  transform: translateY(-250%);
+}
+
+.skip:focus {
+  transform: none;
+}
+
+/* --- the register that only names things ---------------------------------- */
+
+.field label,
+.card-measures dt,
+.card-month,
+.card-sky,
+button[type="submit"],
+.mode,
+.seam span {
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+/* --- the form ------------------------------------------------------------- */
+
+/* The form follows the promise closely.
+ *
+ * Seventy-two pixels here left a hole three times the one between the question
+ * and its promise — the two of them read as a block, and the form as something
+ * unrelated further down the page. Measured: 93 pixels of nothing against 24
+ * above. Closing it also buys back most of what made the page outrun the
+ * screen, which is the same fault seen from the other side. */
+.search {
+  margin-top: calc(var(--space) * 8);
+}
+
+.field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 2);
+  margin: 0 0 calc(var(--space) * 8);
+}
+
+/*
+ * The form pays for the row of buttons out of its own intervals.
+ *
+ * The switch costs the accueil fifty-two pixels, and on this page height is
+ * legibility: the sunset is anchored to the document, so everything below the
+ * switch slid down onto paler sky and every ratio under it fell by about six
+ * tenths. Fifty-two pixels are therefore taken back where they separate the
+ * least — the gap above the form, and the gaps between fields that a label
+ * already separates — rather than left to be paid in contrast.
+ *
+ * This is the same trade the sheet records above the `.search` margin, made a
+ * second time and for the same reason: on this page, layout and legibility are
+ * one question.
+ */
+body.home .search {
+  margin-top: calc(var(--space) * 4);
+}
+
+body.home .field {
+  margin-bottom: calc(var(--space) * 6);
+}
+
+/*
+ * **The field labels give up the softened tone, having already given up the soft
+ * one twice.** `--ink-soft` was lifted to #dad3c6 on this page for exactly this
+ * row and measured 4,4:1 — a tenth under the threshold, accepted because the
+ * alternative was moving the page. It sits near 54% of the sunset, the mid
+ * blue-grey where *no* ink reaches 4,5:1: pure black manages 4,0 there, so the
+ * band is the problem and not the choice of tone. Full ink buys 4,7:1, and the
+ * hierarchy is untouched — eleven pixels, capitals, letterspaced, which is what
+ * separates these labels from what they name, as the comment on `--ink-soft`
+ * already says.
+ */
+body.home .field label {
+  color: var(--ink);
+}
+
+.field label {
+  color: var(--ink-soft);
+}
+
+/*
+ * A line of type with a hairline under it. No border on three sides, no fill,
+ * no radius: the field is not an object, it is a place to write.
+ */
+input {
+  width: 100%;
+  padding: calc(var(--space) * 2) 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  line-height: 1.4;
+}
+
+input::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+input:hover {
+  border-bottom-color: var(--ink-soft);
+}
+
+input:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
+}
+
+/*
+ * Where you are inside the date.
+ *
+ * A date field is three segments, and the browser marks the one the next
+ * keystroke will change. It marks it with a system colour, and that is the
+ * whole difficulty: this field lies on a blue sky, and Firefox's mark is blue.
+ * Measured on the render, it stood out from the field at 1.54:1 — which is what
+ * "I can type but I cannot see the highlight" looks like as a number. Nothing
+ * was ever blocked and nothing covered: the feedback was missing, not the
+ * behaviour.
+ *
+ * **The page cannot choose that colour, and two attempts to are recorded here
+ * so they are not tried again.** `::selection` is inert — Firefox does not
+ * route a date segment through it, and two cold-profile renders came out
+ * identical to the pixel. `accent-color` is inert too, to the same test.
+ *
+ * What can be reached is everything around it. `color-scheme: light` asks the
+ * system for its light mark, the familiar bright blue rather than a muted teal;
+ * and the focused field takes a dark ground for that mark to sit on. Measured
+ * together: 4.29:1, near three times where it started.
+ *
+ * **The ground appears only while the field is being edited.** At rest a date
+ * stays what every field on this page is — a line of type over a hairline — so
+ * the sheet's first habit survives, and the box exists only in the moment it is
+ * useful. The colour is `--paper` thinned, not a new tone: nothing enters the
+ * palette merely to say "here".
+ */
+input[type="date"] {
+  color-scheme: light;
+}
+
+input[type="date"]:focus {
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+}
+
+/* What the light scheme costs, paid back. Asking for the light widget turns
+   Chrome's calendar glyph black, and a black glyph on the sunset is the one
+   thing this page has no ink for; inverted, it is ivory again. Firefox draws
+   its own light glyph and never sees this rule. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/*
+ * A season and a year, in the same clothes as everything else on this page.
+ *
+ * A line of type over a hairline, like every field here — the sheet's first
+ * habit, and a `<select>` has no business being the one object in a box. The
+ * native arrow is left where it is: replacing it costs `appearance: none` and a
+ * drawn glyph, which is a second widget to keep, and the arrow is the one thing
+ * that says this field is a list rather than something to type in.
+ *
+ * **The dark scheme is inherited, not asked for**, and that is the difference
+ * from the date fields above. A date field wants the system's *light* mark so
+ * the edited segment stands out; a select has no segment, and its dropdown is
+ * better dark, matching the ivory-on-near-black the page already is.
+ */
+select {
+  width: 100%;
+  padding: calc(var(--space) * 2) 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  line-height: 1.4;
+}
+
+select:hover {
+  border-bottom-color: var(--ink-soft);
+}
+
+select:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
+}
+
+/*
+ * The two ways of asking, as two bands side by side.
+ *
+ * **Side by side, and that is a measurement rather than a taste.** Stacked
+ * full-width they would cost the form some ninety-six pixels; paired they cost
+ * about forty-five, and on this page every pixel added above the fields slides
+ * them down the sunset toward the band where no ink reaches 4,5:1. Layout and
+ * legibility are the same question here, and the sheet says so twice already.
+ *
+ * **Both carry a fill, neither is a filet alone.** The variant with no ground
+ * was measured on the submit band at 3,7:1 and dropped for the reason the
+ * comment there gives: a transparent button inherits the contrast of whatever
+ * is behind it, and at this height on the sky that is lost in advance. So the
+ * chosen one is told apart by *deepening* — the same direction the submit band
+ * takes on hover, so the ratio only ever goes up — and by an edge in full ink
+ * rather than the ivory at 22 %.
+ *
+ * **Shorter than the submit band on purpose.** Sixteen pixels of padding
+ * against twenty: these choose the question, that one asks it, and the two
+ * should not read as the same rank.
+ */
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 3);
+  margin: 0 0 calc(var(--space) * 4);
+}
+
+.mode {
+  flex: 1 1 12ch;
+  padding: calc(var(--space) * 3);
+  border: 0;
+  border-radius: 0;
+  background: var(--mode);
+  box-shadow: inset 0 0 0 1px var(--button-edge);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.mode:hover {
+  background: var(--button);
+  box-shadow: inset 0 0 0 1px var(--ink-soft);
+}
+
+.mode[aria-pressed="true"] {
+  background: var(--button);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.dates {
+  display: flex;
+  gap: calc(var(--space) * 10);
+  flex-wrap: wrap;
+}
+
+.dates .field {
+  flex: 1 1 14ch;
+}
+
+/* A band the sky passes through, not a slab laid over it.
+ *
+ * Still a flat band and still not a button-looking button — what changed is the
+ * fill. It was #4a443a, a colour from the flat-paper palette, and on the sunset
+ * it read as a piece of the results page pasted onto the photograph: the one
+ * opaque object on a page whose whole habit is that nothing is in a box. Burnt
+ * brown at 45% leaves a target to aim at while the gradient still shows behind
+ * it, and the brown belongs to the sky the way the warning's #331708 does.
+ *
+ * **The edge is an inset shadow, not a border**, and that is not a detail: a
+ * border adds two pixels to the height, and on this page a taller button pushes
+ * the warning down onto a different part of the gradient. Layout and legibility
+ * are the same question here — the sheet says so above, and every figure in
+ * scripts/ink_contrast.md was measured at one geometry.
+ *
+ * Measured on the render, ink against the fill as composited over the sky:
+ * 7.5:1, where the opaque slab gave 7.8. Hovering deepens the fill rather than
+ * lightening it, so the ratio goes up on the way in and never down.
+ */
+button[type="submit"] {
+  width: 100%;
+  padding: calc(var(--space) * 5);
+  border: 0;
+  border-radius: 0;
+  background: var(--button);
+  box-shadow: inset 0 0 0 1px var(--button-edge);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+button[type="submit"]:hover {
+  background: var(--button-hover);
+  box-shadow: inset 0 0 0 1px var(--ink-soft);
+}
+
+/* --- picking the place ---------------------------------------------------- */
+
+/*
+ * The candidate list hangs over the page instead of pushing it.
+ *
+ * In the flow it was, appearing between the place field and the dates, and it
+ * moved them down the moment a second letter was typed — the fields a visitor
+ * had just been reading slid out from under their eyes. A list of matches is a
+ * transient answer to what is being typed, not a new part of the form, and it
+ * should cost the page no height.
+ *
+ * `.field` was already `position: relative`, so this is what that was for.
+ *
+ * **Opaque, and that is the exception this page allows itself.** Everything
+ * else here lets the sky through; this may not, because what it covers is the
+ * two date fields, and reading a candidate through "12/08/2026" is worse than
+ * showing no candidate. `--overlay` is the raised token at 97%: the fields
+ * underneath compute out at about a twentieth of a step of contrast, which is
+ * nothing the eye resolves.
+ *
+ * The panel reaches wider than the field by its own padding, so the names still
+ * line up with what was typed above them while the box keeps its air.
+ */
+.candidates {
+  position: absolute;
+  top: calc(100% + var(--space) * 2);
+  left: calc(var(--space) * -3);
+  right: calc(var(--space) * -3);
+  z-index: 2;
+  margin: 0;
+  padding: 0 calc(var(--space) * 3);
+  /* Five is what fetch.js asks for; the cap is here so a larger count later
+     scrolls rather than running off the bottom of the window. */
+  max-height: 17rem;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--overlay);
+  box-shadow: inset 0 0 0 1px var(--button-edge);
+}
+
+.candidate {
+  display: block;
+  width: 100%;
+  padding: calc(var(--space) * 3) 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The panel's own edge closes the list; a rule under the last name would double
+   it. */
+.candidates li:last-child .candidate {
+  border-bottom: 0;
+}
+
+.candidate:hover,
+.candidate:focus-visible {
+  color: var(--warm);
+}
+
+.chosen {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--space) * 3);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font-family: var(--font);
+  font-size: var(--label-size);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--ink);
+}
+
+/* --- what the pages say back ---------------------------------------------- */
+
+.status {
+  min-height: 1.6em;
+  margin-top: calc(var(--space) * 3);
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.status:empty {
+  min-height: 0;
+  margin: 0;
+}
+
+/* Helper and warning blocks: rules, not panels. */
+.warning {
+  margin-top: calc(var(--space) * 10);
+  padding: calc(var(--space) * 5) 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.warning p {
+  margin: 0;
+}
+
+.warning p:first-child {
+  color: var(--ink);
+}
+
+.warning p + p {
+  margin-top: calc(var(--space) * 2);
+}
+
+.failure {
+  margin-top: calc(var(--space) * 10);
+  padding: calc(var(--space) * 5) 0 calc(var(--space) * 5) calc(var(--space) * 5);
+  border-left: 2px solid var(--warm);
+}
+
+/* --- the strip of days ----------------------------------------------------- */
+
+.band {
+  display: flex;
+  gap: calc(var(--space) * 3);
+  margin: calc(var(--space) * 12) 0 0;
+  padding: 0 0 calc(var(--space) * 5);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+/*
+ * macOS hides its overlay scrollbars until something moves, so the strip showed
+ * a card cut off at the right edge and nothing to say it could be scrolled.
+ * Styling the track forces it to stay. The chart under the strip scrolls on a
+ * narrow window for its own reason and needs the same telling.
+ */
+.band::-webkit-scrollbar,
+.chart-panel::-webkit-scrollbar {
+  height: 8px;
+}
+
+.band::-webkit-scrollbar-track,
+.chart-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.band::-webkit-scrollbar-thumb,
+.chart-panel::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: var(--rule-strong);
+  background-clip: content-box;
+}
+
+.card {
+  flex: 0 0 auto;
+  width: var(--card);
+  scroll-snap-align: start;
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.card p {
+  margin: 0;
+}
+
+.card-head {
+  padding: calc(var(--space) * 3) calc(var(--space) * 4);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* The simulated side of the seam. Two quiet cues, neither of them alone: a
+   ground a shade apart, and a firmer rule under the date. The written marker in
+   the strip is what actually says it. */
+.card--simulated {
+  background: var(--raised-simulated);
+}
+
+.card--simulated .card-head {
+  border-bottom-color: var(--rule-strong);
+}
+
+/*
+ * The month name, on the turn alone, the line held open elsewhere so the cards
+ * keep one height. It was briefly written on every card, to answer a reader who
+ * scrolled past the turn and lost the month; that answer worked and cost the
+ * turn its salience, a name among a run of identical names marking nothing. The
+ * month now rides on the date line in figures — "lundi 01/08" — which says it
+ * everywhere without spending a word on it.
+ */
+.card-month {
+  height: 1.15rem;
+  line-height: 1.15rem;
+  color: var(--ink-soft);
+}
+
+.card-day {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  white-space: nowrap;
+}
+
+.card-body {
+  padding: calc(var(--space) * 5) calc(var(--space) * 4) calc(var(--space) * 4);
+  text-align: center;
+}
+
+.card-emoji {
+  min-height: 1.6em;
+  font-size: 1.875rem;
+  line-height: 1.4;
+}
+
+/* The headline of the card, and the only measure that carries no word. */
+.card-temperatures {
+  margin-top: calc(var(--space) * 3);
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.card-sky {
+  margin-top: calc(var(--space) * 2);
+  margin-bottom: calc(var(--space) * 5);
+  color: var(--ink-soft);
+}
+
+/*
+ * The two measures that follow, at one size and one weight between them. The
+ * temperatures sit above as the card's headline — docs/application.md settles
+ * the hierarchy, and forbids relegating the wind below the rain.
+ */
+.card-measures {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: calc(var(--space) * 2) calc(var(--space) * 2);
+  margin: 0;
+  padding-top: calc(var(--space) * 4);
+  border-top: 1px solid var(--rule);
+  text-align: left;
+}
+
+.card-measures dt {
+  color: var(--ink-soft);
+  align-self: center;
+}
+
+.card-measures dd {
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/*
+ * The humid-heat line, under the wind.
+ *
+ * **Reserved on every card of the strip, or on none.** The cards stretch to the
+ * tallest, so a line appearing on the one hot day of ninety would grow the other
+ * eighty-nine and shift the strip under the reader. `min-height` is what holds
+ * the empty ones open, exactly as the month line above is rendered empty where
+ * the month has not turned. And the whole line is left off a strip that carries
+ * no level at all, so a French search pays nothing for a mark it never shows.
+ *
+ * **The level is said by ink and weight, never by a second pictogram.** A skull
+ * on a dated card would announce a death on 16 August 2043, which is the
+ * assertion CLAUDE.md rule 1 exists to refuse — and it would be the element that
+ * travelled furthest in a screenshot, stripped of the warning around it. The
+ * attribute rather than a class is the choice `data-band` already made: the
+ * sheet can then say *any level* in one selector.
+ */
+.card-humid {
+  /* Block and not flex: as two flex children the mark held a column of its own
+     and the label wrapped into what was left, which took "chaleur humide
+     extrême" to three lines where "chaleur humide" took two — and the cards,
+     which do not stretch to one another here, ended at different heights. Inline
+     the mark is just the first glyph of a paragraph that uses the whole width.
+
+     The height is then reserved for the longest of the two labels plus the
+     figure under it, so that a strip keeps one silhouette whichever levels it
+     happens to carry. A calm day pays those empty lines, and only inside a strip
+     that already has something to say — a French search reserves nothing at
+     all. */
+  min-height: 6em;
+  line-height: 1.35;
+  margin-top: calc(var(--space) * 3);
+  padding-top: calc(var(--space) * 3);
+  border-top: 1px solid var(--rule);
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--ink-soft);
+}
+
+.card-humid[data-humid] {
+  color: var(--warm);
+}
+
+/* Set as a measure and not as a headline. The card carries two temperatures in
+   large display type already, and a third figure in that register would be read
+   as a third air temperature — which is the misreading the word above it exists
+   to prevent, undone one line lower. So it takes the type of "0,4 mm": same
+   family, same size, tabular figures, and none of the label's capitals. */
+.card-humid-value {
+  display: block;
+  margin-top: calc(var(--space) * 1.5);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  letter-spacing: normal;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.card-humid[data-humid="2"] {
+  font-weight: 700;
+}
+
+/*
+ * The sentence under the strip that says what the mark means.
+ *
+ * It appears with the line and disappears with it: a page that never marks a
+ * card has nothing to explain, and an explanation with no object is noise on
+ * every French search. `hidden` is what results.js toggles, so the rule below
+ * only has to dress it.
+ */
+.humid-note {
+  max-width: 46rem;
+  margin-top: calc(var(--space) * 4);
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+/* The fallback, and only that: a day whose temperature is missing carries no
+   band, so it keeps the warm and the cool that used to carry the distinction on
+   their own. Any day that has a number takes its colour from the scale below. */
+.high {
+  color: var(--warm);
+}
+
+.low {
+  color: var(--cool);
+}
+
+/*
+ * The temperature scale: nine steps of five degrees, from under 5 to 40 and over.
+ *
+ * **The band is decided by the server**; this is only what it looks like. The
+ * step numbers here are the ones `domain/temperature.py` hands out, and the
+ * boundaries they stand for are written where they are measured — twelve French
+ * towns, 1981-2010.
+ *
+ * **The colour is a ground, and the number sits on it.** That is what buys the
+ * scale its legibility: a hue laid over an area is far easier to tell from its
+ * neighbour than the same hue on the thin strokes of a digit. It is also the one
+ * place on this site that is a filled shape — the sheet's own habit is that
+ * nothing is in a box — and it earns the exception by being the only thing on
+ * the card that has to be read as a *quantity* rather than as a word.
+ *
+ * **The ink turns over with the ground, and that is what makes a yellow
+ * possible.** A single white ink would force every band dark enough to carry
+ * it, and a yellow dark enough for white text is an ochre — which is what an
+ * earlier ramp was, and why it was thrown out. So each band names its own ink:
+ * white on the four dark ones, near-black on the five light ones. Every pairing
+ * is measured, and the weakest is 4.77:1; `scripts/ink_contrast.py` re-reads
+ * them from this file whenever one moves.
+ *
+ * **Nine, because nine can be named.** Dark blue, light blue, light green,
+ * yellow, orange, light red, dark red, very dark red, black — a reader can hold
+ * that many and tell one from the next. Finer steps were tried at 2.5 °C and
+ * needed twenty-two tones, which is a gradient wearing a legend.
+ */
+body.results .card-degrees[data-band] {
+  padding: calc(var(--space) * 1) calc(var(--space) * 2);
+  background-color: var(--band);
+  color: var(--band-ink);
+}
+
+/* Air between the maximum and the minimum. Touching, the two grounds read as a
+   single two-tone bar and the eye stops counting them as two readings. */
+body.results .card-degrees[data-band] ~ .card-degrees[data-band] {
+  margin-top: calc(var(--space) * 1.5);
+}
+
+/* The unit rides on the tint, so it drops its own ink and keeps only the step
+   down in weight the sheet gives it everywhere else. */
+body.results .card-degrees[data-band] .unit {
+  color: inherit;
+}
+
+/* Near-black rather than the page's own ink: that one turns with the season,
+   and a band is drawn on a card, which does not. */
+body.results .card-degrees[data-band] {
+  --dark-ink: #1c1408;
+}
+
+/* < 5 — bleu foncé */
+body.results [data-band="0"] { --band: #123a72; --band-ink: #fff; }
+/* 5 à 10 — bleu clair */
+body.results [data-band="1"] { --band: #5aa9de; --band-ink: var(--dark-ink); }
+/* 10 à 15 — vert clair */
+body.results [data-band="2"] { --band: #8bc94a; --band-ink: var(--dark-ink); }
+/* 15 à 20 — jaune */
+body.results [data-band="3"] { --band: #f2ce1b; --band-ink: var(--dark-ink); }
+/* 20 à 25 — orange */
+body.results [data-band="4"] { --band: #f0902a; --band-ink: var(--dark-ink); }
+/* 25 à 30 — rouge clair */
+body.results [data-band="5"] { --band: #e9634a; --band-ink: var(--dark-ink); }
+/* 30 à 35 — rouge foncé */
+body.results [data-band="6"] { --band: #b01712; --band-ink: #fff; }
+/* 35 à 40 — rouge très foncé */
+body.results [data-band="7"] { --band: #6b0a0a; --band-ink: #fff; }
+/* ≥ 40 — noir. Le haut de l'échelle s'éteint plutôt qu'il ne crie : c'est la
+   bande qu'aucune journée française de 1981-2010 n'atteint. */
+body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
+
+.sep {
+  margin-inline: 0.5ch;
+  color: var(--ink-soft);
+}
+
+.unit {
+  margin-left: 0.5ch;
+  font-family: var(--font);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+/*
+ * The seam, as a card of its own. Vertical because it has to be narrow, and
+ * written because colour must never be what carries the information.
+ */
+.seam {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--space) * 8);
+  border-left: 1px solid var(--rule-strong);
+}
+
+.seam span {
+  writing-mode: vertical-rl;
+  padding: calc(var(--space) * 2) 0;
+  color: var(--ink-soft);
+}
+
+/* --- the chart under the strip ---------------------------------------------
+ *
+ * **It is drawn on the same paper as a card, and that is not decoration.** The
+ * two temperature colours are the mock-up's own, and they were chosen against a
+ * card; laid on the ground they would fall on the summer's own red somewhere
+ * around two thirds of the gradient, where a red curve stops existing. Putting
+ * the drawing on `--raised` is what keeps a warm line warm on all four seasons —
+ * the same reasoning docs/application.md gives for the two numbers on a card,
+ * which is why they read the same whatever the season.
+ *
+ * So this block changes nothing per season. The paper does not turn, and the
+ * four inks it borrows — the rule, the soft ink, the two temperatures — are the
+ * card's.
+ *
+ * **The marks take `currentColor`.** `.high` and `.low` already carry the warm
+ * and the cool a few rules above, for the day a card has no band to show; the
+ * curve asks the same two classes for the same two colours rather than naming
+ * them again. It is also what lets `ink_contrast.py` read an SVG text: the
+ * script asks the page for `color`, which `fill` alone would leave untouched.
+ */
+
+/*
+ * **It scrolls sideways under a certain width, exactly as the strip does.**
+ * The drawing scales as a whole — it is one `viewBox` — so its type shrinks
+ * with it: at the width of a phone the axis numbers came out at four pixels,
+ * which is a label that has stopped being one. Below the size where eleven
+ * units read as eleven pixels, the panel scrolls instead of shrinking further.
+ *
+ * No media query, because there is no breakpoint to pick: the minimum is where
+ * the type stops being legible, and every width below it gets the same answer.
+ */
+.chart-panel {
+  margin-top: calc(var(--space) * 6);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  min-width: 58rem;
+  height: auto;
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  color: var(--ink-soft);
+}
+
+/* The segments join readings; they do not smooth between them. Round joins
+   only so that a spike does not grow a spur where two segments meet. */
+.chart-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* The reading itself, drawn over the line that joins it to the next. */
+.chart-point {
+  fill: currentColor;
+}
+
+.chart-line.high,
+.chart-point.high {
+  color: var(--warm);
+}
+
+.chart-line.low,
+.chart-point.low {
+  color: var(--cool);
+}
+
+/* The other year, under this one. It comes after `.high` and `.low` on purpose:
+   it carries both class names so that a maximum is still called a maximum in the
+   markup, and this is what takes back the warm and the cool they would otherwise
+   lend it. Thinner too — a line that is read against, not read. */
+.chart-line.past {
+  color: var(--past);
+  stroke-width: 1;
+}
+
+/* **The one fill on this panel, and it belongs to the compared year alone.** The
+   spread of the drawn year was filled here too, at `--ink` and 0,07, so that its
+   amplitude read as a thickness. That went out when the comparison came in: a
+   wash on this panel now says *older year* and nothing else, where two of them
+   left a reader working out which grey was whose.
+
+   It has to be seen and not merely sensed — it is the band the drawn curves are
+   checked against — while staying under the weight of a mark: it lands on a
+   shade of the paper rather than a colour on it. The strength lives in the token
+   rather than in an `opacity`, so the swatch in the page below can be painted
+   with the very same value; an HTML span cannot borrow an SVG `fill`. */
+.chart-past-band {
+  fill: var(--past-fill);
+}
+
+/* Quieter than a card's border, which is the same token at full strength: a
+   gridline is read past, not read. */
+.chart-rule,
+.chart-baseline {
+  stroke: var(--rule);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+/* The date marks, under the baseline. Full strength unlike a gridline: this one
+   is read, not read past — it is what carries the eye from a number up to the
+   column it names, and it is four units long, so faint would be gone. */
+.chart-tick {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.chart-bar {
+  fill: var(--cool);
+  opacity: 0.75;
+}
+
+/* The compared year's rain, laid *over* the drawn year's bars and not under
+   them. Two bars stand on the same baseline, so the shorter one is inside the
+   taller and not beside it: underneath, the grey would show only on the days
+   the past was the wetter of the two, which is half a comparison. The
+   translucency is what makes the overlay legible rather than an erasure — the
+   crossing reads as a third shade belonging to neither year. Below the 0,75 of
+   the bars it crosses, so the year asked for is still the one read first. */
+.chart-bar.past {
+  fill: var(--past);
+  opacity: 0.55;
+}
+
+/* The running total, in the panel under the bars it totals. **The same colour as
+   them**, which is the one honest choice available: a second hue would make the
+   curve a second quantity, and it is the same water measured twice. Full
+   strength against their 0,75, the difference between a line followed by the eye
+   and an area read as a block.
+
+   No seasonal token is added here, and none may be: `docs/application.md`
+   settles that the chart borrows the sheet's colours and the six that rotate
+   stay six. */
+.chart-line.cumulative {
+  color: var(--cool);
+}
+
+/* The compared year's total is both things at once: a `cumulative` curve and a
+   `past` one. The two rules above carry the same weight, so this file's order
+   decides — and the order handed the colour to the panel, drawing the older
+   year in the live year's blue, which is the one thing the grey exists to
+   prevent. Naming both classes puts the tone back on top. Written here rather
+   than by swapping the two rules, because a swap is undone by the next edit
+   that does not know why the order mattered. */
+.chart-line.past.cumulative {
+  color: var(--past);
+}
+
+/* A day whose rain is missing, which would otherwise draw exactly what a dry
+   day draws: nothing at all. */
+.chart-gap {
+  fill: var(--ink-soft);
+}
+
+.chart-axis,
+.chart-date,
+.chart-legend-year,
+.chart-month,
+.chart-seam-label,
+.chart-title {
+  fill: currentColor;
+  font-family: var(--font);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The year beside its band. It takes the soft ink the graduation wears, not the
+   grey of the band it names: the band is a mark and clears 3:1, a four-digit
+   number is text and has to clear 4,5:1, which `--past` does not. What ties the
+   two together is the sample drawn next to it, not the colour of the digits. */
+.chart-legend-year {
+  color: var(--ink-soft);
+}
+
+/* The same small-capitals register the strip's own reading marks wear. Set in
+   pixels because this is inside a viewBox, where an em is the drawing's scale
+   and not the page's. */
+.chart-month,
+.chart-seam-label,
+.chart-title {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* What each panel plots. The page's own ink rather than the soft one: it names
+   the thing below it, where the graduation only measures it. */
+.chart-title {
+  color: var(--ink);
+}
+
+/* The crossing, drawn firmer than a gridline and in the page's own ink: it is
+   the one line here that says the ground under the numbers has changed. */
+.chart-seam-rule {
+  stroke: var(--rule-strong);
+  stroke-width: 1.5;
+}
+
+.chart-seam-label {
+  color: var(--ink);
+}
+
+/* --- the other year --------------------------------------------------------
+   The one control on this page, and it borrows rather than invents: the toggle
+   is a `.link`, the notes are the small ink the cards already use. Nothing here
+   is a filled button — `--mode` and its neighbours are declared for the home
+   page's sky and would land brown on a light ground.
+
+   It sits outside `.chart-panel` and must stay there: that panel scrolls
+   sideways under 58 rem, and a control inside it would leave with the drawing.
+
+   **The whole block is on the chart's paper, and the render is what settled
+   that.** Left on the sky it measured 1,1:1 — dark ink on a gradient that is
+   heading for black by the time it gets here. Turning it pale like the
+   provenance was the other answer and it is the wrong one: the provenance is
+   pinned to the foot of the page, while this sits wherever the chart ends, which
+   on a tall window is the middle of the orange. Paper is the only ground that
+   does not move, and it is what the chart itself is drawn on for the same
+   reason. It also spares the two notes, which are the ones keeping the
+   comparison honest: a caveat that cannot be read is a caveat that is not there.
+   -------------------------------------------------------------------------- */
+
+.compare {
+  margin-top: calc(var(--space) * 4);
+  padding: calc(var(--space) * 4) calc(var(--space) * 6);
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
+/* Divided from the toggle by a rule rather than by a second box: it is one
+   block that grows, not a panel that appears under a button. */
+.compare-panel {
+  margin-top: calc(var(--space) * 4);
+  padding-top: calc(var(--space) * 4);
+  border-top: 1px solid var(--rule);
+}
+
+.compare-field {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--space) * 3);
+  margin: 0;
+}
+
+.compare-field label {
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.compare-field select {
+  width: auto;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+}
+
+/* The measure is the line, not the block: the paper runs the width of the page
+   under a chart that does, and a note running with it would be unreadable for
+   the other reason. */
+.compare-note,
+.compare-legend {
+  max-width: 46rem;
+  margin: calc(var(--space) * 3) 0 0;
+  line-height: 1.5;
+}
+
+/* Quieter than the legend, but on paper — the two notes are read once and have
+   to be readable that once. */
+.compare-note {
+  color: var(--ink-soft);
+}
+
+/* The legend of the grey curves, and the only place the page says which colour
+   means what. It is here rather than in the drawing because the chart writes no
+   text of its own — a name inside the viewBox would be the first thing on it
+   that is not a title, an axis or a reading mark. */
+.compare-legend {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  color: var(--ink);
+}
+
+/* A band, because a band is what the panel now shows: two edges with the wash
+   between them, at the strength the drawing uses. A single rule here would name
+   the curves and say nothing about the fill, which is the part a reader is
+   actually reading the period against. */
+.compare-swatch {
+  display: inline-block;
+  width: 1.75rem;
+  height: 0.7rem;
+  border-top: 1px solid var(--past);
+  border-bottom: 1px solid var(--past);
+  background: var(--past-fill);
+}
+
+/* The wait line holds no room when it has nothing to say: it is announced by
+   aria-live, so it must stay in the document rather than be toggled hidden. */
+#compare-status:empty {
+  display: none;
+}
+
+/* The way out of the page: the days as a file. On the page ground rather than
+   in a box of its own — a control the visitor finds when looking for it, and one
+   that does not compete with the days. It falls in the dark end of the results
+   page, so its ink turns over with the provenance below it; see that block. */
+.export {
+  /* No `width: 100%`, unlike `.doc-link`, and the difference is what it lines up
+     with. This page's `main` is a column flex container, so a flex item with an
+     auto inline margin shrinks to its content and centres — which is what the
+     provenance under it does, and these two are the foot of the page read
+     together. Stretched to the measure it started two hundred pixels left of the
+     provenance and made a staircase of three left edges. */
+  margin-top: calc(var(--space) * 8);
+}
+
+/* --- where the days come from ---------------------------------------------- */
+
+.provenance {
+  margin-top: calc(var(--space) * 14);
+  padding-top: calc(var(--space) * 5);
+  border-top: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.provenance summary {
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.provenance summary:hover {
+  color: var(--ink);
+}
+
+.provenance p {
+  margin: calc(var(--space) * 4) 0 0;
+}
+
+.pairs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: calc(var(--space) * 2) calc(var(--space) * 6);
+  margin: calc(var(--space) * 5) 0 0;
+}
+
+.pairs dd {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+}
+
+/* --- the documentation page ------------------------------------------------ */
+
+/*
+ * An article, on white. The one page of this site that is read rather than used.
+ *
+ * **It inverts the two inks and imports nothing.** `--paper` becomes white and
+ * `--ink` becomes the near-black that is the paper everywhere else — the page is
+ * the site's own palette turned over, which is why every rule above it keeps
+ * working untouched. Measured on the white: the ink at 18,4:1, the soft ink at
+ * 5,9:1. Only these five tokens move, and `color-scheme`, without which the
+ * browser draws its own scrollbars dark in the middle of a white page.
+ *
+ * **Why invert at all.** The two other pages are an instrument: a dark room with
+ * a sky in it, where the numbers are what glows. This one is the explanation of
+ * that instrument, and it is six screens long. The switch to white is the
+ * clearest available way of saying you have stepped out of the thing and into
+ * the account of it — and it buys plain readability at length, which no amount
+ * of ink chosen against a gradient was going to buy.
+ *
+ * **No sky, for the same reason.** Under six screens of text a gradient stops
+ * being a photograph and becomes something the eye reads through.
+ *
+ * **The serif carries the body text here**, where elsewhere it carries only
+ * titles and figures. Not a break with the two registers but the rule applied:
+ * the serif is for what the visitor reads as content, and on this page the
+ * content *is* running text. The sans keeps what it always has — the table's
+ * column heads and the credit labels, which name things rather than say them.
+ *
+ * **Both faces are variable**, 400–800 and 400–700, so weight here is drawn and
+ * not synthesised. That is what lets the hierarchy be carried by weight in the
+ * way a publication's is, instead of by size alone.
+ */
+
+body.doc {
+  color-scheme: light;
+
+  --paper: #ffffff;
+  --ink: #17140f;
+  --ink-soft: #6b6459;
+  --rule: #e5e0d6;
+  --rule-strong: #c4bdb0;
+
+  /* The face *and* the size are set on the page, not on the article inside it,
+     and that is what holds the column straight.
+
+     `--measure` is 62ch, and a `ch` is measured in the font of the element the
+     max-width lands on — its family and its size both. Set on `.doc-body`
+     alone, the header resolved 62ch of Inter at 16 px and the article 62ch of
+     Garamond at 19 px: two different widths, each centred, so the title sat to
+     the left of its own text twice over. Declared here, every block on the page
+     computes the same column.
+
+     The sans keeps the three places that name things rather than say them: the
+     table's column heads, the credit labels, and the way back. */
+  font-family: var(--font-display);
+  font-size: 1.3125rem;
+  line-height: 1.7;
+
+  /* The measure stays `:root`'s 62ch and the type carries the change, which is
+     not what it looked like it should be.
+     `ch` is the width of the "0" glyph, and EB Garamond's digits are wide
+     against its lowercase: 62ch renders about 83 characters a line, not 62.
+     Measured on this page's own prose, 62ch gave 565 px at 19 px and 685 px at
+     68ch — 91 characters, well past the comfortable range. Going to 21 px on
+     the same 62ch gives 625 px at the same 83 characters: bigger type, a wider
+     column, and a line no longer than the one the page already had. */
+}
+
+body.doc > header.banner,
+body.doc > main {
+  max-width: var(--measure);
+}
+
+/* The attack of a piece, not the banner of a page: the title sits on the left
+   margin, the standfirst under it, and the text starts. `.banner` centres, and
+   this is the one place that is wrong — a centred title reads as a masthead,
+   which is what the accueil wants and an article does not. */
+body.doc > header.banner {
+  text-align: left;
+}
+
+body.doc h1 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+}
+
+/* The one hairline on the page, between the standfirst and the first section.
+   The face and the size come from `body.doc`, for the reason given there. */
+.doc-body {
+  margin-top: calc(var(--space) * 12);
+  padding-top: calc(var(--space) * 10);
+  border-top: 1px solid var(--rule);
+}
+
+/* Space, not a rule, between two sections. The page has one hairline — under
+   the title — and adding six more would turn an article back into a document
+   with headed compartments. At this leading the gap alone reads as a break. */
+.doc-body section + section {
+  margin-top: calc(var(--space) * 16);
+}
+
+.doc-body h2 {
+  margin: 0 0 calc(var(--space) * 5);
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+
+.doc-body p {
+  margin: calc(var(--space) * 5) 0 0;
+}
+
+.doc-body h2 + p {
+  margin-top: 0;
+}
+
+/* The subsections of "comment cela fonctionne", one per model. Set apart from
+   the body by weight and a little size, and by the air above rather than by a
+   rule: they sit inside a section, and a hairline would read as ending it. */
+.doc-body h3 {
+  margin: calc(var(--space) * 11) 0 calc(var(--space) * 4);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/*
+ * The figure, wider than the text it sits in.
+ *
+ * At the reading measure it comes out about five hundred pixels across for
+ * eighty-three days, and the two short ECMWF stretches go back to being
+ * invisible — which is the one thing the chart exists to prevent. So it breaks
+ * out, capped at 60rem and at the width the body's own padding leaves.
+ *
+ * The negative inline margin is what breaks it out: `width` alone would overflow
+ * to the right, `auto` margins collapse to zero once the child is wider than its
+ * parent. Half the difference, on each side, and the figure stays centred on the
+ * column it escapes.
+ */
+.doc-figure {
+  /* Named `doc-figure` and not `figure`: `.chart` was the first try and it is
+     taken — the results page paints its own SVG chart with it, background
+     included, and this page's `--raised` is still the near-black of `:root`.
+     The caption came out white-on-black inside a white page, which is what a
+     one-sheet stylesheet costs when two pages reach for the same word. */
+  --figure: min(60rem, 100vw - var(--space) * 14);
+  width: var(--figure);
+  margin: calc(var(--space) * 9) calc((100% - var(--figure)) / 2) 0;
+}
+
+.doc-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The caption is read by everybody and says what to make of the picture; the
+   `alt` says what is in it, to somebody who will never see it. Neither replaces
+   the other, and this one carries the two sentences rule 1 obliges.
+ *
+ * **It fills the figure, in columns rather than in lines.** Held at the reading
+ * measure it drew a narrow block under a drawing three times its width, which
+ * reads as a mistake once the caption runs past two sentences; set flat across
+ * 60rem it would run to about a hundred and thirty characters a line, and the
+ * eye loses the return. Columns give both — the figure's width, and lines the
+ * length of the ones above.
+ *
+ * `column-width` and not `columns: 2`: the count is then whatever fits, so the
+ * phone gets one column without a media query, and a caption short enough not
+ * to need two stays on one. */
+.doc-figure figcaption {
+  margin: calc(var(--space) * 4) 0 0;
+  column-width: 26rem;
+  column-gap: calc(var(--space) * 8);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* Numbered where the order is the rule — the sky decision tree is read top to
+   bottom and the first match wins — and bulleted where it is a list of three
+   independent things. One set of spacing serves both. */
+.rules {
+  margin: calc(var(--space) * 5) 0 0;
+  padding-left: calc(var(--space) * 6);
+}
+
+.rules li + li {
+  margin-top: calc(var(--space) * 3);
+}
+
+/* Model and scenario identifiers, which are names of things and not words. The
+   family is the browser's own: no fourth file is loaded to set four short
+   strings. */
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.credits .pairs dt {
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  /* The label sits on the first line of its value, which is set larger. */
+  padding-top: 0.45em;
+}
+
+.doc-back {
+  margin: calc(var(--space) * 16) 0 0;
+  padding-top: calc(var(--space) * 6);
+  border-top: 1px solid var(--rule);
+  font-family: var(--font);
+  font-size: 0.9375rem;
+}
+
+/* The link to this page, on the two that carry a search. One line of the same
+   soft ink as the warning it follows, and it never competes with it.
+
+   The margin only ever applies on the results page: in the home footer the
+   warning and this sit inside `.banner`, whose `p + p` rule is more specific
+   and sets the spacing there. */
+.doc-link {
+  /* `width` as well as `max-width`, and it is not redundant. The results page
+     lays its `main` out as a column flex container, and a flex item with an
+     auto margin across the axis stops stretching and shrinks to its content —
+     so the box came out as wide as the sentence and centred itself, sitting
+     indented under a warning that starts at the margin. Declaring the width
+     gives it the same box `.warning` gets. Nothing changes on the accueil,
+     where the footer is an ordinary block. */
+  width: 100%;
+  margin: calc(var(--space) * 5) auto 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 34rem) {
+  body.doc h1 {
+    font-size: 2rem;
+  }
+
+  .doc-body h2 {
+    font-size: 1.5rem;
+  }
+
+  .doc-body h3 {
+    font-size: 1.25rem;
+  }
+
+  /* On the page, not on the article, so the column stays one width — see the
+     note on `body.doc`. */
+  body.doc {
+    font-size: 1.125rem;
+  }
+
+  /* The figure stops shrinking and starts scrolling, which is the sheet's own
+     habit — the strip of days and the table above it both do this.
+     Fitted to a phone it is 340 pixels across for eighty-three days, and its
+     axis labels come out at four pixels: the shape survives, every word on it
+     does not. Held at 40rem it needs one sideways push and can be read. */
+  .doc-figure {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .doc-figure img {
+    min-width: 40rem;
+  }
+
+  /* The caption is prose and stays put: it must not travel with the drawing. */
+  .doc-figure figcaption {
+    position: sticky;
+    left: 0;
+  }
+}
+
+/* --- the results page, laid on its heat ------------------------------------ */
+
+/*
+ * What the mock-up changes, component by component. Everything above stays as
+ * it was for the home page; nothing here reaches it.
+ *
+ * **The card stops being the box.** It was a bordered panel with a tinted head;
+ * now the date sits bare on the gradient and only the body below it is drawn.
+ * That is the mock-up's arrangement and it earns itself: on a ground this loud,
+ * a single white rectangle per day gives the eye something to count.
+ */
+body.results .card {
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+body.results .card-head {
+  padding: 0 0 calc(var(--space) * 2);
+  border-bottom: 0;
+  text-align: center;
+}
+
+body.results .card-day {
+  font-size: 0.9375rem;
+}
+
+body.results .card-body {
+  padding: calc(var(--space) * 4) calc(var(--space) * 3) calc(var(--space) * 4);
+  border: 1px solid var(--ink);
+  background: var(--raised);
+}
+
+/* The simulated side of the seam, still two cues and still neither alone: a
+   warmer paper, and the written marker standing in the strip. */
+body.results .card--simulated .card-body {
+  background: var(--raised-simulated);
+}
+
+/*
+ * The two temperatures, stacked, maximum first. They are the card's headline
+ * and they are set larger here than on the dark card — a white rectangle this
+ * narrow has room for exactly one thing that shouts.
+ */
+body.results .card-temperatures {
+  margin-top: calc(var(--space) * 2);
+  font-size: 1.875rem;
+  line-height: 1.2;
+}
+
+body.results .card-degrees {
+  display: block;
+}
+
+/* Written for the screen reader, drawn by the pictogram. docs/application.md
+   asks that the emoji never travel alone; it does not ask that the word be
+   shown, and the mock-up's card has no room for it. */
+body.results .card-sky {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Both measures on one centred column, the words gone off-screen with the
+   labels. The rule above them is what keeps them a footnote to the degrees. */
+body.results .card-measures {
+  display: block;
+  margin-top: calc(var(--space) * 3);
+  padding-top: calc(var(--space) * 3);
+  border-top: 1px solid var(--rule);
+  text-align: center;
+}
+
+body.results .card-measures dd {
+  text-align: center;
+  font-size: 1.0625rem;
+}
+
+body.results .card-measures dd + dt + dd,
+body.results .card-measures dd ~ dd {
+  margin-top: calc(var(--space) * 1);
+}
+
+body.results .unit {
+  color: inherit;
+  opacity: 0.75;
+}
+
+/* The seam keeps its written marker; only its rule changes side of the palette. */
+body.results .seam {
+  border-left-color: var(--ink);
+}
+
+body.results .seam span {
+  color: var(--ink);
+}
+
+/* The refusal keeps its rule, but not in red: `--warm` is the mock-up's pure
+   red here, and a red bar on an orange ground is a bar nobody sees. */
+body.results .failure {
+  border-left-color: var(--ink);
+}
+
+body.results .band,
+body.results .chart-panel {
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+body.results .band::-webkit-scrollbar-thumb,
+body.results .chart-panel::-webkit-scrollbar-thumb {
+  background-color: var(--rule-strong);
+}
+
+/*
+ * **The bottom of the page is where the ink turns over.** By the provenance the
+ * gradient is past `#810402` and heading for black, and the dark ink that
+ * serves the heading would vanish into it. This is the foot of the page reading
+ * pale, and the rule over the provenance is what marks the crossing.
+ *
+ * **The export button crossed with it**, and it was written dark first: on the
+ * ground at that height, `--ink-soft` is #3d1c07 against #8c4315, which is two
+ * darks and a button nobody can see. It sits above the rule rather than below
+ * it, so it takes the pale ink without the border.
+ */
+body.results .provenance {
+  border-top-color: rgb(255 255 255 / 30%);
+  color: rgb(255 255 255 / 72%);
+}
+
+body.results .provenance summary,
+body.results .export .link {
+  color: rgb(255 255 255 / 72%);
+}
+
+body.results .provenance summary:hover,
+body.results .provenance .pairs dd {
+  color: #fff;
+}
+
+/* --- read but not shown ---------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+  /* The banner question stops turning altogether, in prompt.js — this only
+     makes sure the one that stays does not fade in. */
+  /* Snapping drags the strip under the reader's hand; the scrolling stays. */
+  .band {
+    scroll-snap-type: none;
+  }
+  /* The heat stops rising. The sky itself stays — it is the movement that is
+     refused here, not the picture. Dropping the layer also drops the filter,
+     which is what the per-frame cost was for. */
+  .sky::after {
+    display: none;
+  }
+}
+
+/* --- short windows --------------------------------------------------------- */
+/*
+ * Not narrow ones: this is about height. A laptop in a browser with a couple of
+ * toolbars gives eight hundred usable pixels, and the home page has to hold a
+ * heading, a promise, three fields, a button and a warning inside them.
+ *
+ * Spacing only, and deliberately so. The type keeps its size — shrinking the
+ * question is the first thing that would occur to anyone and the first thing
+ * the page would suffer from, since that question is what the page is for. What
+ * gives instead is the air around it, which is the one thing that costs nothing
+ * to lose in the only case where it cannot be afforded.
+ */
+@media (max-height: 860px) {
+  body.home {
+    padding-top: calc(var(--space) * 10);
+    padding-bottom: calc(var(--space) * 4);
+  }
+
+  body.home > header.banner {
+    padding-top: clamp(calc(var(--space) * 4), 6vh, calc(var(--space) * 20));
+  }
+
+  body.home > footer.banner {
+    padding-top: calc(var(--space) * 4);
+  }
+
+  .search {
+    margin-top: calc(var(--space) * 6);
+  }
+
+  .field {
+    margin-bottom: calc(var(--space) * 6);
+  }
+}
+
+/* --- narrow screens -------------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  body {
+    padding: calc(var(--space) * 10) calc(var(--space) * 5) calc(var(--space) * 14);
+  }
+
+  h1 {
+    font-size: 2.125rem;
+  }
+
+  .search {
+    margin-top: calc(var(--space) * 12);
+  }
+
+  .field {
+    margin-bottom: calc(var(--space) * 9);
+  }
+
+  .dates {
+    gap: calc(var(--space) * 6);
+  }
+
+  /* The strip keeps scrolling horizontally at every width, as the document
+     asks — only the card gives a little. */
+  :root {
+    --card: 12rem;
+  }
+}

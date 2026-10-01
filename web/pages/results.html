@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather Simulator&nbsp;: résultats</title>
+    <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <script type="module" src="/static/js/results.js"></script>
+  </head>
+  <!-- The heat, as the home page has its sunset. A results page used to be a
+       strip of cards on flat paper; the mock-up puts them on the summer that
+       produced them — and results.js turns the ground over to the season the
+       range actually falls in. The attribute written here is the fallback, for
+       a URL carrying no usable range: the summer the page was drawn on. -->
+  <body class="results" data-season="summer">
+    <div class="sky" aria-hidden="true"></div>
+
+    <a class="skip" href="#days" data-text="site.skipToDays"></a>
+
+    <header class="banner">
+      <h1 id="place"></h1>
+      <!-- The separator lives in the stylesheet, so a refusal — which never
+           sets a count — does not leave a dangling "·" after the dates. -->
+      <p class="tagline"><span id="range"></span><span id="count"></span></p>
+      <p><a href="/" data-text="results.back"></a></p>
+    </header>
+
+    <main>
+      <!--
+        Shown only when the range reaches the future, and it carries CLAUDE.md
+        rule 1 and nothing else.
+
+        **The emissions scenario used to be a second line here.**
+        `docs/science.md` requires that status stated in the interface, and it is
+        stated — at length, on the documentation page, where the same paragraph
+        can also say that the scenarios have not yet parted by 2050 and that the
+        single model weighs more than the choice of trajectory. Four words under
+        a search could carry the ranking but never that, and a caveat read as
+        more alarming than it is costs the same trust as one that is missing.
+        `test_pages.py` keeps the statement on the page that explains it.
+      -->
+      <aside id="warning" class="warning" hidden>
+        <p data-text="warning.notAForecast"></p>
+      </aside>
+
+      <!--
+        The way out to the long explanation, at the top and next to the warning
+        it answers.
+
+        **Outside the aside, deliberately.** That block is hidden whenever the
+        range stops short of the climate model, and a link folded into it would
+        vanish on every past-only search — precisely the searches whose reader
+        has no warning to prompt the question and most needs the offer. Here it
+        is one line under the warning when there is one, and the first line of
+        the page when there is not.
+      -->
+      <p class="doc-link">
+        <a href="/documentation" data-text="site.documentation"></a>
+      </p>
+
+      <p id="wait" class="status" aria-live="polite" data-text="results.loading"></p>
+      <p id="failure" class="failure" role="alert" hidden></p>
+
+      <!--
+        tabindex makes the strip focusable, which is what lets the arrow keys
+        scroll it: ninety cards are otherwise out of reach without a mouse.
+      -->
+      <ol
+        id="days"
+        class="band"
+        tabindex="0"
+        role="group"
+        data-attr-aria-label="results.bandLabel"
+      ></ol>
+
+      <!--
+        The sentence that says what the mark on the cards means, and it is built
+        in results.js rather than filled from the dictionary: which of the two
+        wordings applies depends on the highest level the range carries, which
+        is a number nobody can write in advance. Absent entirely from a range
+        that carries no mark — which is every range in France.
+      -->
+      <p id="humid-note" class="humid-note" hidden></p>
+
+      <!--
+        The same days again, drawn: the strip says one day at a time and never
+        the shape of the period. Filled by chart.js, and hidden until it is —
+        an empty frame under the cards would announce something that is not
+        coming. A refused search never fills it either.
+      -->
+      <div id="chart-panel" class="chart-panel" hidden></div>
+
+      <!--
+        The other year, under this one. Outside the panel above and never in it:
+        that panel scrolls sideways under 58 rem, and a control inside would
+        leave the screen with the drawing.
+
+        Everything here is text the dictionary fills, except the year menu and
+        the two lines that name a year — those are built in results.js, a year
+        being a number nobody can write in advance.
+      -->
+      <div id="compare" class="compare" hidden>
+        <button
+          type="button"
+          id="compare-toggle"
+          class="link"
+          aria-expanded="false"
+          aria-controls="compare-panel"
+          data-text="compare.open"
+        ></button>
+
+        <div id="compare-panel" class="compare-panel" hidden>
+          <p class="compare-field">
+            <label for="compare-year" data-text="compare.year"></label>
+            <select id="compare-year"></select>
+          </p>
+
+          <p id="compare-status" class="compare-note" aria-live="polite"></p>
+          <p id="compare-legend" class="compare-legend" hidden>
+            <span class="compare-swatch" aria-hidden="true"></span>
+            <span id="compare-legend-text"></span>
+          </p>
+
+          <p class="compare-note" data-text="compare.ordinary"></p>
+          <p class="compare-note" data-text="compare.rainAside"></p>
+
+          <!--
+            The accessible equivalent of the two grey curves. The strip above
+            writes out every value of one year only; the compared year is an
+            ordinary search of this site, so its own page carries its own strip,
+            every number in words, one link away.
+          -->
+          <p><a id="compare-link" href="/"></a></p>
+
+          <p id="compare-failure" class="failure" role="alert" hidden></p>
+        </div>
+      </div>
+
+      <!--
+        The days on screen, as a file.
+
+        **Outside the comparison box on purpose.** It offers what is drawn
+        whether or not a second year is drawn with it, and folded into that box
+        it would sit behind a control the visitor may never open.
+
+        A button and not a link: nothing is fetched and nowhere is navigated to.
+        The file is written from what the page already holds, which is also why
+        it is hidden until there is something to write.
+      -->
+      <p id="export" class="export" hidden>
+        <button
+          type="button"
+          id="export-button"
+          class="link"
+          data-text="export.button"
+        ></button>
+      </p>
+
+      <details id="provenance" class="provenance" hidden>
+        <summary data-text="provenance.summary"></summary>
+        <dl id="provenance-grid" class="pairs"></dl>
+        <p data-text="provenance.observed"></p>
+      </details>
+    </main>
+  </body>
+</html>

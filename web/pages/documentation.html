@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather Simulator&nbsp;: comment ça fonctionne</title>
+    <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+
+  <!--
+    The third page, and the only one that carries its own words.
+
+    **No module is loaded here, and that is the point.** The other two pages are
+    empty markup that a script fills from i18n.js; this one has nothing to
+    fetch, nothing to wire, and no slot that depends on a search. It renders
+    with JavaScript off, which is the right property for the page a visitor
+    reaches when they want to know whether to trust the rest.
+
+    **Its prose lives in this file rather than in the dictionary**, against the
+    habit the other two pages follow. The dictionary exists so that interface
+    strings do not scatter across page files, where a translation always misses
+    one. A document is not a scattered string: it is one unit of translation,
+    and it translates as a second file — documentation.en.html — rather than as
+    a few hundred keys. Several thousand words of structured prose in a
+    JavaScript object would cost the dictionary its whole readability and buy
+    nothing.
+
+    What that costs: `present.test.js` walks the dictionary to enforce CLAUDE.md
+    rule 1 and will never see this file. `tests/test_pages.py` reads it directly
+    instead.
+
+    **This page is on white, and no other is.** It inverts the site's two inks
+    rather than importing a palette — the near-black that is paper everywhere
+    else becomes the ink here. The two other pages are an instrument, a dark room
+    with a sky in it where the numbers are what glows; this one is the account of
+    that instrument and runs six screens, and the switch says you have stepped
+    out of the thing and into the explanation of it. No sky either, for a reason
+    of the same kind: under a column of prose a gradient stops being a photograph
+    and becomes something the eye has to read through.
+  -->
+  <body class="doc">
+    <header class="banner">
+      <h1>Comment connaître la météo n'importe où, n'importe quand&nbsp;?</h1>
+    </header>
+
+    <main class="doc-body">
+      <section>
+        <p>
+          Afin de sensibiliser aux effets tangibles du réchauffement climatique,
+          ce site affiche la météo de n'importe quelle ville, à n'importe quelle
+          date. Pourtant, vous entendez régulièrement que la météo n'est pas
+          fiable au-delà d'une quinzaine de jours, à juste titre. Comment en
+          afficher une sur des périodes allant jusqu'à plusieurs décennies&nbsp;?
+        </p>
+
+        <p>
+          En réalité, au-delà d'une quinzaine de jours, une journée avec les
+          grandeurs affichées (températures, précipitations, vent) a toutes les
+          chances de ne jamais se produire. Mais l'idée de ce site n'est pas de
+          savoir s'il faudra prendre son parapluie le 23 mars 2049, mais de
+          proposer une météo plausible. Plausible veut dire qu'une température
+          maximale de 17&nbsp;°C un 28 juillet l'est à Brest, et l'est beaucoup
+          moins à Perpignan.
+        </p>
+
+        <p>
+          Cependant, avec le réchauffement climatique, une météo plausible en
+          2050 n'est pas la même qu'en 2010. C'est ce que l'on cherche à montrer
+          ici&nbsp;: à quoi ressemblerait un hiver ou un été en 2049, jour par
+          jour, dans une atmosphère qui se réchauffe. Comme dit précédemment, on
+          ne pourra pas en conclure que «&nbsp;l'été 2044 sera dur&nbsp;», car
+          rien ne permet de prévoir qu'un tel été tombera en 2044 plutôt qu'en
+          2043 ou 2045. Mais en essayant plusieurs années dans une même ville,
+          vous verrez que la chaleur devient plus intense, que le froid se fait
+          plus rare, et qu'une semaine à plus de 35&nbsp;°C dans le nord de la
+          France finit par être ordinaire.
+        </p>
+      </section>
+
+      <section>
+        <h2>D'où viennent les journées&nbsp;?</h2>
+
+        <p>
+          <strong>De 1970 à 2005, la météo passée</strong> vient de la
+          réanalyse ERA5 (ECMWF / Copernicus). Une réanalyse est un modèle
+          météorologique recalé en permanence sur les observations&nbsp;: c'est
+          la meilleure reconstitution disponible du temps qu'il a fait, sur une
+          grille régulière d'environ 28&nbsp;km.
+        </p>
+
+        <p>
+          <strong>De 2027 à 2100, la météo simulée</strong> vient d'un couple
+          de modèles du programme CORDEX&nbsp;: le modèle global EC-EARTH fixe
+          l'état de l'atmosphère à grande échelle, le modèle régional RCA4
+          (SMHI) le détaille sur l'Europe à 12&nbsp;km. Le scénario d'émissions
+          est le RCP&nbsp;4.5, une trajectoire intermédiaire. Ces journées ne
+          sont pas des prévisions&nbsp;: ce sont des journées plausibles dans le
+          climat de leur époque.
+        </p>
+
+        <p>
+          <strong>Entre 2006 et 2026</strong>, aucune donnée n'est affichée
+          pour le moment. Le modèle climatique y produirait une météo fictive
+          pour des années dont chacun se souvient.
+        </p>
+      </section>
+
+      <section>
+        <h2>La correction du modèle</h2>
+
+        <p>
+          Un modèle climatique a ses biais&nbsp;: un peu trop froid ici, trop
+          pluvieux là. Chaque grandeur simulée est donc corrigée, maille par
+          maille et mois par mois, en comparant sur 1970-2005 la distribution
+          des journées du modèle à celle d'ERA5. La correction porte sur chaque
+          niveau de la distribution (les journées froides, moyennes,
+          chaudes), et non sur la seule moyenne. Elle conserve l'évolution que
+          le modèle simule d'ici 2100&nbsp;: un jour chaud de 2080 reste plus
+          chaud qu'un jour chaud de 1990.
+        </p>
+
+        <p>
+          Les données du modèle sont ramenées sur la grille d'ERA5
+          (0,25°), de sorte qu'un lieu est lu au même endroit dans le passé et
+          dans le futur.
+        </p>
+      </section>
+
+      <section>
+        <h2>Ce qu'affiche une journée</h2>
+
+        <ul class="rules">
+          <li>
+            <strong>Températures minimale et maximale</strong> de la journée,
+            à 2&nbsp;m.
+          </li>
+          <li>
+            <strong>Précipitations</strong>, cumul de la journée, toutes
+            formes confondues.
+          </li>
+          <li>
+            <strong>Vent moyen</strong> de la journée, à 10&nbsp;m. Ce n'est ni
+            une rafale ni un maximum.
+          </li>
+          <li>
+            <strong>Le ciel</strong>&nbsp;: neige si les précipitations
+            atteignent 1&nbsp;mm et la température moyenne est sous
+            1,5&nbsp;°C&nbsp;; pluie si elles atteignent 1&nbsp;mm&nbsp;;
+            sinon couvert au-delà de 70&nbsp;% de nébulosité, nuageux au-delà
+            de 30&nbsp;%, dégagé en dessous. Une moyenne journalière ne dit pas
+            la forme de la journée&nbsp;: le pictogramme décrit un type de
+            journée.
+          </li>
+          <li>
+            <strong>La chaleur humide</strong>, lue sur la température humide
+            moyenne de la journée, calculée à partir de la température et de
+            l'humidité relative (Stull, 2011)&nbsp;: «&nbsp;chaleur
+            humide&nbsp;» à partir de 26&nbsp;°C, «&nbsp;extrême&nbsp;» à
+            partir de 30&nbsp;°C. Un niveau élevé signale un danger certain&nbsp;;
+            un niveau modéré n'exclut pas quelques heures difficiles.
+          </li>
+        </ul>
+
+        <p>
+          Les mêmes règles s'appliquent aux journées passées et simulées.
+        </p>
+      </section>
+
+      <section>
+        <h2>Les limites</h2>
+
+        <ul class="rules">
+          <li>
+            <strong>Une maille d'environ 25&nbsp;km.</strong> Les grandeurs
+            sont moyennées sur une zone de cette taille. Orages, brouillards de
+            vallée, effets de relief fins et îlots de chaleur urbains ne sont
+            pas représentés.
+          </li>
+          <li>
+            <strong>Un seul modèle et un seul scénario.</strong> Une autre
+            simulation donnerait une autre suite de journées, et un autre
+            scénario un autre rythme de réchauffement. Une saison affichée est
+            un tirage possible, pas une valeur attendue.
+          </li>
+          <li>
+            <strong>Les cumuls de pluie sont exploitables, les intensités
+            moins.</strong> Les épisodes intenses sont moins bien représentés
+            que les cumuls.
+          </li>
+          <li>
+            <strong>L'Europe seulement</strong>, pour le moment.
+          </li>
+        </ul>
+      </section>
+
+      <section class="credits">
+        <h2>Sources et crédits</h2>
+
+        <dl class="pairs">
+          <dt>Réanalyse</dt>
+          <dd>ERA5, ECMWF / Copernicus Climate Change Service</dd>
+
+          <dt>Simulation climatique</dt>
+          <dd>
+            CORDEX EUR-11&nbsp;: <span class="mono">ICHEC-EC-EARTH</span>
+            (r12i1p1) et <span class="mono">SMHI-RCA4</span>, historique puis
+            RCP&nbsp;4.5, via le Copernicus Climate Data Store
+          </dd>
+
+          <dt>Recherche de lieux</dt>
+          <dd><a href="https://open-meteo.com/">Open-Meteo</a></dd>
+        </dl>
+      </section>
+
+      <p class="doc-back"><a href="/">Retour à l'accueil</a></p>
+    </main>
+  </body>
+</html>

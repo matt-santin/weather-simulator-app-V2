@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather Simulator</title>
+    <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <script type="module" src="/static/js/home.js"></script>
+  </head>
+  <!-- The sky belongs to this page. The results page is a strip of cards and a
+       sunset behind them would fight them for attention. -->
+  <body class="home">
+    <a class="skip" href="#search" data-text="site.skip"></a>
+
+    <!--
+      The sky, and the heat coming off it.
+
+      A layer of its own rather than the body's background, because the shimmer
+      is an SVG filter and a filter applies to an element whole: put on the body
+      it would ripple the heading, the form and the warning along with the
+      gradient, and a wobbling date field is not a design. Here it reaches the
+      sky and nothing else.
+
+      Decorative through and through — `aria-hidden`, and nothing inside it.
+    -->
+    <div class="sky" aria-hidden="true"></div>
+
+
+    <!--
+      The heading is filled by script, as every sentence on this site is — it
+      is empty here for the same reason the form's labels are. What is new is
+      that it keeps changing, so prompt.js stacks the questions inside it and
+      exposes one at a time to the accessibility tree.
+    -->
+    <header class="banner">
+      <h1 id="prompt" class="prompt"></h1>
+      <!--
+        The promise, and the asterisk that qualifies it.
+
+        **The slot is declared here and the mark is placed by script**, which is
+        not the arrangement the rest of the page uses and has one reason. The
+        call goes *before* the full stop — « N'importe quand*. » — so it falls
+        inside the sentence, and a node written here could only ever follow it.
+        `home.js` cuts the filled text where `beforeFinalPunctuation` says and
+        puts the three pieces back.
+
+        The `data-text` stays all the same: it is what `pages.test.js` checks the
+        dictionary against, and it is what shows if the enhancement above it ever
+        fails — the whole promise, unmarked, which is the right thing to fall
+        back to.
+      -->
+      <p class="tagline" id="promise" data-text="home.promise"></p>
+    </header>
+
+    <main>
+      <!--
+        A real GET form: the navigation to /resultats costs no script, the
+        resulting URL is shareable, and the back button works on its own.
+        Script fills lat/lon only, because the API asks for coordinates and a
+        name is not one.
+      -->
+      <form id="search" method="get" action="/resultats" class="search">
+        <div class="field">
+          <label for="lieu" data-text="form.place"></label>
+          <input
+            type="text"
+            id="lieu"
+            name="lieu"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="candidates"
+            data-attr-placeholder="form.placeHint"
+          />
+          <ul id="candidates" class="candidates" role="listbox" hidden></ul>
+          <p id="chosen" class="chosen" hidden>
+            <span id="chosen-name"></span>
+            <button type="button" id="change" class="link" data-text="form.change"></button>
+          </p>
+        </div>
+
+        <!--
+          What is happening to the place field, said next to the place field.
+          The count of candidates goes to the second one, which is read aloud
+          and not shown: the list itself is the visible answer, and the open
+          list would sit over this line anyway.
+        -->
+        <p id="place-status" class="status"></p>
+        <p id="found" class="sr-only" aria-live="polite"></p>
+
+        <input type="hidden" id="lat" name="lat" />
+        <input type="hidden" id="lon" name="lon" />
+
+        <!--
+          Two ways of asking for one period, and neither panel showing until
+          one of them is picked.
+
+          **Buttons, not a group of radios.** Radios only group by sharing a
+          `name`, and a name is what a GET form puts in the URL: the address
+          would carry a mode that means nothing to the results page. These
+          carry `type="button"`, so they are never submitted and never
+          accidentally submit the form either.
+
+          **The markup opens on the dates panel, and script closes it.** Left
+          the other way round, a visitor without JavaScript would meet a form
+          with no period at all and no way to reveal one. Here the page still
+          degrades to exactly what it was before the season existed.
+
+          **The season comes first, and the order is the markup's own.** It is
+          the question the site exists to answer — an été à Montpellier en 2050
+          — where two dates are the way out for someone who wants a fortnight in
+          particular. Reordering with CSS would leave the reading order and the
+          tab order on the old arrangement, which is the arrangement nobody sees
+          any more; a screen reader and a keyboard have to meet them in the same
+          order an eye does. The panels below are left as they are: only one is
+          ever open, so their order is not read, and the one showing when there
+          is no script has to stay the one the markup does not hide.
+        -->
+        <div class="modes" role="group" data-attr-aria-label="form.modeLabel">
+          <button
+            type="button"
+            id="mode-season"
+            class="mode"
+            aria-pressed="false"
+            aria-controls="panel-season"
+            data-text="form.modeSeason"
+          ></button>
+          <button
+            type="button"
+            id="mode-dates"
+            class="mode"
+            aria-pressed="true"
+            aria-controls="panel-dates"
+            data-text="form.modeDates"
+          ></button>
+        </div>
+
+        <div class="dates" id="panel-dates">
+          <p class="field">
+            <label for="debut" data-text="form.from"></label>
+            <input type="date" id="debut" name="debut" required />
+          </p>
+          <p class="field">
+            <label for="fin" data-text="form.to"></label>
+            <input type="date" id="fin" name="fin" required />
+          </p>
+        </div>
+
+        <!--
+          The season panel writes into the two date fields above; it does not
+          replace them. **Neither select carries a `name`**, so neither is
+          submitted: `debut` and `fin` stay the only things that leave, hidden
+          or not, and the URL is the same five parameters it has always been.
+          The results page therefore needs to know nothing about seasons.
+
+          Both lists are built by script — the season names come from the
+          dictionary, and the years from what the API says it covers.
+        -->
+        <div class="dates" id="panel-season" hidden>
+          <p class="field">
+            <label for="saison" data-text="form.season"></label>
+            <select id="saison"></select>
+          </p>
+          <p class="field">
+            <label for="annee" data-text="form.year"></label>
+            <select id="annee"></select>
+          </p>
+        </div>
+
+        <!--
+          Hidden by script until a period has been asked for, and visible here
+          for the same reason the dates panel is: with no script, this is the
+          form as it always was. Left showing before a mode is picked, it would
+          run a search on default dates the visitor never saw.
+        -->
+        <p id="go"><button type="submit" data-text="form.submit"></button></p>
+
+        <p id="status" class="status" aria-live="polite"></p>
+      </form>
+    </main>
+
+    <!--
+      The warning, and immediately under it the place that explains it. A
+      visitor who reads "simulation, pas une prévision" and wants to know what
+      that means should not have to run a search first to find out.
+    -->
+    <footer class="banner">
+      <!--
+        The note the asterisk above refers to.
+
+        The mark is `aria-hidden`: it is a visual back-reference and nothing
+        else. Read aloud it would be "astérisque" in front of a sentence that
+        already stands on its own — the pairing is for the eye, and the eye is
+        what it is left to.
+      -->
+      <p class="tagline">
+        <span class="note-mark" aria-hidden="true">*</span
+        ><span id="coverage"></span
+        ><span data-text="warning.note"></span>
+      </p>
+      <p class="tagline" data-text="warning.noteMeaning"></p>
+      <p class="doc-link">
+        <a href="/documentation" data-text="site.documentation"></a>
+      </p>
+    </footer>
+  </body>
+</html>
