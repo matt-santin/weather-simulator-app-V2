@@ -28,7 +28,7 @@ import {
 /** What GET /api/config really answers, of the part this module reads. */
 const CONFIG = {
   periods: [
-    { start: "1970-01-01", end: "2005-12-31", origin: "observed" },
+    { start: "1970-01-01", end: "2025-12-31", origin: "observed" },
     { start: "2027-01-01", end: "2100-12-31", origin: "simulated" },
   ],
   max_days: 92,
@@ -156,13 +156,13 @@ describe("the years the menu may offer", () => {
   it("offers the observed years, and those only", () => {
     const years = selectableYears(summer, CONFIG);
     assert.equal(years[0], 1970);
-    assert.equal(years.at(-1), 2005);
-    assert.equal(years.length, 36);
+    assert.equal(years.at(-1), 2025);
+    assert.equal(years.length, 56);
   });
 
   it("withholds a year whose shifted range leaves the observed period", () => {
     const winter = { start: "2046-12-21", end: "2047-03-20" };
-    assert.equal(selectableYears(winter, CONFIG).at(-1), 2004);
+    assert.equal(selectableYears(winter, CONFIG).at(-1), 2024);
   });
 
   it("holds the measured default", () => {

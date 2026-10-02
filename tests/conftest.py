@@ -18,7 +18,7 @@ import zarr
 
 LATITUDE = np.array([46.0, 45.75, 45.5, 45.25, 45.0])
 LONGITUDE = np.array([5.0, 5.25, 5.5, 5.75, 6.0])
-SOURCES = {"era5": (date(1970, 1, 1), date(2005, 12, 31)), "cordex": (date(1970, 1, 1), date(2100, 12, 31))}
+SOURCES = {"era5": (date(1970, 1, 1), date(2025, 12, 31)), "cordex": (date(1970, 1, 1), date(2100, 12, 31))}
 VARIABLES = {  # name: dtype, step
     "tasmax": ("int16", 0.01),
     "tasmin": ("int16", 0.01),

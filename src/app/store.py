@@ -2,11 +2,11 @@
 
 Two sources on one 0.25 deg grid, each serving one period:
 
-- era5: the ERA5 reanalysis, 1970-2005, days that happened;
+- era5: the ERA5 reanalysis, 1970-2025, days that happened;
 - cordex: corrected CORDEX, 2027-2100, a plausible trajectory, not a forecast.
 
-2006-2026 is served by neither: ERA5 was not downloaded past 2005, and CORDEX
-there would show a fictional weather for years the visitor remembers.
+2026 is served by neither: the year is not over in ERA5, and CORDEX there
+would show a fictional weather for a year the visitor remembers.
 
 zarr is read directly rather than through xarray: the server needs integer
 chunks and three attributes, and importing xarray and pandas would double its
@@ -52,7 +52,7 @@ class Period:
 
 
 PERIODS = (
-    Period("era5", date(1970, 1, 1), date(2005, 12, 31)),
+    Period("era5", date(1970, 1, 1), date(2025, 12, 31)),
     Period("cordex", date(2027, 1, 1), date(2100, 12, 31)),
 )
 
@@ -82,6 +82,12 @@ class Store:
             if time.attrs["units"] != "days since 1970-01-01 00:00:00":
                 raise RuntimeError(f"{path}: {period.source}/time, unite {time.attrs['units']}")
             self.first[period.source] = EPOCH + timedelta(days=int(time[0]))
+            last = EPOCH + timedelta(days=int(time[-1]))
+            if self.first[period.source] > period.start or last < period.end:
+                raise RuntimeError(
+                    f"{path}: {period.source} couvre {self.first[period.source]}..{last}, "
+                    f"la periode servie est {period.start}..{period.end}"
+                )
         self.built = max(a.attrs["built"] for g in self.arrays.values() for a in g.values())
 
     def cell(self, latitude: float, longitude: float) -> tuple[int, int] | None:

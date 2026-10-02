@@ -18,7 +18,7 @@ const CONFIG = {
   coverage_start: "1970-01-01",
   coverage_end: "2100-12-31",
   periods: [
-    { start: "1970-01-01", end: "2005-12-31", origin: "observed" },
+    { start: "1970-01-01", end: "2025-12-31", origin: "observed" },
     { start: "2027-01-01", end: "2100-12-31", origin: "simulated" },
   ],
   max_days: 92,
@@ -50,15 +50,15 @@ describe("what the form refuses", () => {
   });
 
   it("refuses a range between the two periods, or straddling one of their ends", () => {
-    const unavailable = /Données indisponibles.*1970 à 2005, 2027 à 2100/;
-    assert.match(refuse({ start: "2015-07-01", end: "2015-07-14" }, CONFIG), unavailable);
-    assert.match(refuse({ start: "2005-12-01", end: "2006-01-31" }, CONFIG), unavailable);
+    const unavailable = /Données indisponibles.*1970 à 2025, 2027 à 2100/;
+    assert.match(refuse({ start: "2026-07-01", end: "2026-07-14" }, CONFIG), unavailable);
+    assert.match(refuse({ start: "2025-12-01", end: "2026-01-31" }, CONFIG), unavailable);
     assert.match(refuse({ start: "2026-12-01", end: "2027-01-31" }, CONFIG), unavailable);
   });
 
   it("accepts the bounds themselves", () => {
     assert.equal(refuse({ start: "1970-01-01", end: "1970-01-31" }, CONFIG), null);
-    assert.equal(refuse({ start: "2005-12-01", end: "2005-12-31" }, CONFIG), null);
+    assert.equal(refuse({ start: "2025-12-01", end: "2025-12-31" }, CONFIG), null);
     assert.equal(refuse({ start: "2027-01-01", end: "2027-01-31" }, CONFIG), null);
     assert.equal(refuse({ start: "2100-12-01", end: "2100-12-31" }, CONFIG), null);
   });

@@ -44,7 +44,7 @@ export function refuse({ start, end }, config) {
   return null;
 }
 
-/** The served periods as the visitor reads them: "1970 à 2005, 2027 à 2100". */
+/** The served periods as the visitor reads them: "1970 à 2025, 2027 à 2100". */
 export function periodsText(config) {
   return config.periods
     .map((p) => texts.form.period(p.start.slice(0, 4), p.end.slice(0, 4)))

@@ -31,7 +31,7 @@ def test_config_serves_the_two_periods(client: TestClient) -> None:
     assert config["coverage_start"] == "1970-01-01"
     assert config["coverage_end"] == "2100-12-31"
     assert config["periods"] == [
-        {"start": "1970-01-01", "end": "2005-12-31", "origin": "observed"},
+        {"start": "1970-01-01", "end": "2025-12-31", "origin": "observed"},
         {"start": "2027-01-01", "end": "2100-12-31", "origin": "simulated"},
     ]
     assert config["max_days"] == 92
@@ -88,8 +88,8 @@ def test_the_nearest_cell_is_served(client: TestClient) -> None:
 @pytest.mark.parametrize(
     ("start", "end"),
     [
-        ("2015-07-01", "2015-07-14"),  # between the two periods
-        ("2005-12-15", "2006-01-10"),  # straddling the end of ERA5
+        ("2026-07-01", "2026-07-14"),  # between the two periods
+        ("2025-12-15", "2026-01-10"),  # straddling the end of ERA5
         ("2026-12-20", "2027-01-10"),  # straddling the start of CORDEX
         ("1969-12-20", "1970-01-10"),  # before the first
         ("2100-12-20", "2101-01-10"),  # after the last
@@ -100,7 +100,7 @@ def test_a_range_outside_one_period_is_refused_whole(client: TestClient, start, 
     assert response.status_code == 400
     message = response.json()["message"]
     assert message.startswith("Données indisponibles")
-    assert "1970-2005 et 2027-2100" in message
+    assert "1970-2025 et 2027-2100" in message
 
 
 def test_more_than_a_season_is_refused(client: TestClient) -> None:

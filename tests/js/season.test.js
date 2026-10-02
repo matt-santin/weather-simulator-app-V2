@@ -23,7 +23,7 @@ const CONFIG = {
   coverage_start: "1970-01-01",
   coverage_end: "2100-12-31",
   periods: [
-    { start: "1970-01-01", end: "2005-12-31", origin: "observed" },
+    { start: "1970-01-01", end: "2025-12-31", origin: "observed" },
     { start: "2027-01-01", end: "2100-12-31", origin: "simulated" },
   ],
 };
@@ -214,17 +214,17 @@ describe("the years a season can be asked for", () => {
       const years = yearsFor(name, north.latitude, CONFIG);
       assert.equal(years.at(0), 1970);
       assert.equal(years.at(-1), 2100);
-      assert.ok(years.includes(2005) && years.includes(2027));
-      assert.ok(!years.some((y) => y > 2005 && y < 2027));
-      assert.equal(years.length, 36 + 74);
+      assert.ok(years.includes(2025) && years.includes(2027));
+      assert.ok(!years.includes(2026));
+      assert.equal(years.length, 56 + 74);
     }
   });
 
   it("withholds from winter the years whose far end falls outside a period", () => {
-    // Winter 2005 ends on 20 March 2006, winter 2100 on 20 March 2101: offering
+    // Winter 2025 ends on 20 March 2026, winter 2100 on 20 March 2101: offering
     // them would be offering a refusal.
     const years = yearsFor("winter", north.latitude, CONFIG);
-    assert.ok(years.includes(2004) && !years.includes(2005));
+    assert.ok(years.includes(2024) && !years.includes(2025));
     assert.equal(years.at(-1), 2099);
   });
 

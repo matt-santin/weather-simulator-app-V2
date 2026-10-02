@@ -105,7 +105,7 @@ class Source:
 SOURCES = {
     "cordex": Source(YEARS, lambda n, y: CORRECTED / yearly(n, y),
                      lambda n: n, lambda n: VARS[n].convert),
-    "era5": Source(range(1970, 2006),
+    "era5": Source(range(1970, 2026),
                    lambda n, y: ERA5_DAILY / f"{VARS[n].era5}_ERA5_day_{y}0101-{y}1231.nc",
                    lambda n: VARS[n].era5, lambda n: VARS[n].from_era5),
 }
@@ -169,6 +169,12 @@ def create(src: str, name: str, days, lat, lon) -> zarr.Array:
         "compressors": [BloscCodec(cname="zstd", clevel=5, shuffle="shuffle")],
     }}
     shutil.rmtree(STORE / src / name, ignore_errors=True)
+    # A group whose period changed is rebuilt whole: its time axis cannot be resized.
+    if (STORE / src / "time").exists():
+        old = zarr.open_array(STORE / src / "time", mode="r")
+        if old.shape[0] != len(days):
+            log.info("%s : periode changee, groupe recree", src)
+            shutil.rmtree(STORE / src)
     da.to_dataset().to_zarr(STORE, group=src, mode="a", encoding=encoding,
                             compute=False, zarr_format=3, consolidated=False)
     return zarr.open_array(STORE / src / name, mode="r+")

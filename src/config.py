@@ -22,6 +22,7 @@ MANIFEST = DATA / "archive.txt"
 
 CORDEX = DATA / "cordex" / "eur11"
 ERA5 = DATA / "era5"
+ERA5LAND = DATA / "era5land"
 EOBS = DATA / "eobs"
 
 

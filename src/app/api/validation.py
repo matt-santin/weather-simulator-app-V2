@@ -2,7 +2,7 @@
 
 Ninety-two days at most (the longest season at the 21st-to-20th bounds the form
 offers), and the whole range inside one served period: a range touching
-2006-2026, or straddling 2005 and 2006, is refused whole rather than shown in
+2026, or straddling 2025 and 2026, is refused whole rather than shown in
 part. Where the place is covered is checked against the store, in the endpoint.
 """
 
@@ -19,7 +19,7 @@ MAX_DAYS = 92
 
 
 def periods_text() -> str:
-    """The served periods, as the refusal reads them: "1970-2005 et 2027-2100"."""
+    """The served periods, as the refusal reads them: "1970-2025 et 2027-2100"."""
     return " et ".join(f"{p.start.year}-{p.end.year}" for p in PERIODS)
 
 
