@@ -82,9 +82,13 @@ On souhaite s'assurer que chaque variable servie par CORDEX n'est pas biaisée p
 
 Pour chaque variable, à chaque lieu et à chaque mois de l'année, on va moyenner sur toutes les années disponibles et sur tous les jours du mois. On obtient ainsi une grille contenant, pour chaque point, l'écart/rapport moyenné sur 36 ans (1970-2005) x 30 jours entre ERA5 et CORDEX pour tous les mois de l'année. On appliquera ainsi cette correction sur toutes les données servies par CORDEX sur les données du futur. On fait ainsi l'hypothèse que les écarts ou les rapports restent constants malgré l'amplification du réchauffement climatique. Pour chaque maille ERA5, on regarde quelles mailles CORDEX la recouvrent, avec quel poids et on fait une moyenne pondérée. 
 
+Les détails sont enregistrés dans `docs/correction.md`. Les températures (`tas`, `tasmax`, `tasmin`) sont aussi corrigées à 0,1° contre ERA5-Land (section 9) ; ce sont elles que sert le site.
+
 ## Interface de l'application
 
 /!\ À faire
+
+Le site de la V1 est branché sur les données V2 (ERA5-Land et ERA5 1970-2025, CORDEX corrigé 2027-2100, 2026 indisponible) : voir `docs/application.md`.
 
 ### Comparaison aux normales
 
@@ -96,21 +100,24 @@ Pour chaque variable, à chaque lieu et à chaque mois de l'année, on va moyenn
 
 # Téléchargement des données
 
-CORDEX est téléchargé depuis le CDS, une requête par variable et par année ; ERA5 depuis Earth Data Hub (DestinE), en horaire, réduit en journalier (jours UTC) sur l'emprise EUR-11.
+CORDEX est téléchargé depuis le CDS, une requête par variable et par année ; ERA5 et ERA5-Land depuis Earth Data Hub (DestinE), en horaire, réduits en journalier (jours UTC) sur l'emprise EUR-11 ; E-OBS (validation) depuis KNMI.
 Les données arrivent sur le Mac, puis sont transférées et vérifiées sur le disque externe LaCie (4 To, exFAT), qui n'a pas besoin de rester branché.
 
 | Fichier | Rôle |
 |---|---|
 | `src/config.py` | chemins communs : données locales (`./data`), disque externe, inventaire de l'archive |
 | `src/download/cordex.py` | télécharge CORDEX ; `python -m src.download.cordex 1970-2100` |
-| `src/download/era5.py` | télécharge ERA5 horaire et calcule les valeurs journalières, dont `si10`, `hurs`, `huss` et `zg500` ; `python -m src.download.era5 1970-2005` |
+| `src/download/era5.py` | télécharge ERA5 horaire et calcule les valeurs journalières, dont `si10`, `hurs`, `huss` et `zg500` ; `python -m src.download.era5 1970-2025` |
+| `src/download/era5land.py` | télécharge ERA5-Land (0,1°, terres) : `t2m`, Tx et Tn horaires, `d2m`, `hurs` ; `python -m src.download.era5land 1970-2025` |
+| `src/download/eobs.py` | télécharge E-OBS (validation de la correction) |
+| `src/store/build.py` | construit le stockage de service du site (`data/serve/point.zarr`) |
 | `src/archive.py` | copie les fichiers terminés sur le disque externe, les vérifie (MD5), les inscrit dans l'inventaire ; `--free` libère le Mac |
 | `data/archive.txt` | inventaire des fichiers archivés (nom, taille, MD5) : les téléchargements sautent ce qui est déjà sur le disque |
 | `data/cordex/eur11/PROVENANCE.md` | origine des fichiers CORDEX (version ESGF, outils du CDS) |
 | `data/*/collecte.log` | journaux des téléchargements |
 | `requirements.txt` | dépendances Python |
 
-Les clés d'accès sont dans `~/.cdsapirc` (CDS) et `~/.edhrc` (Earth Data Hub). Earth Data Hub est limité à 500 000 requêtes par mois ; 1970-2005 en consomme environ 145 000.
+Les clés d'accès sont dans `~/.cdsapirc` (CDS) et `~/.edhrc` (Earth Data Hub). Earth Data Hub est limité à 500 000 requêtes par mois ; ERA5 consomme environ 4 000 requêtes par an, ERA5-Land environ 1 000 (températures et point de rosée).
 
 ## CORDEX
 
@@ -118,13 +125,20 @@ Les données sont téléchargées depuis https://cds.climate.copernicus.eu/datas
 
 ## ERA5 
 
-Téléchargé depuis Earth Data Hub (Zarr horaire), réduit en journalier (jours UTC) par `src/download/era5.py`. Mêmes données que le CDS, arrondies à ~0,05 % (0,125 K sur `t2m`). Le CDS a été abandonné : plusieurs heures d'attente par requête.
+Téléchargé depuis Earth Data Hub (Zarr horaire), réduit en journalier (jours UTC) par `src/download/era5.py`. Mêmes données que le CDS, arrondies par Earth Data Hub (pas de 0,25 K sur `t2m` vers 280 K). Le CDS a été abandonné : plusieurs heures d'attente par requête.
+
+## ERA5-Land
+
+Téléchargé depuis Earth Data Hub (`reanalysis-era5-land-no-antartica-v0`), 0,1°, terres seulement, par blocs natifs de 120 jours pour ne compter chaque bloc qu'une fois. Sert de référence aux températures à 0,1°.
 
 ## État
 
-Terminé le 25/09/2026, tout est sur le LaCie, vérifié (MD5) et listé dans `data/archive.txt` :
+Au 02/10/2026, tout est sur le LaCie, vérifié (MD5) et listé dans `data/archive.txt` :
 - CORDEX : 1970-2100, 14 variables, 1834 fichiers, 168,9 Go ;
-- ERA5 : 1970-2005, 15 variables journalières, 540 fichiers, 32,2 Go ; l'horaire n'est pas conservé.
+- ERA5 : 1970-2025, 17 champs journaliers, 952 fichiers, 51,0 Go ; l'horaire n'est pas conservé ;
+- ERA5-Land : 1970-2025, 5 champs journaliers, 280 fichiers, 41,2 Go ;
+- E-OBS v33.0e : 0,25° (sur le Mac et le LaCie) et 0,1° (sur le LaCie seulement) ;
+- stockage de service : 71 Go, aussi sur le Mac, lu par le site local.
 
 Seul `data/era5/_test` (janvier 1970, tests) reste sur le Mac.
 
