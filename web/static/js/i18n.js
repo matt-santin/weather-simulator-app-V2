@@ -252,15 +252,18 @@ export const texts = {
   provenance: {
     summary: "D'où viennent ces journées",
     model: "Modèle climatique",
-    calibration: "Correction calibrée sur ERA5",
+    reference: "Correction calibrée sur",
+    calibration: "Période de calibration",
     projection: "Période simulée",
     step: "Pas de la grille",
     generated: "Données préparées le",
     span: (from, to) => `${from} – ${to}`,
     degrees: (value) => `${value}°`,
+    steps: (temperatures, rest) => `${temperatures} (températures), ${rest}`,
     observed:
-      "Les journées passées viennent de la réanalyse ERA5, non d'un modèle climatique.",
-    noGrid: "Aucune journée simulée : ces journées viennent de la réanalyse ERA5.",
+      "Les journées passées viennent des réanalyses ERA5 et ERA5-Land (températures), " +
+      "non d'un modèle climatique.",
+    noGrid: "Aucune journée simulée : ces journées viennent des réanalyses ERA5 et ERA5-Land.",
   },
 
   // What a screen showing simulated days has to say, which is CLAUDE.md rule 1.

@@ -78,19 +78,23 @@ class Grid(BaseModel):
     """What produced and corrected the simulated days."""
 
     model: str = Field(description="Global and regional models, scenario")
+    reference: str = Field(description="What the correction was calibrated against")
     calibration_start: date = Field(description="Correction calibrated against ERA5 from")
     calibration_end: date
     projection_start: date = Field(description="Simulated days served from")
     projection_end: date
     step: float = Field(description="Grid spacing, degrees")
+    temperature_step: float | None = Field(
+        default=None, description="Grid spacing of the temperatures, when finer"
+    )
     generated: date = Field(description="When the store was built")
 
 
 class Series(BaseModel):
     """The answer to one search."""
 
-    latitude: float = Field(description="Centre of the cell served")
-    longitude: float = Field(description="Centre of the cell served")
+    latitude: float = Field(description="Centre of the cell the temperatures are read at")
+    longitude: float = Field(description="Centre of the cell the temperatures are read at")
     start: date
     end: date
     has_simulated: bool = Field(description="True when the days come from the climate model")

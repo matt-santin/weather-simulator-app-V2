@@ -18,7 +18,8 @@ with "_" (tests) stay on the Mac. Logs and provenance notes are copied at every
 run and never deleted.
 
 A .zarr store can be rebuilt: its files are copied again when their MD5 no
-longer matches the one in MANIFEST.
+longer matches the one in MANIFEST. --free never deletes it: the local site
+reads it from the Mac.
 """
 
 import fcntl
@@ -117,6 +118,8 @@ def main(argv: list[str]) -> int:
         done = archived()
         freed = 0
         for p, rel in files:
+            if ".zarr" in str(rel):
+                continue
             dst = ARCHIVE / rel
             if str(rel) in done and dst.exists() and dst.stat().st_size == done[str(rel)] == p.stat().st_size:
                 freed += p.stat().st_size

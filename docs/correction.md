@@ -390,9 +390,78 @@ Classes proposées, seuils à fixer : vert au-dessus de 0,5, orange de 0 à 0,5,
 
 ## 8. État
 
-Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Au 29/09/2026 : 7 variables validées contre E-OBS sur 1970-2005 et 2006-2024. Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
+Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Au 29/09/2026 : 7 variables validées contre E-OBS sur 1970-2005 et 2006-2024. Au 02/10/2026 : `tas`, `tasmax` et `tasmin` corrigés et validés à 0,1° contre ERA5-Land (section 9). Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
 
 Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le Mac se met en veille profonde, ce qui suspend le calcul et peut provoquer un message de disque mal éjecté. Durées observées : remappage 8 min par variable, QDM 32 à 43 min, `check` 4 à 8 min, `scores` 2 à 5 min.
+
+## 9. Températures à 0,1° contre ERA5-Land
+
+`tas`, `tasmax` et `tasmin` sont aussi corrigés à 0,1°, contre ERA5-Land, pour garder le détail du relief que la grille à 0,25° lisse. Ce sont ces versions que sert l'application. Les autres variables, dont `hurs`, restent à 0,25° contre ERA5. Code dans `src/correction/land.py` et `land_check.py` ; la chaîne à 0,25° n'est pas modifiée.
+
+### Référence : ERA5-Land
+
+Téléchargé par `src/download/era5land.py` (Earth Data Hub, `reanalysis-era5-land-no-antartica-v0`), 1970-2025, à 0,1°, terres seulement. ERA5-Land ramène la température à 2 m à un relief plus fin qu'ERA5. Il ne fournit ni extrêmes journaliers ni humidité relative ; les champs journaliers sont calculés à partir des valeurs horaires (jours UTC, 00h à 23h) :
+
+| Champ | Contenu | Variable corrigée |
+|---|---|---|
+| `t2m` | moyenne des valeurs horaires de `t2m` | `tas` |
+| `t2mmax` | maximum des valeurs horaires de `t2m` | `tasmax` |
+| `t2mmin` | minimum des valeurs horaires de `t2m` | `tasmin` |
+| `d2m` | moyenne des valeurs horaires | non utilisé |
+| `hurs` | moyenne des valeurs horaires, formule d'ERA5 | non utilisé |
+
+Le Tx d'ERA5 (`mx2t`) est le maximum sur le pas de temps du modèle ; celui d'ERA5-Land, le maximum des valeurs horaires, un peu plus bas. Le Tx corrigé à 0,1° est donc un peu plus bas qu'à 0,25°, mais cohérent avec le passé affiché. Earth Data Hub arrondit les valeurs au pas de 0,25 K, comme pour ERA5.
+
+Lecture par blocs natifs du serveur (120 jours × 64 × 64 mailles, alignés sur le 1er janvier 1950), pour que chaque bloc ne soit compté qu'une fois dans le quota : environ 58 000 lectures pour 1970-2024.
+
+### Méthode
+
+1. Remappage de CORDEX (0,11°, pôle tourné) vers la grille ERA5-Land, par la moyenne pondérée de la section 1 (SUB = 20). Une maille de 0,1° reçoit 1 à 2 mailles CORDEX. Mailles gardées : terre d'ERA5-Land et couverture CORDEX d'au moins 90 %, soit 173 046.
+2. QDM identique à la section 1 (mêmes fonctions), forme additive, contre ERA5-Land 1970-2005. Les mailles sont traitées par paquets de 40 000 pour tenir en mémoire.
+3. Échange Tn/Tx des jours où `tasmin` > `tasmax` : 92,2 millions de valeurs sur 1970-2100, soit 1,1 % des jours-mailles (0,8 % à 0,25°).
+
+`python -m src.correction.land remap tasmax 1970-2100`, puis `qdm tasmax`, puis `swap` une fois `tasmax` et `tasmin` corrigés. Durées : remappage environ 12 s par année, QDM environ 1 h 35 par variable. Les fichiers remappés (`LaCie/.../cordex/eur11_010/`) ne servent qu'au QDM et à la validation croisée ; ils ont été supprimés une fois la validation faite, et `remap` les reconstruit en 30 min par variable.
+
+### Validation
+
+`python -m src.correction.land_check tasmax`, sur une maille de terre sur quatre (43 262 mailles). Journaux dans `data/correction/land/check_<variable>.log` et `eobs_<variable>.log`.
+
+**Validation croisée contre ERA5-Land** (calibration 1970-1987, test 1988-2005). Même comportement qu'à 0,25° : biais moyen corrigé entre −0,6 et +0,4 K la plupart des mois (−1 à −4,4 K brut), résidu de −0,9 à −1,5 K en février et mars ; RMS entre mailles divisé par 2 à 6 ; W1 corrigé au niveau de son plancher.
+
+**Signal** 2071-2100 contre 1976-2005 : conservé à moins de 0,1 K, en hiver comme en été.
+
+**Contre E-OBS 0,1°, 2006-2024**, années non vues. Chaque maille ERA5-Land reçoit la moyenne des 4 mailles E-OBS qui l'entourent (centres décalés d'une demi-maille). L'erreur sur le détail local est mesurée par le RMS entre mailles du biais de la moyenne, sur la moitié des mailles où la dispersion de l'ensemble E-OBS est la plus faible :
+
+| | Altitude | 0,1° | 0,25° |
+|---|---|---|---|
+| Tx janvier | 1000-1500 m | 1,73 | 1,86 |
+| | > 1500 m | 2,54 | 2,87 |
+| Tx juillet | < 500 m | 2,10 | 2,16 |
+| | > 1500 m | 2,09 | 2,36 |
+| Tn janvier | 500-1000 m | 1,47 | 1,62 |
+| | > 1500 m | 2,96 | 3,55 |
+| Tn juillet | 1000-1500 m | 1,33 | 1,51 |
+| | > 1500 m | 1,74 | 2,09 |
+| Tmoy janvier | 1000-1500 m | 1,46 | 1,75 |
+| Tmoy juillet | 500-1000 m | 1,04 | 1,27 |
+| | > 1500 m | 1,46 | 1,81 |
+
+Le 0,1° est meilleur ou égal presque partout, avec un gain de 5 à 20 % qui croît avec l'altitude. Exceptions, d'un ou deux dixièmes : Tx de juillet à 1000-1500 m (2,30 contre 2,26 K), Tn de juillet sous 500 m (1,26 contre 1,19 K). Les moyennes par classe d'altitude, qui mêlent des biais de signes opposés, ne départagent pas les deux grilles.
+
+Exemples à la maille du lieu, moyenne 2006-2024 :
+
+| Lieu | | E-OBS | 0,1° | 0,25° |
+|---|---|---|---|---|
+| Grenoble | Tn janvier | −1,8 | −1,9 | −3,9 |
+| Grenoble | Tx juillet | 26,7 | 24,6 | 22,8 |
+| Briançon | Tx juillet | 20,6 | 19,0 | 16,7 |
+| Briançon | Tn janvier | −7,3 | −9,9 | −12,4 |
+| Clermont-Ferrand | Tx juillet | 26,4 | 24,0 | 23,2 |
+| Pontarlier | Tx juillet | 23,4 | 21,8 | 22,7 |
+
+**Limites.** E-OBS est interpolé en montagne, où les stations sont rares. La moyenne de 4 mailles E-OBS est trompeuse en vallée encaissée (Chamonix : 2456 m de moyenne pour une ville à 1035 m) et sur la côte (Marseille). Le biais froid du Tx de juillet en plaine, environ −1,9 K contre E-OBS, existe aux deux résolutions ; environ −1,2 K vient déjà d'ERA5 et d'ERA5-Land.
+
+**`hurs` à 0,1°, non retenu.** Validation croisée moins bonne qu'à 0,25° en été (biais corrigé +1,8 à +2,4 points de mai à août, contre +0,5 à +1) ; aucun gain mesurable contre E-OBS, dont l'humidité est peu fiable en altitude (10 à 20 points d'erreur pour toutes les sources). La température humide est donc calculée avec `tas` à 0,1° et `hurs` à 0,25°.
 
 ## Fichiers
 
@@ -409,3 +478,9 @@ Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le 
 | `figures/correction/` | figures de distribution (`violin.py`) |
 | `LaCie/.../cordex/eur11_025/` | CORDEX remappé à 0,25°, brut |
 | `LaCie/.../cordex/eur11_025_qdm/` | CORDEX remappé à 0,25°, corrigé |
+| `data/correction/poids_eur11_era5land.npz` | poids du remappage CORDEX vers ERA5-Land (0,1°), mailles gardées |
+| `data/correction/land/<variable>_quantiles_1970-2005.nc` | quantiles ERA5-Land et CORDEX à 0,1° par mois et par maille |
+| `data/correction/land/land.log`, `check_<variable>.log`, `eobs_<variable>.log` | journaux et validation à 0,1° |
+| `LaCie/.../era5land/daily/` | ERA5-Land journalier 1970-2025 : `t2m`, `t2mmax`, `t2mmin`, `d2m`, `hurs` |
+| `LaCie/.../eobs/0.1deg/` | E-OBS v33.0e à 0,1° : `tx`, `tn`, `tg`, `hu`, dispersion de `tx` et `tn`, altitude |
+| `LaCie/.../cordex/eur11_010_qdm/` | CORDEX remappé à 0,1° et corrigé contre ERA5-Land : `tas`, `tasmax`, `tasmin` |

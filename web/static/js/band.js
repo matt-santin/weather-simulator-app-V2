@@ -236,6 +236,7 @@ export function sources(grid) {
   if (!grid) return [];
   const rows = [
     [texts.provenance.model, grid.model],
+    [texts.provenance.reference, grid.reference],
     [
       texts.provenance.calibration,
       texts.provenance.span(
@@ -250,8 +251,15 @@ export function sources(grid) {
         present.fullDate(grid.projection_end),
       ),
     ],
-    [texts.provenance.step, texts.provenance.degrees(String(grid.step).replace(".", ","))],
+    [texts.provenance.step, step(grid)],
     [texts.provenance.generated, present.fullDate(grid.generated)],
   ];
   return rows.flatMap(([label, text]) => [el("dt", { text: label }), el("dd", { text })]);
+}
+
+/** "0,25°", or "0,1° (températures), 0,25°" where the temperatures are finer. */
+function step(grid) {
+  const degrees = (value) => texts.provenance.degrees(String(value).replace(".", ","));
+  if (grid.temperature_step == null) return degrees(grid.step);
+  return texts.provenance.steps(degrees(grid.temperature_step), degrees(grid.step));
 }

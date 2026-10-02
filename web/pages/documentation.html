@@ -86,7 +86,9 @@
           réanalyse ERA5 (ECMWF / Copernicus). Une réanalyse est un modèle
           météorologique recalé en permanence sur les observations&nbsp;: c'est
           la meilleure reconstitution disponible du temps qu'il a fait, sur une
-          grille régulière d'environ 28&nbsp;km.
+          grille régulière d'environ 28&nbsp;km. Les températures viennent
+          d'ERA5-Land, sa déclinaison sur les terres, plus fine (environ
+          10&nbsp;km), qui suit mieux le relief.
         </p>
 
         <p>
@@ -122,9 +124,11 @@
         </p>
 
         <p>
-          Les données du modèle sont ramenées sur la grille d'ERA5
-          (0,25°), de sorte qu'un lieu est lu au même endroit dans le passé et
-          dans le futur.
+          Les températures du modèle sont corrigées de la même façon contre
+          ERA5-Land, sur sa grille de 0,1°&nbsp;; les autres grandeurs contre
+          ERA5, sur sa grille de 0,25°. Dans les deux cas, un lieu est lu au
+          même endroit dans le passé et dans le futur. Sur les petites îles,
+          qu'ERA5-Land ne couvre pas, les températures restent à 0,25°.
         </p>
       </section>
 
@@ -173,10 +177,11 @@
 
         <ul class="rules">
           <li>
-            <strong>Une maille d'environ 25&nbsp;km.</strong> Les grandeurs
-            sont moyennées sur une zone de cette taille. Orages, brouillards de
-            vallée, effets de relief fins et îlots de chaleur urbains ne sont
-            pas représentés.
+            <strong>Une maille d'environ 10&nbsp;km pour les températures,
+            25&nbsp;km pour le reste.</strong> Les grandeurs sont moyennées
+            sur une zone de cette taille. Orages, brouillards de vallée, fonds
+            de vallée étroits et îlots de chaleur urbains ne sont pas
+            représentés.
           </li>
           <li>
             <strong>Un seul modèle et un seul scénario.</strong> Une autre
@@ -200,7 +205,7 @@
 
         <dl class="pairs">
           <dt>Réanalyse</dt>
-          <dd>ERA5, ECMWF / Copernicus Climate Change Service</dd>
+          <dd>ERA5 et ERA5-Land, ECMWF / Copernicus Climate Change Service</dd>
 
           <dt>Simulation climatique</dt>
           <dd>

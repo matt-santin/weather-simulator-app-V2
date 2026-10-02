@@ -45,7 +45,7 @@ def test_a_past_range_is_era5_and_carries_no_warning(client: TestClient) -> None
     assert series["grid"] is None
     assert len(series["days"]) == 31
     assert {d["origin"] for d in series["days"]} == {"observed"}
-    assert {d["source"] for d in series["days"]} == {"ERA5"}
+    assert {d["source"] for d in series["days"]} == {"ERA5-Land (températures), ERA5"}
 
 
 def test_a_future_range_is_cordex_and_says_so(client: TestClient) -> None:
@@ -54,7 +54,9 @@ def test_a_future_range_is_cordex_and_says_so(client: TestClient) -> None:
     assert {d["origin"] for d in series["days"]} == {"simulated"}
     assert series["grid"]["projection_start"] == "2027-01-01"
     assert series["grid"]["step"] == 0.25
-    assert series["grid"]["generated"] == "2026-09-30"
+    assert series["grid"]["temperature_step"] == 0.1
+    assert series["grid"]["reference"] == "ERA5-Land (températures), ERA5"
+    assert series["grid"]["generated"] == "2026-10-02"
     assert len(series["days"]) == 92
 
 
@@ -64,7 +66,8 @@ def test_each_day_is_read_at_its_own_date(client: TestClient) -> None:
         served = days(client, start.isoformat(), start.replace(day=start.day + 1).isoformat())
         first = served.json()["days"][0]
         assert first["date"] == start.isoformat()
-        assert first["temperature_max"] == pytest.approx(round(expected(source, start, "tasmax"), 1))
+        assert first["temperature_max"] == pytest.approx(round(expected(source, start, "tasmax", fine=True), 1))
+        assert first["precipitation"] == pytest.approx(round(expected(source, start, "pr"), 1))
 
 
 def test_the_wind_is_served_in_kmh(client: TestClient) -> None:
@@ -80,9 +83,21 @@ def test_a_gap_stays_a_gap(client: TestClient) -> None:
     assert served["temperature_max"] is not None
 
 
-def test_the_nearest_cell_is_served(client: TestClient) -> None:
+def test_the_temperatures_come_from_the_nearest_fine_cell(client: TestClient) -> None:
     series = days(client, "2044-07-01", "2044-07-02").json()
-    assert (series["latitude"], series["longitude"]) == (45.25, 5.75)
+    assert (series["latitude"], series["longitude"]) == (45.2, 5.7)
+
+
+def test_a_place_without_a_fine_cell_is_served_at_025(client: TestClient) -> None:
+    day = date(2044, 7, 1)
+    where = {"latitude": 45.0, "longitude": 6.0}
+    series = days(client, day.isoformat(), day.isoformat(), where).json()
+    assert (series["latitude"], series["longitude"]) == (45.0, 6.0)
+    assert series["grid"]["temperature_step"] is None
+    assert series["grid"]["reference"] == "ERA5"
+    served = series["days"][0]
+    assert served["source"] == "CORDEX EUR-11 corrigé"
+    assert served["temperature_max"] == pytest.approx(round(expected("cordex", day, "tasmax"), 1))
 
 
 @pytest.mark.parametrize(

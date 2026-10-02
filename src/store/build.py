@@ -2,12 +2,23 @@
 
     python -m src.store.build cordex tasmax [tasmin ...]
     python -m src.store.build era5 tasmax [tasmin ...]
+    python -m src.store.build cordex010 tasmax tasmin tas
+    python -m src.store.build era5land tasmax tasmin tas
 
 Run from the repo root, with the external drive plugged in. The yearly files
-stay the reference: corrected CORDEX 1970-2100 (src.correction.qdm), daily
-ERA5 1970-2005 (src.download.era5). The store is a copy that can be deleted
-and rebuilt at any time. ERA5 is stored under the CORDEX names and units, and
-masked to the CORDEX domain, so that a place has both or neither.
+stay the reference, on two grids:
+
+    cordex     corrected CORDEX 1970-2100, 0.25 deg (src.correction.qdm)
+    era5       daily ERA5 1970-2025, 0.25 deg (src.download.era5)
+    cordex010  CORDEX corrected against ERA5-Land, 1970-2100, 0.1 deg, land,
+               temperatures only (src.correction.land)
+    era5land   daily ERA5-Land 1970-2025, 0.1 deg (src.download.era5land)
+
+The store is a copy that can be deleted and rebuilt at any time. ERA5 and
+ERA5-Land are stored under the CORDEX names and units, and masked to the cells
+CORDEX covers on their grid, so that a place has both or neither. The 0.25 deg
+grid is at the root (latitude, longitude, domain), the 0.1 deg one beside it
+(latitude010, longitude010, domain010).
 
 The yearly files hold whole maps, a year at a time: reading one point means
 decompressing blocks of 122 days x 69 x 221 cells. The store turns them round:
@@ -21,9 +32,9 @@ one cell, beyond 655.35), with a time delta filter and zstd. xarray decodes
 them on reading (scale_factor, _FillValue). The rounding error is at most
 step / 2.
 
-The store is built one band of 20 latitudes (one row of shards) at a time:
-about 1.7 GB of memory, 50 s of reading from the drive per band. The attribute
-`built` is written last: an array without it is incomplete.
+The store is built one band of BAND latitudes (two rows of shards) at a time,
+converted to integers year by year: about 2 GB of memory at 0.1 deg. The
+attribute `built` is written last: an array without it is incomplete.
 """
 
 import logging
@@ -43,6 +54,7 @@ from zarr.codecs import BloscCodec
 from zarr.codecs.numcodecs import Delta
 
 from src.config import DATA
+from src.correction import land
 from src.correction.qdm import ERA5_DAILY
 from src.correction.qdm import OUT as CORRECTED
 from src.correction.qdm import YEARS
@@ -50,7 +62,9 @@ from src.correction.remap import yearly
 
 STORE = DATA / "serve" / "point.zarr"
 CHUNK = 2   # cells per chunk, in latitude and longitude
-SHARD = 20  # cells per shard, idem; also the height of a band
+SHARD = 20  # cells per shard, idem
+BAND = 2 * SHARD  # latitudes read at a time
+LAND_FIELD = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin"}  # ERA5-Land field
 
 
 @dataclass(frozen=True)
@@ -100,6 +114,7 @@ class Source:
     path: Callable[[str, int], object]  # (variable, year) to the yearly file
     field: Callable[[str], str]  # variable to its name in the file
     convert: Callable[[str], Callable]  # variable to its conversion
+    fine: bool = False  # 0.1 deg grid, temperatures only
 
 
 SOURCES = {
@@ -108,6 +123,10 @@ SOURCES = {
     "era5": Source(range(1970, 2026),
                    lambda n, y: ERA5_DAILY / f"{VARS[n].era5}_ERA5_day_{y}0101-{y}1231.nc",
                    lambda n: VARS[n].era5, lambda n: VARS[n].from_era5),
+    "cordex010": Source(YEARS, lambda n, y: land.OUT / yearly(n, y),
+                        lambda n: n, lambda n: kelvin, fine=True),
+    "era5land": Source(range(1970, 2026), lambda n, y: land.land_file(LAND_FIELD[n], y),
+                       lambda n: LAND_FIELD[n], lambda n: kelvin, fine=True),
 }
 
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO, datefmt="%H:%M:%S")
@@ -118,28 +137,42 @@ def fill(dtype: str) -> int:
     return int(np.iinfo(dtype).min if dtype == "int16" else np.iinfo(dtype).max)
 
 
-def domain() -> np.ndarray:
+def reference(fine: bool):
+    """The corrected file that defines a grid: its cells with values are the domain."""
+    return (land.OUT if fine else CORRECTED) / yearly("tasmax", YEARS[0])
+
+
+def domain(fine: bool = False) -> np.ndarray:
     """CORDEX domain on the grid: True where the corrected fields have values."""
-    with xr.open_dataset(CORRECTED / yearly("tasmax", YEARS[0])) as ds:
+    with xr.open_dataset(reference(fine)) as ds:
         return np.isfinite(ds.tasmax[0].values)
 
 
 def write_domain() -> None:
-    """The CORDEX domain, (latitude, longitude), 1 inside: lets the server tell
-    a covered place without reading a series."""
-    with xr.open_dataset(CORRECTED / yearly("tasmax", YEARS[0])) as ds:
+    """The CORDEX domain of each grid, 1 inside: lets the server tell a covered
+    place without reading a series. The 0.25 deg one through xarray, at the
+    root; the 0.1 deg one, once its files exist, as plain arrays beside it."""
+    with xr.open_dataset(reference(False)) as ds:
         lat, lon = ds.latitude.values, ds.longitude.values
     da = xr.DataArray(domain().astype("uint8"), dims=("latitude", "longitude"),
                       coords={"latitude": lat, "longitude": lon}, name="domain")
     da.to_dataset().to_zarr(STORE, mode="a", zarr_format=3, consolidated=False)
+    if not reference(True).exists():
+        return
+    with xr.open_dataset(reference(True)) as ds:
+        lat, lon = ds.latitude.values, ds.longitude.values
+    root = zarr.open_group(STORE, mode="a")
+    for key, data in (("latitude010", lat), ("longitude010", lon),
+                      ("domain010", domain(True).astype("uint8"))):
+        root.create_array(key, data=data, overwrite=True)
 
 
 def grid(src: str, name: str) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray]:
     """Days, latitudes and longitudes of the yearly files, checked year by year
-    against each other and against the CORDEX grid."""
+    against each other and against the CORDEX grid of the same resolution."""
     s = SOURCES[src]
     days = pd.date_range(f"{s.years[0]}-01-01", f"{s.years[-1]}-12-31", freq="D")
-    with xr.open_dataset(CORRECTED / yearly("tasmax", YEARS[0])) as ds:
+    with xr.open_dataset(reference(s.fine)) as ds:
         lat, lon = ds.latitude.values, ds.longitude.values
     for y in s.years:
         with xr.open_dataset(s.path(name, y)) as ds:
@@ -184,22 +217,22 @@ def band(src: str, name: str, i0: int, i1: int, inside: np.ndarray) -> np.ndarra
     """Rows i0:i1 of every year, as stored integers (days, rows, longitudes);
     cells outside the CORDEX domain left empty."""
     s, v = SOURCES[src], VARS[name]
-    xs = []
+    info = np.iinfo(v.dtype)
+    # The fill value is reserved: the minimum of int16, the maximum of uint16.
+    low, high = (info.min + 1, info.max) if v.dtype == "int16" else (info.min, info.max - 1)
+    parts = []
     for y in s.years:
         with netCDF4.Dataset(s.path(name, y)) as ds:
             var = ds[s.field(name)]
             var.set_auto_mask(False)
-            xs.append(var[:, i0:i1, :])
-    x = s.convert(name)(np.concatenate(xs))
-    q = np.round(x / v.step)
-    info = np.iinfo(v.dtype)
-    ok = np.isfinite(q) & inside[i0:i1]
-    # The fill value is reserved: the minimum of int16, the maximum of uint16.
-    low, high = (info.min + 1, info.max) if v.dtype == "int16" else (info.min, info.max - 1)
-    if (q[ok] < low).any() or (q[ok] > high).any():
-        raise ValueError(f"{src} {name} lignes {i0}-{i1} : valeurs hors de la plage de {v.dtype} "
-                         f"({np.nanmin(x):.2f} a {np.nanmax(x):.2f} {v.units})")
-    return np.where(ok, q, fill(v.dtype)).astype(v.dtype)
+            x = s.convert(name)(var[:, i0:i1, :])
+        q = np.round(x / v.step)
+        ok = np.isfinite(q) & inside[i0:i1]
+        if (q[ok] < low).any() or (q[ok] > high).any():
+            raise ValueError(f"{src} {name} {y} lignes {i0}-{i1} : valeurs hors de la plage de "
+                             f"{v.dtype} ({np.nanmin(x):.2f} a {np.nanmax(x):.2f} {v.units})")
+        parts.append(np.where(ok, q, fill(v.dtype)).astype(v.dtype))
+    return np.concatenate(parts)
 
 
 def verify(src: str, name: str, inside: np.ndarray, n: int = 200) -> float:
@@ -229,11 +262,11 @@ def build(src: str, name: str) -> None:
     t0 = time.time()
     step = VARS[name].step
     days, lat, lon = grid(src, name)
-    inside = domain()
+    inside = domain(SOURCES[src].fine)
     arr = create(src, name, days, lat, lon)
     log.info("%s %s : %d jours, %d x %d mailles", src, name, len(days), len(lat), len(lon))
-    for i0 in range(0, len(lat), SHARD):
-        i1 = min(i0 + SHARD, len(lat))
+    for i0 in range(0, len(lat), BAND):
+        i1 = min(i0 + BAND, len(lat))
         arr[:, i0:i1, :] = band(src, name, i0, i1, inside)
         log.info("%s %s : lignes %d-%d ecrites, %.0f s", src, name, i0, i1 - 1, time.time() - t0)
     size = sum(p.stat().st_size for p in (STORE / src / name).rglob("*") if p.is_file())
@@ -248,7 +281,8 @@ def build(src: str, name: str) -> None:
 
 def main(argv: list[str]) -> int:
     src, names = (argv[0], argv[1:]) if argv else (None, [])
-    unknown = [n for n in names if n not in VARS]
+    known = LAND_FIELD if src in SOURCES and SOURCES[src].fine else VARS
+    unknown = [n for n in names if n not in known]
     if src not in SOURCES or not names or unknown:
         print(f"Usage : python -m src.store.build {{{'|'.join(SOURCES)}}} <variables>\n"
               f"Variables possibles : {' '.join(VARS)}")

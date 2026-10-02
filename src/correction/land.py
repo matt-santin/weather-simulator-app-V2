@@ -6,24 +6,27 @@
 
 Run from the repo root, with the external drive plugged in. The 0.25 deg chain
 (src.correction.remap, qdm, derive) is left as it is: this one runs beside it,
-for tas, tasmax, tasmin and hurs only, against ERA5-Land
-(src.download.era5land), whose 2 m fields are brought down to a finer relief.
+for tas, tasmax and tasmin only, against ERA5-Land (src.download.era5land),
+whose 2 m fields are brought down to a finer relief. hurs was corrected this
+way too and not retained (docs/correction.md, section 9): it stays at 0.25 deg.
 
 remap: CORDEX EUR-11 (0.11 deg, rotated pole) onto the ERA5-Land grid (0.1 deg),
 by the area-weighted mean of remap.py, sub-cells included (SUB = 20). A 0.1 deg
 cell takes one or two CORDEX cells, so the native detail is kept. Cells covered
-under MIN_COVER, and sea cells (no ERA5-Land value), are left missing.
+under MIN_COVER, and sea cells (no ERA5-Land value), are left missing. The
+remapped files (REMAPPED) serve qdm and the split sample of land_check, and
+nothing after: they were deleted once checked, and remap rebuilds them in
+about 30 min per variable.
 
 qdm: the method of qdm.py, unchanged (same functions): calibration on
 1970-2005, per cell and calendar month, 100 quantiles, 30-year sliding window,
-additive for temperatures, additive and clipped to 0-100 for hurs. References:
+additive. References:
 
     tas     t2m     daily mean of hourly t2m
     tasmax  t2mmax  daily maximum of hourly t2m (ERA5 mx2t is the maximum over
                     the model time step, a little higher: the corrected Tx is
                     therefore a little lower than at 0.25 deg)
     tasmin  t2mmin  daily minimum of hourly t2m
-    hurs    hurs    daily mean of hourly relative humidity
 
 About 295 000 land cells, against 53 500 at 0.25 deg: the cells are cut into
 batches of BATCH, each with its own memmap on the Mac (about 56 GB in all,
@@ -55,7 +58,7 @@ OUT = ARCHIVE / "cordex" / "eur11_010_qdm"
 WORK = DATA / "correction" / "land"
 BATCH = 40_000
 
-REFERENCE = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin", "hurs": "hurs"}
+REFERENCE = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin"}
 VARS: dict[str, Var] = {n: VARS_025[n] for n in REFERENCE}
 
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO, datefmt="%H:%M:%S")

@@ -205,11 +205,13 @@ describe("the month marker", () => {
 describe("where the days come from", () => {
   const grid = {
     model: "EC-EARTH (r12i1p1) / SMHI-RCA4, CORDEX EUR-11, scénario RCP 4.5",
+    reference: "ERA5-Land (températures), ERA5",
     calibration_start: "1970-01-01",
     calibration_end: "2005-12-31",
     projection_start: "2027-01-01",
     projection_end: "2100-12-31",
     step: 0.25,
+    temperature_step: 0.1,
     generated: "2026-09-30",
   };
 
@@ -218,12 +220,14 @@ describe("where the days come from", () => {
     assert.deepEqual(said, [
       "Modèle climatique",
       "EC-EARTH (r12i1p1) / SMHI-RCA4, CORDEX EUR-11, scénario RCP 4.5",
-      "Correction calibrée sur ERA5",
+      "Correction calibrée sur",
+      "ERA5-Land (températures), ERA5",
+      "Période de calibration",
       "1 janvier 1970 – 31 décembre 2005",
       "Période simulée",
       "1 janvier 2027 – 31 décembre 2100",
       "Pas de la grille",
-      "0,25°",
+      "0,1° (températures), 0,25°",
       "Données préparées le",
       "30 septembre 2026",
     ]);
