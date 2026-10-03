@@ -1,0 +1,749 @@
+source,grandeur,annee,valeur
+era5land,tas nord-ouest,1970,10.861
+era5land,tas nord-ouest,1971,10.929
+era5land,tas nord-ouest,1972,10.454
+era5land,tas nord-ouest,1973,10.743
+era5land,tas nord-ouest,1974,10.970
+era5land,tas nord-ouest,1975,10.961
+era5land,tas nord-ouest,1976,11.520
+era5land,tas nord-ouest,1977,10.835
+era5land,tas nord-ouest,1978,10.692
+era5land,tas nord-ouest,1979,10.509
+era5land,tas nord-ouest,1980,10.354
+era5land,tas nord-ouest,1981,11.087
+era5land,tas nord-ouest,1982,11.672
+era5land,tas nord-ouest,1983,11.374
+era5land,tas nord-ouest,1984,11.066
+era5land,tas nord-ouest,1985,10.387
+era5land,tas nord-ouest,1986,10.374
+era5land,tas nord-ouest,1987,10.551
+era5land,tas nord-ouest,1988,11.551
+era5land,tas nord-ouest,1989,12.287
+era5land,tas nord-ouest,1990,12.332
+era5land,tas nord-ouest,1991,10.892
+era5land,tas nord-ouest,1992,11.308
+era5land,tas nord-ouest,1993,11.051
+era5land,tas nord-ouest,1994,12.155
+era5land,tas nord-ouest,1995,12.032
+era5land,tas nord-ouest,1996,10.834
+era5land,tas nord-ouest,1997,11.969
+era5land,tas nord-ouest,1998,11.392
+era5land,tas nord-ouest,1999,12.037
+era5land,tas nord-ouest,2000,11.667
+era5land,tas nord-ouest,2001,11.492
+era5land,tas nord-ouest,2002,11.950
+era5land,tas nord-ouest,2003,12.201
+era5land,tas nord-ouest,2004,11.650
+era5land,tas nord-ouest,2005,11.884
+era5land,tas nord-ouest,2006,12.065
+era5land,tas nord-ouest,2007,11.761
+era5land,tas nord-ouest,2008,11.241
+era5land,tas nord-ouest,2009,11.506
+era5land,tas nord-ouest,2010,10.608
+era5land,tas nord-ouest,2011,12.454
+era5land,tas nord-ouest,2012,11.423
+era5land,tas nord-ouest,2013,11.332
+era5land,tas nord-ouest,2014,12.385
+era5land,tas nord-ouest,2015,12.172
+era5land,tas nord-ouest,2016,11.884
+era5land,tas nord-ouest,2017,12.307
+era5land,tas nord-ouest,2018,12.629
+era5land,tas nord-ouest,2019,12.436
+era5land,tas nord-ouest,2020,12.940
+era5land,tas nord-ouest,2021,11.721
+era5land,tas nord-ouest,2022,13.235
+era5land,tas nord-ouest,2023,13.034
+era5land,tas nord-ouest,2024,12.362
+era5land,tas nord-ouest,2025,12.781
+era5land,tas sud-est et Alpes,1970,8.091
+era5land,tas sud-est et Alpes,1971,8.028
+era5land,tas sud-est et Alpes,1972,7.992
+era5land,tas sud-est et Alpes,1973,7.954
+era5land,tas sud-est et Alpes,1974,8.119
+era5land,tas sud-est et Alpes,1975,8.126
+era5land,tas sud-est et Alpes,1976,8.068
+era5land,tas sud-est et Alpes,1977,8.079
+era5land,tas sud-est et Alpes,1978,7.866
+era5land,tas sud-est et Alpes,1979,8.169
+era5land,tas sud-est et Alpes,1980,7.609
+era5land,tas sud-est et Alpes,1981,8.218
+era5land,tas sud-est et Alpes,1982,8.971
+era5land,tas sud-est et Alpes,1983,8.791
+era5land,tas sud-est et Alpes,1984,7.694
+era5land,tas sud-est et Alpes,1985,8.204
+era5land,tas sud-est et Alpes,1986,8.509
+era5land,tas sud-est et Alpes,1987,8.536
+era5land,tas sud-est et Alpes,1988,9.055
+era5land,tas sud-est et Alpes,1989,9.554
+era5land,tas sud-est et Alpes,1990,9.278
+era5land,tas sud-est et Alpes,1991,8.658
+era5land,tas sud-est et Alpes,1992,9.009
+era5land,tas sud-est et Alpes,1993,8.719
+era5land,tas sud-est et Alpes,1994,9.911
+era5land,tas sud-est et Alpes,1995,8.878
+era5land,tas sud-est et Alpes,1996,8.312
+era5land,tas sud-est et Alpes,1997,9.580
+era5land,tas sud-est et Alpes,1998,8.830
+era5land,tas sud-est et Alpes,1999,8.911
+era5land,tas sud-est et Alpes,2000,9.386
+era5land,tas sud-est et Alpes,2001,9.306
+era5land,tas sud-est et Alpes,2002,9.550
+era5land,tas sud-est et Alpes,2003,9.984
+era5land,tas sud-est et Alpes,2004,9.125
+era5land,tas sud-est et Alpes,2005,8.883
+era5land,tas sud-est et Alpes,2006,9.848
+era5land,tas sud-est et Alpes,2007,9.497
+era5land,tas sud-est et Alpes,2008,9.061
+era5land,tas sud-est et Alpes,2009,9.633
+era5land,tas sud-est et Alpes,2010,8.290
+era5land,tas sud-est et Alpes,2011,10.140
+era5land,tas sud-est et Alpes,2012,9.545
+era5land,tas sud-est et Alpes,2013,8.777
+era5land,tas sud-est et Alpes,2014,10.136
+era5land,tas sud-est et Alpes,2015,10.333
+era5land,tas sud-est et Alpes,2016,9.806
+era5land,tas sud-est et Alpes,2017,10.109
+era5land,tas sud-est et Alpes,2018,10.636
+era5land,tas sud-est et Alpes,2019,10.335
+era5land,tas sud-est et Alpes,2020,10.622
+era5land,tas sud-est et Alpes,2021,9.433
+era5land,tas sud-est et Alpes,2022,11.363
+era5land,tas sud-est et Alpes,2023,10.888
+era5land,tas sud-est et Alpes,2024,10.686
+era5land,tas sud-est et Alpes,2025,10.765
+cordex010,tas nord-ouest,1970,10.700
+cordex010,tas nord-ouest,1971,10.925
+cordex010,tas nord-ouest,1972,10.456
+cordex010,tas nord-ouest,1973,11.395
+cordex010,tas nord-ouest,1974,11.260
+cordex010,tas nord-ouest,1975,11.149
+cordex010,tas nord-ouest,1976,10.575
+cordex010,tas nord-ouest,1977,10.806
+cordex010,tas nord-ouest,1978,11.119
+cordex010,tas nord-ouest,1979,10.972
+cordex010,tas nord-ouest,1980,11.607
+cordex010,tas nord-ouest,1981,11.328
+cordex010,tas nord-ouest,1982,11.197
+cordex010,tas nord-ouest,1983,11.197
+cordex010,tas nord-ouest,1984,10.875
+cordex010,tas nord-ouest,1985,11.692
+cordex010,tas nord-ouest,1986,10.860
+cordex010,tas nord-ouest,1987,11.107
+cordex010,tas nord-ouest,1988,11.172
+cordex010,tas nord-ouest,1989,11.092
+cordex010,tas nord-ouest,1990,10.684
+cordex010,tas nord-ouest,1991,11.466
+cordex010,tas nord-ouest,1992,11.418
+cordex010,tas nord-ouest,1993,12.108
+cordex010,tas nord-ouest,1994,11.901
+cordex010,tas nord-ouest,1995,10.921
+cordex010,tas nord-ouest,1996,11.291
+cordex010,tas nord-ouest,1997,11.311
+cordex010,tas nord-ouest,1998,12.556
+cordex010,tas nord-ouest,1999,11.330
+cordex010,tas nord-ouest,2000,10.873
+cordex010,tas nord-ouest,2001,11.604
+cordex010,tas nord-ouest,2002,11.431
+cordex010,tas nord-ouest,2003,11.386
+cordex010,tas nord-ouest,2004,12.047
+cordex010,tas nord-ouest,2005,12.091
+cordex010,tas nord-ouest,2006,11.280
+cordex010,tas nord-ouest,2007,12.068
+cordex010,tas nord-ouest,2008,11.708
+cordex010,tas nord-ouest,2009,11.512
+cordex010,tas nord-ouest,2010,11.233
+cordex010,tas nord-ouest,2011,11.446
+cordex010,tas nord-ouest,2012,11.472
+cordex010,tas nord-ouest,2013,11.889
+cordex010,tas nord-ouest,2014,12.254
+cordex010,tas nord-ouest,2015,12.546
+cordex010,tas nord-ouest,2016,11.888
+cordex010,tas nord-ouest,2017,11.974
+cordex010,tas nord-ouest,2018,12.378
+cordex010,tas nord-ouest,2019,12.086
+cordex010,tas nord-ouest,2020,11.809
+cordex010,tas nord-ouest,2021,12.037
+cordex010,tas nord-ouest,2022,12.771
+cordex010,tas nord-ouest,2023,12.895
+cordex010,tas nord-ouest,2024,12.134
+cordex010,tas nord-ouest,2025,12.999
+cordex010,tas nord-ouest,2026,12.204
+cordex010,tas nord-ouest,2027,11.721
+cordex010,tas nord-ouest,2028,12.403
+cordex010,tas nord-ouest,2029,11.684
+cordex010,tas nord-ouest,2030,11.841
+cordex010,tas nord-ouest,2031,12.487
+cordex010,tas nord-ouest,2032,12.156
+cordex010,tas nord-ouest,2033,12.402
+cordex010,tas nord-ouest,2034,12.095
+cordex010,tas nord-ouest,2035,12.262
+cordex010,tas nord-ouest,2036,12.235
+cordex010,tas nord-ouest,2037,11.542
+cordex010,tas nord-ouest,2038,13.559
+cordex010,tas nord-ouest,2039,13.342
+cordex010,tas nord-ouest,2040,11.651
+cordex010,tas nord-ouest,2041,12.696
+cordex010,tas nord-ouest,2042,12.780
+cordex010,tas nord-ouest,2043,12.098
+cordex010,tas nord-ouest,2044,11.634
+cordex010,tas nord-ouest,2045,12.156
+cordex010,tas nord-ouest,2046,11.696
+cordex010,tas nord-ouest,2047,12.856
+cordex010,tas nord-ouest,2048,13.272
+cordex010,tas nord-ouest,2049,12.318
+cordex010,tas nord-ouest,2050,12.817
+cordex010,tas nord-ouest,2051,13.201
+cordex010,tas nord-ouest,2052,12.871
+cordex010,tas nord-ouest,2053,13.641
+cordex010,tas nord-ouest,2054,11.945
+cordex010,tas nord-ouest,2055,13.192
+cordex010,tas nord-ouest,2056,12.832
+cordex010,tas nord-ouest,2057,12.251
+cordex010,tas nord-ouest,2058,12.502
+cordex010,tas nord-ouest,2059,13.116
+cordex010,tas nord-ouest,2060,13.934
+cordex010,tas nord-ouest,2061,12.543
+cordex010,tas nord-ouest,2062,12.675
+cordex010,tas nord-ouest,2063,12.736
+cordex010,tas nord-ouest,2064,12.435
+cordex010,tas nord-ouest,2065,14.084
+cordex010,tas nord-ouest,2066,13.904
+cordex010,tas nord-ouest,2067,12.728
+cordex010,tas nord-ouest,2068,13.598
+cordex010,tas nord-ouest,2069,13.809
+cordex010,tas nord-ouest,2070,12.809
+cordex010,tas nord-ouest,2071,13.673
+cordex010,tas nord-ouest,2072,12.341
+cordex010,tas nord-ouest,2073,13.876
+cordex010,tas nord-ouest,2074,12.927
+cordex010,tas nord-ouest,2075,13.304
+cordex010,tas nord-ouest,2076,12.345
+cordex010,tas nord-ouest,2077,12.422
+cordex010,tas nord-ouest,2078,13.047
+cordex010,tas nord-ouest,2079,14.080
+cordex010,tas nord-ouest,2080,13.728
+cordex010,tas nord-ouest,2081,12.115
+cordex010,tas nord-ouest,2082,12.816
+cordex010,tas nord-ouest,2083,14.285
+cordex010,tas nord-ouest,2084,13.754
+cordex010,tas nord-ouest,2085,14.229
+cordex010,tas nord-ouest,2086,13.658
+cordex010,tas nord-ouest,2087,13.389
+cordex010,tas nord-ouest,2088,13.629
+cordex010,tas nord-ouest,2089,13.720
+cordex010,tas nord-ouest,2090,12.484
+cordex010,tas nord-ouest,2091,13.583
+cordex010,tas nord-ouest,2092,13.926
+cordex010,tas nord-ouest,2093,13.224
+cordex010,tas nord-ouest,2094,13.773
+cordex010,tas nord-ouest,2095,13.702
+cordex010,tas nord-ouest,2096,12.744
+cordex010,tas nord-ouest,2097,13.134
+cordex010,tas nord-ouest,2098,13.010
+cordex010,tas nord-ouest,2099,13.794
+cordex010,tas nord-ouest,2100,13.201
+cordex010,tas sud-est et Alpes,1970,7.763
+cordex010,tas sud-est et Alpes,1971,8.538
+cordex010,tas sud-est et Alpes,1972,8.109
+cordex010,tas sud-est et Alpes,1973,9.073
+cordex010,tas sud-est et Alpes,1974,8.295
+cordex010,tas sud-est et Alpes,1975,8.419
+cordex010,tas sud-est et Alpes,1976,8.299
+cordex010,tas sud-est et Alpes,1977,8.709
+cordex010,tas sud-est et Alpes,1978,9.270
+cordex010,tas sud-est et Alpes,1979,8.268
+cordex010,tas sud-est et Alpes,1980,9.081
+cordex010,tas sud-est et Alpes,1981,8.293
+cordex010,tas sud-est et Alpes,1982,8.647
+cordex010,tas sud-est et Alpes,1983,8.285
+cordex010,tas sud-est et Alpes,1984,8.322
+cordex010,tas sud-est et Alpes,1985,9.210
+cordex010,tas sud-est et Alpes,1986,8.442
+cordex010,tas sud-est et Alpes,1987,8.798
+cordex010,tas sud-est et Alpes,1988,8.068
+cordex010,tas sud-est et Alpes,1989,8.720
+cordex010,tas sud-est et Alpes,1990,8.086
+cordex010,tas sud-est et Alpes,1991,8.712
+cordex010,tas sud-est et Alpes,1992,8.864
+cordex010,tas sud-est et Alpes,1993,9.531
+cordex010,tas sud-est et Alpes,1994,8.365
+cordex010,tas sud-est et Alpes,1995,8.019
+cordex010,tas sud-est et Alpes,1996,9.023
+cordex010,tas sud-est et Alpes,1997,8.602
+cordex010,tas sud-est et Alpes,1998,9.452
+cordex010,tas sud-est et Alpes,1999,8.752
+cordex010,tas sud-est et Alpes,2000,7.994
+cordex010,tas sud-est et Alpes,2001,9.348
+cordex010,tas sud-est et Alpes,2002,9.017
+cordex010,tas sud-est et Alpes,2003,8.643
+cordex010,tas sud-est et Alpes,2004,9.020
+cordex010,tas sud-est et Alpes,2005,9.831
+cordex010,tas sud-est et Alpes,2006,9.132
+cordex010,tas sud-est et Alpes,2007,9.686
+cordex010,tas sud-est et Alpes,2008,9.682
+cordex010,tas sud-est et Alpes,2009,9.032
+cordex010,tas sud-est et Alpes,2010,8.969
+cordex010,tas sud-est et Alpes,2011,9.713
+cordex010,tas sud-est et Alpes,2012,9.048
+cordex010,tas sud-est et Alpes,2013,9.051
+cordex010,tas sud-est et Alpes,2014,9.921
+cordex010,tas sud-est et Alpes,2015,9.882
+cordex010,tas sud-est et Alpes,2016,9.837
+cordex010,tas sud-est et Alpes,2017,8.792
+cordex010,tas sud-est et Alpes,2018,9.686
+cordex010,tas sud-est et Alpes,2019,9.705
+cordex010,tas sud-est et Alpes,2020,9.411
+cordex010,tas sud-est et Alpes,2021,9.728
+cordex010,tas sud-est et Alpes,2022,9.925
+cordex010,tas sud-est et Alpes,2023,10.307
+cordex010,tas sud-est et Alpes,2024,9.696
+cordex010,tas sud-est et Alpes,2025,10.454
+cordex010,tas sud-est et Alpes,2026,10.068
+cordex010,tas sud-est et Alpes,2027,9.558
+cordex010,tas sud-est et Alpes,2028,10.228
+cordex010,tas sud-est et Alpes,2029,9.177
+cordex010,tas sud-est et Alpes,2030,9.633
+cordex010,tas sud-est et Alpes,2031,10.088
+cordex010,tas sud-est et Alpes,2032,9.736
+cordex010,tas sud-est et Alpes,2033,10.107
+cordex010,tas sud-est et Alpes,2034,9.788
+cordex010,tas sud-est et Alpes,2035,9.665
+cordex010,tas sud-est et Alpes,2036,10.030
+cordex010,tas sud-est et Alpes,2037,9.076
+cordex010,tas sud-est et Alpes,2038,11.379
+cordex010,tas sud-est et Alpes,2039,11.616
+cordex010,tas sud-est et Alpes,2040,9.439
+cordex010,tas sud-est et Alpes,2041,10.038
+cordex010,tas sud-est et Alpes,2042,10.886
+cordex010,tas sud-est et Alpes,2043,10.216
+cordex010,tas sud-est et Alpes,2044,9.800
+cordex010,tas sud-est et Alpes,2045,10.330
+cordex010,tas sud-est et Alpes,2046,10.193
+cordex010,tas sud-est et Alpes,2047,10.888
+cordex010,tas sud-est et Alpes,2048,11.132
+cordex010,tas sud-est et Alpes,2049,9.768
+cordex010,tas sud-est et Alpes,2050,10.842
+cordex010,tas sud-est et Alpes,2051,10.661
+cordex010,tas sud-est et Alpes,2052,10.197
+cordex010,tas sud-est et Alpes,2053,11.655
+cordex010,tas sud-est et Alpes,2054,9.851
+cordex010,tas sud-est et Alpes,2055,11.425
+cordex010,tas sud-est et Alpes,2056,10.366
+cordex010,tas sud-est et Alpes,2057,10.078
+cordex010,tas sud-est et Alpes,2058,10.759
+cordex010,tas sud-est et Alpes,2059,11.528
+cordex010,tas sud-est et Alpes,2060,11.120
+cordex010,tas sud-est et Alpes,2061,10.690
+cordex010,tas sud-est et Alpes,2062,9.960
+cordex010,tas sud-est et Alpes,2063,11.230
+cordex010,tas sud-est et Alpes,2064,10.465
+cordex010,tas sud-est et Alpes,2065,11.702
+cordex010,tas sud-est et Alpes,2066,11.942
+cordex010,tas sud-est et Alpes,2067,10.381
+cordex010,tas sud-est et Alpes,2068,10.504
+cordex010,tas sud-est et Alpes,2069,11.348
+cordex010,tas sud-est et Alpes,2070,10.231
+cordex010,tas sud-est et Alpes,2071,10.979
+cordex010,tas sud-est et Alpes,2072,9.870
+cordex010,tas sud-est et Alpes,2073,11.057
+cordex010,tas sud-est et Alpes,2074,10.732
+cordex010,tas sud-est et Alpes,2075,10.488
+cordex010,tas sud-est et Alpes,2076,10.779
+cordex010,tas sud-est et Alpes,2077,10.328
+cordex010,tas sud-est et Alpes,2078,10.492
+cordex010,tas sud-est et Alpes,2079,12.039
+cordex010,tas sud-est et Alpes,2080,11.483
+cordex010,tas sud-est et Alpes,2081,10.239
+cordex010,tas sud-est et Alpes,2082,10.490
+cordex010,tas sud-est et Alpes,2083,11.972
+cordex010,tas sud-est et Alpes,2084,11.517
+cordex010,tas sud-est et Alpes,2085,11.968
+cordex010,tas sud-est et Alpes,2086,11.939
+cordex010,tas sud-est et Alpes,2087,11.803
+cordex010,tas sud-est et Alpes,2088,11.353
+cordex010,tas sud-est et Alpes,2089,11.539
+cordex010,tas sud-est et Alpes,2090,10.390
+cordex010,tas sud-est et Alpes,2091,11.109
+cordex010,tas sud-est et Alpes,2092,11.885
+cordex010,tas sud-est et Alpes,2093,11.340
+cordex010,tas sud-est et Alpes,2094,11.617
+cordex010,tas sud-est et Alpes,2095,11.408
+cordex010,tas sud-est et Alpes,2096,9.950
+cordex010,tas sud-est et Alpes,2097,10.620
+cordex010,tas sud-est et Alpes,2098,10.274
+cordex010,tas sud-est et Alpes,2099,11.658
+cordex010,tas sud-est et Alpes,2100,11.122
+era5,pr quart nord-est,1970,1088.388
+era5,pr quart nord-est,1971,806.351
+era5,pr quart nord-est,1972,991.557
+era5,pr quart nord-est,1973,865.693
+era5,pr quart nord-est,1974,1060.638
+era5,pr quart nord-est,1975,904.135
+era5,pr quart nord-est,1976,732.312
+era5,pr quart nord-est,1977,1121.651
+era5,pr quart nord-est,1978,981.333
+era5,pr quart nord-est,1979,1117.950
+era5,pr quart nord-est,1980,1026.010
+era5,pr quart nord-est,1981,1259.382
+era5,pr quart nord-est,1982,1056.713
+era5,pr quart nord-est,1983,1057.448
+era5,pr quart nord-est,1984,1057.145
+era5,pr quart nord-est,1985,848.940
+era5,pr quart nord-est,1986,1125.172
+era5,pr quart nord-est,1987,1063.262
+era5,pr quart nord-est,1988,1110.825
+era5,pr quart nord-est,1989,826.662
+era5,pr quart nord-est,1990,911.352
+era5,pr quart nord-est,1991,758.299
+era5,pr quart nord-est,1992,949.364
+era5,pr quart nord-est,1993,967.469
+era5,pr quart nord-est,1994,1074.145
+era5,pr quart nord-est,1995,1065.330
+era5,pr quart nord-est,1996,857.979
+era5,pr quart nord-est,1997,884.166
+era5,pr quart nord-est,1998,953.298
+era5,pr quart nord-est,1999,1164.761
+era5,pr quart nord-est,2000,1069.834
+era5,pr quart nord-est,2001,1154.771
+era5,pr quart nord-est,2002,1049.125
+era5,pr quart nord-est,2003,759.492
+era5,pr quart nord-est,2004,883.500
+era5,pr quart nord-est,2005,813.176
+era5,pr quart nord-est,2006,1000.629
+era5,pr quart nord-est,2007,1016.460
+era5,pr quart nord-est,2008,1022.026
+era5,pr quart nord-est,2009,896.906
+era5,pr quart nord-est,2010,1015.083
+era5,pr quart nord-est,2011,794.697
+era5,pr quart nord-est,2012,1033.754
+era5,pr quart nord-est,2013,1055.223
+era5,pr quart nord-est,2014,982.999
+era5,pr quart nord-est,2015,802.310
+era5,pr quart nord-est,2016,1049.788
+era5,pr quart nord-est,2017,913.802
+era5,pr quart nord-est,2018,911.014
+era5,pr quart nord-est,2019,936.638
+era5,pr quart nord-est,2020,892.954
+era5,pr quart nord-est,2021,1105.093
+era5,pr quart nord-est,2022,891.250
+era5,pr quart nord-est,2023,1042.302
+era5,pr quart nord-est,2024,1184.778
+era5,pr quart nord-est,2025,907.984
+era5,rx1day,1970,36.913
+era5,rx1day,1971,38.005
+era5,rx1day,1972,38.780
+era5,rx1day,1973,35.175
+era5,rx1day,1974,34.815
+era5,rx1day,1975,34.791
+era5,rx1day,1976,36.301
+era5,rx1day,1977,38.419
+era5,rx1day,1978,33.720
+era5,rx1day,1979,36.769
+era5,rx1day,1980,38.599
+era5,rx1day,1981,40.208
+era5,rx1day,1982,40.860
+era5,rx1day,1983,33.812
+era5,rx1day,1984,36.219
+era5,rx1day,1985,31.131
+era5,rx1day,1986,38.473
+era5,rx1day,1987,39.323
+era5,rx1day,1988,34.898
+era5,rx1day,1989,31.566
+era5,rx1day,1990,38.298
+era5,rx1day,1991,34.184
+era5,rx1day,1992,37.483
+era5,rx1day,1993,42.001
+era5,rx1day,1994,38.566
+era5,rx1day,1995,33.087
+era5,rx1day,1996,36.995
+era5,rx1day,1997,34.967
+era5,rx1day,1998,32.930
+era5,rx1day,1999,36.006
+era5,rx1day,2000,37.450
+era5,rx1day,2001,35.628
+era5,rx1day,2002,37.284
+era5,rx1day,2003,36.823
+era5,rx1day,2004,34.746
+era5,rx1day,2005,33.478
+era5,rx1day,2006,39.143
+era5,rx1day,2007,32.455
+era5,rx1day,2008,35.548
+era5,rx1day,2009,30.486
+era5,rx1day,2010,42.603
+era5,rx1day,2011,37.072
+era5,rx1day,2012,35.487
+era5,rx1day,2013,38.492
+era5,rx1day,2014,38.638
+era5,rx1day,2015,35.377
+era5,rx1day,2016,35.970
+era5,rx1day,2017,32.956
+era5,rx1day,2018,35.890
+era5,rx1day,2019,35.867
+era5,rx1day,2020,36.876
+era5,rx1day,2021,38.655
+era5,rx1day,2022,33.722
+era5,rx1day,2023,33.914
+era5,rx1day,2024,43.091
+era5,rx1day,2025,34.578
+cordex,pr quart nord-est,1970,1009.803
+cordex,pr quart nord-est,1971,838.981
+cordex,pr quart nord-est,1972,944.446
+cordex,pr quart nord-est,1973,905.263
+cordex,pr quart nord-est,1974,1149.762
+cordex,pr quart nord-est,1975,1031.477
+cordex,pr quart nord-est,1976,939.646
+cordex,pr quart nord-est,1977,1110.070
+cordex,pr quart nord-est,1978,796.252
+cordex,pr quart nord-est,1979,915.520
+cordex,pr quart nord-est,1980,1068.742
+cordex,pr quart nord-est,1981,1070.031
+cordex,pr quart nord-est,1982,1025.729
+cordex,pr quart nord-est,1983,901.044
+cordex,pr quart nord-est,1984,908.287
+cordex,pr quart nord-est,1985,931.235
+cordex,pr quart nord-est,1986,864.345
+cordex,pr quart nord-est,1987,733.920
+cordex,pr quart nord-est,1988,928.670
+cordex,pr quart nord-est,1989,774.754
+cordex,pr quart nord-est,1990,969.615
+cordex,pr quart nord-est,1991,815.847
+cordex,pr quart nord-est,1992,1142.157
+cordex,pr quart nord-est,1993,1135.187
+cordex,pr quart nord-est,1994,930.046
+cordex,pr quart nord-est,1995,1024.570
+cordex,pr quart nord-est,1996,821.363
+cordex,pr quart nord-est,1997,823.846
+cordex,pr quart nord-est,1998,840.648
+cordex,pr quart nord-est,1999,837.559
+cordex,pr quart nord-est,2000,991.663
+cordex,pr quart nord-est,2001,1195.981
+cordex,pr quart nord-est,2002,1079.297
+cordex,pr quart nord-est,2003,886.561
+cordex,pr quart nord-est,2004,854.053
+cordex,pr quart nord-est,2005,907.417
+cordex,pr quart nord-est,2006,954.076
+cordex,pr quart nord-est,2007,1019.581
+cordex,pr quart nord-est,2008,944.583
+cordex,pr quart nord-est,2009,927.173
+cordex,pr quart nord-est,2010,958.216
+cordex,pr quart nord-est,2011,915.640
+cordex,pr quart nord-est,2012,1121.433
+cordex,pr quart nord-est,2013,1032.545
+cordex,pr quart nord-est,2014,967.386
+cordex,pr quart nord-est,2015,583.402
+cordex,pr quart nord-est,2016,812.411
+cordex,pr quart nord-est,2017,709.804
+cordex,pr quart nord-est,2018,847.787
+cordex,pr quart nord-est,2019,1040.897
+cordex,pr quart nord-est,2020,1016.107
+cordex,pr quart nord-est,2021,818.869
+cordex,pr quart nord-est,2022,964.839
+cordex,pr quart nord-est,2023,1015.558
+cordex,pr quart nord-est,2024,858.085
+cordex,pr quart nord-est,2025,1062.098
+cordex,pr quart nord-est,2026,1004.054
+cordex,pr quart nord-est,2027,873.782
+cordex,pr quart nord-est,2028,1017.603
+cordex,pr quart nord-est,2029,938.632
+cordex,pr quart nord-est,2030,893.147
+cordex,pr quart nord-est,2031,799.778
+cordex,pr quart nord-est,2032,1049.167
+cordex,pr quart nord-est,2033,891.407
+cordex,pr quart nord-est,2034,1175.458
+cordex,pr quart nord-est,2035,1015.405
+cordex,pr quart nord-est,2036,884.629
+cordex,pr quart nord-est,2037,814.757
+cordex,pr quart nord-est,2038,826.923
+cordex,pr quart nord-est,2039,910.009
+cordex,pr quart nord-est,2040,1100.436
+cordex,pr quart nord-est,2041,818.155
+cordex,pr quart nord-est,2042,806.518
+cordex,pr quart nord-est,2043,983.936
+cordex,pr quart nord-est,2044,924.179
+cordex,pr quart nord-est,2045,1072.889
+cordex,pr quart nord-est,2046,763.830
+cordex,pr quart nord-est,2047,1063.702
+cordex,pr quart nord-est,2048,752.679
+cordex,pr quart nord-est,2049,1005.074
+cordex,pr quart nord-est,2050,677.918
+cordex,pr quart nord-est,2051,784.766
+cordex,pr quart nord-est,2052,853.227
+cordex,pr quart nord-est,2053,680.950
+cordex,pr quart nord-est,2054,965.762
+cordex,pr quart nord-est,2055,800.476
+cordex,pr quart nord-est,2056,1057.175
+cordex,pr quart nord-est,2057,802.236
+cordex,pr quart nord-est,2058,929.594
+cordex,pr quart nord-est,2059,1136.847
+cordex,pr quart nord-est,2060,1021.366
+cordex,pr quart nord-est,2061,1140.222
+cordex,pr quart nord-est,2062,1080.257
+cordex,pr quart nord-est,2063,898.176
+cordex,pr quart nord-est,2064,852.750
+cordex,pr quart nord-est,2065,1059.977
+cordex,pr quart nord-est,2066,1074.756
+cordex,pr quart nord-est,2067,1173.531
+cordex,pr quart nord-est,2068,970.774
+cordex,pr quart nord-est,2069,828.002
+cordex,pr quart nord-est,2070,1017.260
+cordex,pr quart nord-est,2071,846.601
+cordex,pr quart nord-est,2072,1079.911
+cordex,pr quart nord-est,2073,1014.265
+cordex,pr quart nord-est,2074,1178.282
+cordex,pr quart nord-est,2075,763.395
+cordex,pr quart nord-est,2076,779.984
+cordex,pr quart nord-est,2077,999.224
+cordex,pr quart nord-est,2078,892.921
+cordex,pr quart nord-est,2079,1053.965
+cordex,pr quart nord-est,2080,1165.154
+cordex,pr quart nord-est,2081,1160.605
+cordex,pr quart nord-est,2082,1080.644
+cordex,pr quart nord-est,2083,825.312
+cordex,pr quart nord-est,2084,1050.958
+cordex,pr quart nord-est,2085,925.867
+cordex,pr quart nord-est,2086,859.626
+cordex,pr quart nord-est,2087,923.678
+cordex,pr quart nord-est,2088,970.601
+cordex,pr quart nord-est,2089,853.527
+cordex,pr quart nord-est,2090,1234.863
+cordex,pr quart nord-est,2091,968.498
+cordex,pr quart nord-est,2092,796.172
+cordex,pr quart nord-est,2093,927.195
+cordex,pr quart nord-est,2094,850.207
+cordex,pr quart nord-est,2095,790.790
+cordex,pr quart nord-est,2096,846.449
+cordex,pr quart nord-est,2097,924.427
+cordex,pr quart nord-est,2098,987.573
+cordex,pr quart nord-est,2099,1105.968
+cordex,pr quart nord-est,2100,1051.555
+cordex,rx1day,1970,36.430
+cordex,rx1day,1971,37.592
+cordex,rx1day,1972,40.149
+cordex,rx1day,1973,36.549
+cordex,rx1day,1974,38.375
+cordex,rx1day,1975,36.676
+cordex,rx1day,1976,35.695
+cordex,rx1day,1977,37.393
+cordex,rx1day,1978,32.817
+cordex,rx1day,1979,34.841
+cordex,rx1day,1980,35.198
+cordex,rx1day,1981,35.438
+cordex,rx1day,1982,35.446
+cordex,rx1day,1983,34.727
+cordex,rx1day,1984,34.423
+cordex,rx1day,1985,36.634
+cordex,rx1day,1986,39.125
+cordex,rx1day,1987,33.704
+cordex,rx1day,1988,39.285
+cordex,rx1day,1989,35.991
+cordex,rx1day,1990,43.361
+cordex,rx1day,1991,35.670
+cordex,rx1day,1992,38.593
+cordex,rx1day,1993,41.300
+cordex,rx1day,1994,33.055
+cordex,rx1day,1995,33.466
+cordex,rx1day,1996,33.770
+cordex,rx1day,1997,39.845
+cordex,rx1day,1998,35.425
+cordex,rx1day,1999,38.720
+cordex,rx1day,2000,35.747
+cordex,rx1day,2001,41.887
+cordex,rx1day,2002,43.896
+cordex,rx1day,2003,33.103
+cordex,rx1day,2004,39.819
+cordex,rx1day,2005,38.083
+cordex,rx1day,2006,38.092
+cordex,rx1day,2007,40.367
+cordex,rx1day,2008,39.358
+cordex,rx1day,2009,39.977
+cordex,rx1day,2010,37.337
+cordex,rx1day,2011,33.899
+cordex,rx1day,2012,46.265
+cordex,rx1day,2013,39.614
+cordex,rx1day,2014,44.083
+cordex,rx1day,2015,35.721
+cordex,rx1day,2016,41.836
+cordex,rx1day,2017,40.629
+cordex,rx1day,2018,41.924
+cordex,rx1day,2019,40.607
+cordex,rx1day,2020,42.608
+cordex,rx1day,2021,37.310
+cordex,rx1day,2022,36.242
+cordex,rx1day,2023,39.944
+cordex,rx1day,2024,46.565
+cordex,rx1day,2025,39.823
+cordex,rx1day,2026,39.948
+cordex,rx1day,2027,38.070
+cordex,rx1day,2028,39.793
+cordex,rx1day,2029,41.957
+cordex,rx1day,2030,42.158
+cordex,rx1day,2031,42.866
+cordex,rx1day,2032,44.129
+cordex,rx1day,2033,39.907
+cordex,rx1day,2034,40.259
+cordex,rx1day,2035,37.834
+cordex,rx1day,2036,39.025
+cordex,rx1day,2037,36.290
+cordex,rx1day,2038,38.216
+cordex,rx1day,2039,39.608
+cordex,rx1day,2040,38.786
+cordex,rx1day,2041,43.362
+cordex,rx1day,2042,34.541
+cordex,rx1day,2043,41.626
+cordex,rx1day,2044,37.482
+cordex,rx1day,2045,40.195
+cordex,rx1day,2046,38.068
+cordex,rx1day,2047,39.409
+cordex,rx1day,2048,38.498
+cordex,rx1day,2049,39.991
+cordex,rx1day,2050,37.607
+cordex,rx1day,2051,37.003
+cordex,rx1day,2052,31.334
+cordex,rx1day,2053,36.845
+cordex,rx1day,2054,39.216
+cordex,rx1day,2055,46.207
+cordex,rx1day,2056,41.856
+cordex,rx1day,2057,36.021
+cordex,rx1day,2058,39.985
+cordex,rx1day,2059,45.621
+cordex,rx1day,2060,38.103
+cordex,rx1day,2061,46.981
+cordex,rx1day,2062,45.907
+cordex,rx1day,2063,37.808
+cordex,rx1day,2064,41.630
+cordex,rx1day,2065,47.025
+cordex,rx1day,2066,41.570
+cordex,rx1day,2067,41.470
+cordex,rx1day,2068,36.846
+cordex,rx1day,2069,47.592
+cordex,rx1day,2070,46.577
+cordex,rx1day,2071,34.800
+cordex,rx1day,2072,41.973
+cordex,rx1day,2073,43.289
+cordex,rx1day,2074,46.682
+cordex,rx1day,2075,38.518
+cordex,rx1day,2076,42.678
+cordex,rx1day,2077,40.412
+cordex,rx1day,2078,43.790
+cordex,rx1day,2079,40.362
+cordex,rx1day,2080,45.880
+cordex,rx1day,2081,41.270
+cordex,rx1day,2082,40.511
+cordex,rx1day,2083,38.859
+cordex,rx1day,2084,45.500
+cordex,rx1day,2085,35.423
+cordex,rx1day,2086,40.455
+cordex,rx1day,2087,40.135
+cordex,rx1day,2088,41.363
+cordex,rx1day,2089,40.933
+cordex,rx1day,2090,48.666
+cordex,rx1day,2091,40.706
+cordex,rx1day,2092,43.003
+cordex,rx1day,2093,43.852
+cordex,rx1day,2094,35.908
+cordex,rx1day,2095,35.303
+cordex,rx1day,2096,36.756
+cordex,rx1day,2097,38.905
+cordex,rx1day,2098,36.420
+cordex,rx1day,2099,37.977
+cordex,rx1day,2100,42.401

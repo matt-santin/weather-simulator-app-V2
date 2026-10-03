@@ -170,3 +170,4 @@ Je suis de formation scientifique (doctorat), mais avec peu de connaissances en 
  - Je gère la partie scientifique (choix des modèles, etc.) ;
  - Claude Code peut être relativement autonome sur la partie dev frontend ;
  - Sur la partie back-end, Claude Code est libre d'écrire le code à sa guise, en sachant que je décide de l'infrastructure au vu de l'enjeu (la facture peut vite déraper)
+ - Pour l'aspect scientifique, tout chiffre ou résultat "connu" que tu évoques doit être contrôlé depuis une source sûre (publication scientifique, météofrance, etc)
