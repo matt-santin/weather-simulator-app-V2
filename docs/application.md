@@ -13,7 +13,7 @@ Le site de la V1 (formulaire, page de résultats, documentation), branché sur l
 - Une recherche porte sur 92 jours au plus, à l'intérieur d'une seule période. Une plage qui touche 2026, ou qui chevauche 2025 et 2026, est refusée entière.
 - Hors du domaine EUR-11 : « Lieu hors de la zone couverte (Europe) ».
 - Variables lues : `tasmax`, `tasmin`, `tas`, `pr`, `clt`, `hurs`, `sfcWind`. Règles d'affichage reprises de la V1 (classe de ciel, neige, bandes de température, chaleur humide) ; vent moyen à la place du vent maximal ; température humide calculée à partir de `tas` et `hurs`.
-- La comparaison avec une autre année ne propose que les années ERA5.
+- Comparaison aux normales de saison : voir section 5.
 
 ## 2. Deux grilles
 
@@ -53,6 +53,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 |---|---|
 | `GET /api/config` | périodes servies, plage maximale, échelle des températures, adresse du géocodage |
 | `GET /api/days?latitude&longitude&start&end` | la série journalière classée, ou un refus avec sa phrase |
+| `GET /api/normals?latitude&longitude&start&end` | les normales 1991-2020 de Tx et Tn aux mêmes dates (section 5), mêmes refus |
 | `/`, `/resultats`, `/documentation` | les pages |
 
 - Le stockage est ouvert au démarrage ; il vérifie que chaque groupe couvre la période servie.
@@ -63,9 +64,23 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `src/app/store.py` | lecture du stockage, choix des mailles, périodes |
 | `src/app/api/validation.py`, `errors.py` | règles de la recherche, refus |
 | `src/app/api/pipeline.py`, `contract.py` | du stockage au JSON |
+| `src/app/api/normals.py` | normales de saison |
 | `src/app/domain/` | règles d'affichage (V1) |
 | `web/` | pages, feuille de style, modules JavaScript (V1, adaptés) |
 
-## 5. Tests
+## 5. Normales de saison
+
+Sur la page de résultats, « Comparer aux normales de saison » superpose en gris aux températures affichées, passées ou simulées, une bande entre la Tn normale et la Tx normale 1991-2020 du même lieu. Pas de normale de précipitations : une pluie normale journalière (un peu chaque jour) ne ressemble à aucune journée réelle.
+
+Calcul (`src/app/api/normals.py`), à la volée, sans précalcul (30 ans en un point : un bloc par variable) :
+
+- mêmes mailles que la série : ERA5-Land à 0,1° si le lieu en a une, sinon ERA5 à 0,25° ;
+- la normale d'une date est la moyenne de toutes les valeurs 1991-2020 situées à 7 jours au plus de ce jour du calendrier, quelle que soit l'année : fenêtre centrée de 15 jours, environ 450 valeurs ;
+- calendrier de 366 jours, 29 février compris (8 années) ; la fenêtre passe le 1er janvier ;
+- sommes et effectifs sont cumulés sur la fenêtre avant division : chaque valeur pèse autant.
+
+La normale d'un jour futur est celle du climat observé 1991-2020, pas celle du modèle. Les normales ne vont pas dans le fichier CSV.
+
+## 6. Tests
 
 `python -m pytest` : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages) et suite JavaScript (`node --test`, si `node` est installé).

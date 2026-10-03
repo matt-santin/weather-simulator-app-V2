@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -147,3 +147,45 @@ def test_a_malformed_search_gets_one_sentence(client: TestClient) -> None:
     response = client.get("/api/days", params={"latitude": "x", "longitude": 5, "start": "2044-07-01"})
     assert response.status_code == 422
     assert response.json()["message"].startswith("Recherche invalide")
+
+
+def brute_normal(target: date, name: str, fine: bool) -> float:
+    """Every 1991-2020 day within 7 calendar days of the target's month and day,
+    across the new year, averaged: the definition, without the server's arithmetic."""
+    key = (date(2000, target.month, target.day) - date(2000, 1, 1)).days
+    values = []
+    day = date(1991, 1, 1)
+    while day <= date(2020, 12, 31):
+        other = (date(2000, day.month, day.day) - date(2000, 1, 1)).days
+        if min(abs(other - key), 366 - abs(other - key)) <= 7:
+            values.append(expected("era5", day, name, fine=fine))
+        day += timedelta(days=1)
+    return sum(values) / len(values)
+
+
+@pytest.mark.parametrize(("start", "end"), [("2044-06-21", "2044-06-23"), ("1999-12-30", "2000-01-02"),
+                                            ("2048-02-28", "2048-03-01")])
+def test_the_normals_are_the_1991_2020_mean_over_15_days(client: TestClient, start, end) -> None:
+    response = client.get("/api/normals", params={**GRENOBLE, "start": start, "end": end})
+    assert response.status_code == 200
+    answer = response.json()
+    assert (answer["reference_start"], answer["reference_end"]) == ("1991-01-01", "2020-12-31")
+    assert answer["window_days"] == 15
+    first, last = date.fromisoformat(start), date.fromisoformat(end)
+    assert [d["date"] for d in answer["days"]] == [
+        (first + timedelta(days=k)).isoformat() for k in range((last - first).days + 1)]
+    for served in answer["days"]:
+        day = date.fromisoformat(served["date"])
+        # Temperatures from the 0.1 deg cell, always ERA5-Land; no rain.
+        assert served["temperature_max"] == pytest.approx(brute_normal(day, "tasmax", True), abs=0.051)
+        assert served["temperature_min"] == pytest.approx(brute_normal(day, "tasmin", True), abs=0.051)
+        assert "precipitation" not in served
+
+
+def test_the_normals_follow_the_rules_of_a_search(client: TestClient) -> None:
+    outside = client.get("/api/normals", params={"latitude": 46.0, "longitude": 5.0,
+                                                 "start": "2044-06-21", "end": "2044-06-23"})
+    assert outside.status_code == days(client, "2044-06-21", "2044-06-23",
+                                       {"latitude": 46.0, "longitude": 5.0}).status_code != 200
+    unavailable = client.get("/api/normals", params={**GRENOBLE, "start": "2026-06-21", "end": "2026-06-23"})
+    assert unavailable.status_code != 200

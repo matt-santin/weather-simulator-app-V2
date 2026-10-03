@@ -45,13 +45,13 @@
  * what the axis is graduated on. Writing the ladder out here would be the second
  * copy CLAUDE.md rule 3 is about.
  *
- * **A second year may be laid under the first**, and it changes one thing about
- * the drawing that is worth knowing before reading the code: the temperature
- * window is then framed on **both** series at once. Two windows would put each
- * year on its own scale, and two curves on two scales say nothing about each
- * other — which is the same reason docs/application.md gives for refusing a
+ * **The seasonal normals may be laid under the days**, and they change one thing
+ * about the drawing that is worth knowing before reading the code: the
+ * temperature window is then framed on **both** series at once. Two windows
+ * would put each series on its own scale, and two curves on two scales say
+ * nothing about each other — which is the same reason docs/application.md gives for refusing a
  * fixed absolute axis, applied inside one panel instead of between two searches.
- * The compared year contributes nothing to the rain panel: it is not drawn there.
+ * The normals are temperatures only: the two rain panels never carry them.
  *
  * Nothing in here fetches or holds state: a series and a scale go in, one node
  * comes out. Which is what lets `node --test` check the geometry.
@@ -75,7 +75,7 @@ import { seamIndex } from "./series.js";
  *
  * **The two panels were raised together, keeping their ratio at exactly 1,75.**
  * They were 168 and 96. A season of ninety-two days over a window of thirty-five
- * degrees gave a degree a little under five units, and once a compared year was
+ * degrees gave a degree a little under five units, and once the normals were
  * laid underneath, the whole question — does the day sit inside the old band or
  * above it — was being answered in three or four units of height. At 245 and 140
  * a degree is seven, and the same reading is made at a glance. The margins did
@@ -200,16 +200,11 @@ export function temperatureWindow(days, step) {
 }
 
 /**
- * The top of the rain axis: the wettest day of either year, or the floor.
- *
- * **One ceiling over both**, for the reason the temperature window is one over
- * both: two years each drawn against their own top would put the taller bar of
- * a dry year level with the taller bar of a wet one, and the panel would be a
- * picture of its own framing rather than of the weather.
+ * The top of the rain axis: the wettest day, or the floor.
  */
-export function rainCeiling(days, compared = null) {
-  const read = (list) => list.map((day) => day?.precipitation).filter((value) => !missing(value));
-  return Math.max(RAIN_FLOOR_MM, ...read(days), ...(compared ? read(compared) : []));
+export function rainCeiling(days) {
+  const read = days.map((day) => day.precipitation).filter((value) => !missing(value));
+  return Math.max(RAIN_FLOOR_MM, ...read);
 }
 
 /**
@@ -278,18 +273,15 @@ export function rainTicks(ceiling) {
  */
 export function cumulative(days) {
   let total = 0;
-  // `day?.` and not `day.`: the compared year arrives with a null in every slot
-  // it has no day for, and a running total is asked of it too.
   const totals = days.map((day) =>
-    missing(day?.precipitation) ? null : (total += day.precipitation),
+    missing(day.precipitation) ? null : (total += day.precipitation),
   );
   return runs(totals, (value) => value);
 }
 
-/** The top of the right-hand axis: where the higher total ends, or the floor. */
-export function cumulativeCeiling(days, compared = null) {
-  const end = (list) => cumulative(list).at(-1)?.at(-1)?.value ?? 0;
-  return Math.max(RAIN_FLOOR_MM, end(days), compared ? end(compared) : 0);
+/** The top of the right-hand axis: where the total ends, or the floor. */
+export function cumulativeCeiling(days) {
+  return Math.max(RAIN_FLOOR_MM, cumulative(days).at(-1)?.at(-1)?.value ?? 0);
 }
 
 /**
@@ -334,9 +326,9 @@ const POINT = 1.8;
  * A lone reading needs no special case for the same reason: it draws its dot
  * like every other, and simply has no segment to draw.
  *
- * **`points` is what tells the compared year apart from the one asked for.** The
+ * **`points` is what tells the normals apart from the one asked for.** The
  * dot is the mark of a reading, and the reading this page is about is the one the
- * visitor searched for; the older year is a ground to read it against. Drawn with
+ * visitor searched for; the normals are a ground to read it against. Drawn with
  * its own dots it would claim the same standing, and two hundred marks on one
  * panel stop being marks. The cost is that a lone compared day draws nothing at
  * all — a segment needs two ends — which is the right silence: one grey dot in a
@@ -361,23 +353,23 @@ function stroke(frame, run, y, className, { points = true } = {}) {
 }
 
 /**
- * The compared year as a band: the room between its two readings, filled.
+ * The normals as a band: the room between their two readings, filled.
  *
- * **Only the compared year is ever filled, and that is a change from what this
+ * **Only the normals are ever filled, and that is a change from what this
  * panel used to do.** The spread of the drawn year was filled too, very pale, as
  * a way of making its amplitude a thickness. It was taken back out: a fill on
- * this panel now means one thing and one thing only — *this is the older year* —
+ * this panel now means one thing and one thing only — *these are the normals* —
  * and a second wash, however faint, made the reader ask which of the two a shade
  * of grey belonged to. The amplitude of the drawn year is not lost, it is simply
  * no longer painted: it is still the room between two curves both of which are
  * on the panel, in colour, carrying their dots.
  *
- * What the band buys is the reading the whole feature exists for. The compared
- * year stops being two lines to follow and becomes a ground: the question is
+ * What the band buys is the reading the whole feature exists for. The normals
+ * stop being two lines to follow and becomes a ground: the question is
  * whether the day sits inside what used to be ordinary or climbs out of it, and
  * that is answered by looking, not by comparing two wiggles.
  *
- * A day the compared year has no counterpart for reads `undefined` here, and
+ * A day the normals have no counterpart for reads `undefined` here, and
  * breaks the band exactly as it breaks the line.
  */
 function pastBand(frame, compared, y) {
@@ -405,30 +397,30 @@ function pastBand(frame, compared, y) {
  *
  * `scale` is what /api/config serves: the band boundaries and their step.
  *
- * `compared` is the other year, already laid alongside by `compare.js` — one slot
- * per day drawn, `null` where that year has no such day. It is aligned before it
+ * `compared` is the normals, already laid alongside by `compare.js` — one slot
+ * per day drawn, `null` where they have no such day. It is aligned before it
  * arrives here, so this file never reads a date to place a mark.
  */
-export function chart(days, scale, { compared = null, box = BOX } = {}) {
+export function chart(days, scale, { compared = null, label = null, box = BOX } = {}) {
   const geometry = frame(days.length, box);
   // One window over both years, or the two curves would each be drawn on their
   // own scale and the gap between them would be a picture of the framing.
   const framed = compared ? [...days, ...compared.filter(Boolean)] : days;
   const span = temperatureWindow(framed, scale.step);
-  const year = comparedYear(compared);
+  const legend = compared ? label : null;
 
   const y = (value) =>
     geometry.temperature.top +
     ((span.top - value) / (span.top - span.bottom)) * box.temperature;
 
   // The order of this list is the stacking order: the graduation under
-  // everything, then the compared year — its band, then its two edges — then the
+  // everything, then the normals: their band, then their two edges — then the
   // two curves of the year asked for, and the seam last so that no mark crosses
   // it.
   //
-  // **Nothing is filled unless a year is compared.** A panel showing one year
+  // **Nothing is filled unless the normals are shown.** A panel showing one year
   // shows two curves and the air between them, and that is all it needs to; the
-  // one fill this drawing has left is reserved for saying *older year*.
+  // one fill this drawing has left is reserved for saying *normals*.
   const marks = [
     title(geometry, geometry.temperature.top, texts.chart.temperatures),
     title(geometry, geometry.rain.top, texts.chart.precipitation),
@@ -437,8 +429,8 @@ export function chart(days, scale, { compared = null, box = BOX } = {}) {
     ...(span && compared ? pastBand(geometry, compared, y) : []),
     ...(span && compared ? curves(geometry, compared, y, { tone: "past", points: false }) : []),
     ...(span ? curves(geometry, days, y) : []),
-    rain(geometry, days, compared),
-    cumul(geometry, days, compared),
+    rain(geometry, days),
+    cumul(geometry, days),
     ...(span
       ? [
           dates(geometry, days, geometry.temperature.bottom, geometry.temperature.dates),
@@ -450,13 +442,7 @@ export function chart(days, scale, { compared = null, box = BOX } = {}) {
     dates(geometry, days, geometry.cumul.base, geometry.cumul.dates),
     months(geometry, days, geometry.cumul.months),
     seamMark(geometry, days),
-    ...(year
-      ? [
-          pastLegend(geometry, year, geometry.temperature.top, SAMPLES.band),
-          pastLegend(geometry, year, geometry.rain.top, SAMPLES.bar),
-          pastLegend(geometry, year, geometry.cumul.top, SAMPLES.line),
-        ]
-      : []),
+    ...(legend ? [pastLegend(geometry, legend, geometry.temperature.top)] : []),
   ].filter(Boolean);
 
   return svg(
@@ -466,29 +452,24 @@ export function chart(days, scale, { compared = null, box = BOX } = {}) {
       attrs: {
         viewBox: `0 0 ${box.width} ${geometry.height}`,
         role: "img",
-        // The one sentence, and it names the compared year when there is one:
+        // The one sentence, and it names the normals when they are drawn:
         // a reader who gets nothing from a drawing must at least be told what
         // the drawing now holds.
-        "aria-label": texts.chart.label(year),
+        "aria-label": texts.chart.label(legend),
       },
     },
     marks,
   );
 }
 
-/** The year the compared series belongs to, read off its first real day. */
-function comparedYear(compared) {
-  return compared?.find(Boolean)?.date.slice(0, 4) ?? null;
-}
-
 /**
- * The band's own name, on the drawing: a sample of it and the year beside.
+ * The band's own name, on the drawing: a sample of it and its label beside.
  *
  * **This is the first text on this panel that is not a title, an axis or the
  * seam, and putting it here was a deliberate widening of a rule.**
  * docs/application.md forbids the chart writing anything above the days — no
  * total, no average, no count, no extreme of the range — and a test enforces it
- * by refusing every string on the drawing that is not on a short list. A year is
+ * by refusing every string on the drawing that is not on a short list. A label is
  * none of those things: it names a mark, in the same way the seam label names a
  * crossing. It computes nothing and it says nothing about the period. So the
  * list gained an entry rather than the rule losing its point, and the test still
@@ -500,88 +481,49 @@ function comparedYear(compared) {
  * band itself it would have to dodge a curve, and which curve depends on the
  * weather.
  */
-const LEGEND = { swatch: 18, gap: 6, year: 26 };
+const LEGEND = { swatch: 18, gap: 6 };
 
 /**
- * The samples, one per panel: what the grey looks like on the panel it labels.
- *
- * Each is given the left edge of the slot and the text's baseline, and returns
- * the marks that fill it. **They are the page's own classes and not a drawing
- * of them** — the band, the bar and the line here are the same declarations as
- * the marks they stand for, so a colour or a width changed in the stylesheet
- * moves the sample with the panel. A swatch that has to be kept in step by hand
- * is the second copy CLAUDE.md rule 3 is about.
- *
- * The sample is centred on the text rather than sat on its baseline: anything
- * hanging under the digits reads as an underline.
+ * The sample: two edges and the fill between them, which is what the panel
+ * draws. **It is the page's own classes and not a drawing of them**, so a
+ * colour or a width changed in the stylesheet moves the sample with the panel.
+ * Centred on the text rather than sat on its baseline: anything hanging under
+ * the digits reads as an underline.
  */
-const SAMPLES = {
-  // Two edges and the fill between them, which is what the temperature panel
-  // draws.
-  band: (left, baseline) => {
-    const top = baseline - 8;
-    const bottom = baseline - 1;
-    const edge = (at) =>
-      svg("line", {
-        className: "chart-line past",
-        attrs: { x1: round(left), x2: round(left + LEGEND.swatch), y1: at, y2: at },
-      });
-
-    return [
-      svg("rect", {
-        className: "chart-past-band",
-        attrs: { x: round(left), y: top, width: LEGEND.swatch, height: bottom - top },
-      }),
-      edge(top),
-      edge(bottom),
-    ];
-  },
-  // One bar, narrow enough to read as a bar and not as a block — the block is
-  // the band above, and the two must not be taken for one another.
-  bar: (left, baseline) => [
-    svg("rect", {
-      className: "chart-bar past",
-      attrs: {
-        x: round(left + LEGEND.swatch / 2 - 3),
-        y: baseline - 9,
-        width: 6,
-        height: 8,
-      },
-    }),
-  ],
-  // A line, which is what a running total is.
-  line: (left, baseline) => [
+function sample(left, baseline) {
+  const top = baseline - 8;
+  const bottom = baseline - 1;
+  const edge = (at) =>
     svg("line", {
-      className: "chart-line past cumulative",
-      attrs: {
-        x1: round(left),
-        x2: round(left + LEGEND.swatch),
-        y1: baseline - 4,
-        y2: baseline - 4,
-      },
+      className: "chart-line past",
+      attrs: { x1: round(left), x2: round(left + LEGEND.swatch), y1: at, y2: at },
+    });
+
+  return [
+    svg("rect", {
+      className: "chart-past-band",
+      attrs: { x: round(left), y: top, width: LEGEND.swatch, height: bottom - top },
     }),
-  ],
-};
+    edge(top),
+    edge(bottom),
+  ];
+}
 
 /**
- * The label, on the title line of the panel it belongs to.
- *
- * Three panels now carry the compared year, so three carry its name: a grey
- * mark on a panel whose only legend is two panels higher is a mark the reader
- * has to go and identify. The placement is computed once and the sample is
- * passed in, which is what keeps the three labels on one vertical.
+ * The label, on the title line of the temperature panel. The sample sits at the
+ * right edge and the text ends just before it, so the label may be any length.
  */
-function pastLegend(frame, year, top, sample) {
-  const left = frame.plot.to - (LEGEND.swatch + LEGEND.gap + LEGEND.year);
+function pastLegend(frame, label, top) {
+  const left = frame.plot.to - LEGEND.swatch;
   const baseline = top - TITLE_LIFT;
 
   return svg("g", { className: "chart-legend" }, [
-    ...sample(left, baseline),
     svg("text", {
-      className: "chart-legend-year",
-      text: year,
-      attrs: { x: round(left + LEGEND.swatch + LEGEND.gap), y: round(baseline) },
+      className: "chart-legend-label",
+      text: label,
+      attrs: { x: round(left - LEGEND.gap), y: round(baseline), "text-anchor": "end" },
     }),
+    ...sample(left, baseline),
   ]);
 }
 
@@ -601,23 +543,23 @@ const READINGS = [
  * The two curves of one year, each broken wherever its own readings are.
  *
  * **One function for both years, called twice.** It was two — the year asked for
- * and the compared year had a function each — and the two differed by a class
+ * and the normals had a function each — and the two differed by a class
  * prefix, a flag and an optional chain, around an identical walk of an identical
  * table of readings. That is the second copy CLAUDE.md rule 3 is about: the day
  * a third reading joined the panel, or the pair changed order, one of the two
  * would have been edited and the other would have gone on drawing the old thing
  * in grey.
  *
- * `tone` is what tells the compared year apart. Its classes carry `past` first
+ * `tone` is what tells the normals apart. Its classes carry `past` first
  * so the stylesheet can override the warm and the cool they would otherwise
  * inherit from `high` and `low` — the two names are kept either way, because a
  * reader who inspects the drawing should find the maximum called a maximum in
  * both years.
  *
- * `points` goes with it: the compared year is a ground, not a second subject,
+ * `points` goes with it: the normals are a ground, not a second subject,
  * and the reasoning for withholding its dots is at :func:`stroke`.
  *
- * A slot the compared year has no day for reads `undefined`, which `runs` treats
+ * A slot the normals have no day for reads `undefined`, which `runs` treats
  * as a hole exactly as it treats a missing reading. Nothing is joined across it,
  * and the optional chain is what lets one walk serve a dense array and a sparse
  * one alike.
@@ -761,23 +703,10 @@ function millimetres(frame, base, ceiling, height) {
  * vertical scale — that is the whole rule this drawing is built on — so it is
  * the panel that computes it.
  */
-/**
- * One year's rain, bar by bar, on the columns the whole drawing shares.
- *
- * `tone` is the only difference between the two years — same columns, same
- * scale, one function called twice, which is what keeps them comparable and
- * what CLAUDE.md rule 3 asks for.
- *
- * **The notches belong to the drawn year alone.** A notch says *this series has
- * no reading here*, under the baseline where nothing else sits; a second row of
- * them, for the other year, under the same baseline, would be read as belonging
- * to the year asked for. The compared year says its holes where it says
- * everything else: by breaking.
- */
-function bars(frame, days, height, { tone = "", notches = true } = {}) {
+/** The rain, bar by bar, on the columns the whole drawing shares. */
+function bars(frame, days, height) {
   return days.flatMap((day, index) => {
-    if (missing(day?.precipitation)) {
-      if (!notches) return [];
+    if (missing(day.precipitation)) {
       // A missing reading and a dry day both draw no bar, so the missing one
       // says so: a notch under the baseline, where nothing else sits.
       return [
@@ -795,7 +724,7 @@ function bars(frame, days, height, { tone = "", notches = true } = {}) {
     if (day.precipitation === 0) return [];
     return [
       svg("rect", {
-        className: ["chart-bar", tone].filter(Boolean).join(" "),
+        className: "chart-bar",
         attrs: {
           x: round(edgeOf(frame, index) + frame.column * 0.15),
           y: round(frame.rain.base - height(day.precipitation)),
@@ -807,22 +736,14 @@ function bars(frame, days, height, { tone = "", notches = true } = {}) {
   });
 }
 
-function rain(frame, days, compared) {
-  const ceiling = rainCeiling(days, compared);
+function rain(frame, days) {
+  const ceiling = rainCeiling(days);
   const height = (value) => (value / ceiling) * frame.box.rain;
   const scale = millimetres(frame, frame.rain.base, ceiling, height);
 
-  // **The compared year is drawn last here, where on the panel above it is
-  // drawn first.** Two bars stand on the same baseline, so the shorter is
-  // inside the taller and not beside it: laid underneath, the grey would be
-  // invisible on every day the drawn year beat it, and the reader would see it
-  // only where the past was wetter — half a comparison. Laid over, and
-  // translucent, both heights are readable at once and the overlap is a third
-  // shade that belongs to neither.
   return svg("g", { className: "chart-rain" }, [
     ...scale.rules,
     ...bars(frame, days, height),
-    ...(compared ? bars(frame, compared, height, { tone: "past", notches: false }) : []),
     ...scale.foot,
   ]);
 }
@@ -848,23 +769,18 @@ function rain(frame, days, compared) {
  * series would be a drawing that changes shape for reasons the reader cannot
  * see.
  */
-function cumul(frame, days, compared) {
-  const ceiling = cumulativeCeiling(days, compared);
+function cumul(frame, days) {
+  const ceiling = cumulativeCeiling(days);
   const height = (value) => (value / ceiling) * frame.box.cumul;
   const scale = millimetres(frame, frame.cumul.base, ceiling, height);
   const y = (value) => frame.cumul.base - height(value);
-  const total = (list, tone) =>
-    cumulative(list).flatMap((run) =>
-      stroke(frame, run, y, [tone, "cumulative"].filter(Boolean).join(" "), { points: false }),
-    );
+  const total = cumulative(days).flatMap((run) =>
+    stroke(frame, run, y, "cumulative", { points: false }),
+  );
 
-  // Under, unlike the bars: two curves are thin and cross, they do not stand on
-  // the baseline hiding one another. The grey is the ground here as it is on
-  // the temperature panel, and the year asked for runs over it.
   return svg("g", { className: "chart-cumul" }, [
     ...scale.rules,
-    ...(compared ? total(compared, "past") : []),
-    ...total(days),
+    ...total,
     ...scale.foot,
   ]);
 }

@@ -18,18 +18,16 @@
  * French under a single `message` field whatever the cause, so an interface
  * that rewrote them would only be inventing a second, less accurate version.
  *
- * **The comparison is a second search of the same site**, not a second kind of
- * request: the same dates in another year go back through /api/plan and
- * /api/days, and come back cut, corrected and classified by the same functions.
- * That is what makes the two curves comparable, and it is why nothing was added
- * to the server for it. What this file adds is the wiring: which years may be
- * asked for, one fetch per year at most, and a failure that stays in its corner.
+ * **The normals are a second call**, `/api/normals`, on the same place and
+ * dates: the server reads 1991-2020 at the same cells and smooths it. What this
+ * file adds is the wiring: one fetch at most, and a failure that stays in its
+ * corner.
  */
 
-import { loadConfig, search, SearchError } from "./fetch.js";
+import { loadConfig, normals, search, SearchError } from "./fetch.js";
 import { sources, strip } from "./band.js";
 import { chart } from "./chart.js";
-import { ORDINARY_YEAR, alignByCalendar, selectableYears, shiftRange } from "./compare.js";
+import { alignByDate, referenceYears } from "./compare.js";
 import { toCsv, fileName } from "./csv.js";
 import { applyTexts, el } from "./dom.js";
 import { texts } from "./i18n.js";
@@ -51,11 +49,10 @@ const provenanceGrid = document.getElementById("provenance-grid");
 const compare = document.getElementById("compare");
 const compareToggle = document.getElementById("compare-toggle");
 const comparePanel = document.getElementById("compare-panel");
-const compareYear = document.getElementById("compare-year");
 const compareStatus = document.getElementById("compare-status");
 const compareLegend = document.getElementById("compare-legend");
 const compareLegendText = document.getElementById("compare-legend-text");
-const compareLink = document.getElementById("compare-link");
+const compareMethod = document.getElementById("compare-method");
 const compareFailure = document.getElementById("compare-failure");
 
 const exportBlock = document.getElementById("export");
@@ -72,9 +69,7 @@ applyTexts();
  * folded into `null` here rather than thrown — the search has its own refusals
  * to report, and none of them is this one.
  *
- * The whole answer is kept, not just the ladder: the comparison menu reads the
- * covered period and the maximum range from it, which is the same reason
- * bounds.js gives for taking its numbers from here rather than writing them.
+ * Only the ladder is read from it here.
  */
 const settings = loadConfig().then(
   (config) => config,
@@ -106,17 +101,10 @@ range.textContent = texts.results.range(fullDate(asked.start), fullDate(asked.en
 let scale = null;
 let drawn = null;
 
-/** One fetch per year, at most. Toggling twice costs nothing after the first. */
-const kept = new Map();
+/** The normals, fetched once. Toggling twice costs nothing after the first. */
+let kept = null;
 
-/**
- * Which comparison is the current one.
- *
- * The menu can be changed faster than Open-Meteo answers, and two answers landing
- * out of order would leave the panel showing one year and the legend naming
- * another. Every request takes a number and only the latest one is allowed to
- * draw.
- */
+/** Bumped on closing, so that an answer landing after it draws nothing. */
 let asking = 0;
 
 run();
@@ -173,7 +161,7 @@ async function show(series) {
     drawn = chart(series.days, scale);
     chartPanel.append(drawn);
     chartPanel.hidden = false;
-    offer(series, config);
+    offer(series);
   }
 
   const pairs = sources(series.grid);
@@ -185,78 +173,47 @@ async function show(series) {
   provenance.hidden = false;
 }
 
-/**
- * Fill the year menu and show the control — or leave it hidden.
- *
- * A year is offered only when its range has fully passed, so a range too near
- * the far end of the covered period can leave nothing to compare with. The
- * control then does not appear at all: a menu with no year in it would be an
- * offer the page cannot keep.
- */
-function offer(series, config) {
-  const years = selectableYears(asked, config);
-  if (years.length === 0) return;
-
-  compareYear.append(...years.map((year) => el("option", { text: String(year) })));
-  // The measured default, when the range allows it. `selectableYears` is walked
-  // rather than trusted: a range at the very start of the covered period could
-  // leave 1991 out.
-  compareYear.value = String(years.includes(ORDINARY_YEAR) ? ORDINARY_YEAR : years.at(-1));
-
-  compareToggle.addEventListener("click", () => toggle(series, config));
-  compareYear.addEventListener("change", () => {
-    if (!comparePanel.hidden) lay(series, config);
-  });
+/** Show the control. The normals exist for every place and date the API serves. */
+function offer(series) {
+  compareToggle.addEventListener("click", () => toggle(series));
   compare.hidden = false;
 }
 
-/** Open or close the panel, and put the other year on the chart or take it off. */
-function toggle(series, config) {
+/** Open or close the panel, and put the normals on the chart or take them off. */
+function toggle(series) {
   const opening = comparePanel.hidden;
   comparePanel.hidden = !opening;
   compareToggle.setAttribute("aria-expanded", String(opening));
   compareToggle.textContent = opening ? texts.compare.close : texts.compare.open;
 
   if (opening) {
-    lay(series, config);
+    lay(series);
   } else {
     asking += 1; // Anything still in flight has lost its turn.
     redraw(series, null);
   }
 }
 
-/**
- * Fetch the chosen year if it has not been fetched, then redraw.
- *
- * The link is set before the fetch rather than after it: it points at an ordinary
- * search of this site and stays true whether or not the data arrives. It is the
- * accessible equivalent of the two grey curves — the strip on this page writes
- * out one year, and the compared year's own page writes out its own.
- */
-async function lay(series, config) {
-  const year = Number(compareYear.value);
-  const shifted = shiftRange(asked, year, config.max_days);
+/** Fetch the normals if they have not been fetched, then redraw. */
+async function lay(series) {
   const turn = (asking += 1);
-
-  compareLink.href = url(shifted);
-  compareLink.textContent = texts.compare.seeYear(year);
   compareFailure.hidden = true;
 
   try {
-    if (!kept.has(year)) {
+    if (kept === null) {
       compareStatus.textContent = texts.compare.loading;
-      const answer = await search({ ...asked, ...shifted });
-      kept.set(year, answer.days);
+      kept = await normals(asked);
     }
     if (turn !== asking) return;
 
-    redraw(series, alignByCalendar(series.days, kept.get(year)));
-    compareLegendText.textContent =
-      year === ORDINARY_YEAR ? texts.compare.ordinaryLegend(year) : texts.compare.legend(year);
+    const years = referenceYears(kept);
+    redraw(series, alignByDate(series.days, kept.days), texts.compare.legend(years));
+    compareLegendText.textContent = texts.compare.legend(years);
+    compareMethod.textContent = texts.compare.method(years, kept.window_days);
     compareLegend.hidden = false;
   } catch (error) {
     if (turn !== asking) return;
-    // The comparison failing is not the page failing: the days the visitor came
+    // The normals failing is not the page failing: the days the visitor came
     // for are already on screen, and this says so in its own corner.
     redraw(series, null);
     compareLegend.hidden = true;
@@ -269,34 +226,28 @@ async function lay(series, config) {
 }
 
 /**
- * Draw the chart again, with the other year or without it.
+ * Draw the chart again, with the normals or without them.
  *
  * A whole new node rather than a patch: the temperature window is framed on both
- * series at once, so adding or dropping a year moves the axis, its graduation
- * and every mark on it. There is nothing in the old drawing worth keeping.
+ * series at once, so adding or dropping the normals moves the axis, its
+ * graduation and every mark on it. There is nothing in the old drawing worth
+ * keeping.
  */
-function redraw(series, compared) {
-  const next = chart(series.days, scale, { compared });
+function redraw(series, compared, label = null) {
+  const next = chart(series.days, scale, { compared, label });
   drawn.replaceWith(next);
   drawn = next;
 }
 
 /**
- * What the visitor takes away: the days on screen, and the year laid under them.
+ * What the visitor takes away: the days on screen.
  *
- * **The compared year goes in the file when it is on the panel, and only then.**
- * The button says *my data*, which is what is being looked at — a year fetched
- * once and since put away is no longer that. Its rows carry their own dates, so
- * the two years never have to be told apart by a column.
+ * **The normals are not in the file.** They are not days: a row of means dated
+ * 14 July would be read, in a spreadsheet years later, as a 14 July that
+ * happened.
  */
 function take(series) {
-  const year = Number(compareYear.value);
-  const compared = comparePanel.hidden ? [] : (kept.get(year) ?? []);
-
-  download(
-    toCsv([...series.days, ...compared]),
-    fileName(asked.place, asked.start, asked.end),
-  );
+  download(toCsv(series.days), fileName(asked.place, asked.start, asked.end));
 }
 
 /**
@@ -320,18 +271,6 @@ function download(text, name) {
   link.click();
   link.remove();
   URL.revokeObjectURL(href);
-}
-
-/** The same search, on the compared year — this page's own URL, other dates. */
-function url({ start, end }) {
-  const query = new URLSearchParams({
-    lieu: asked.place,
-    lat: String(asked.latitude),
-    lon: String(asked.longitude),
-    debut: start,
-    fin: end,
-  });
-  return `${window.location.pathname}?${query}`;
 }
 
 function fail(message) {

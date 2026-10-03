@@ -550,8 +550,9 @@ describe("the drawing as a whole", () => {
   });
 });
 
-describe("the year laid under the one asked for", () => {
-  /** The same days, in another year, so the two can be compared slot by slot. */
+describe("the normals laid under the days", () => {
+  const LABEL = "Normales 1991-2020";
+  /** Normals of the same dates, so the two can be compared slot by slot. */
   const past = (count, extra = () => ({})) =>
     Array.from({ length: count }, (_, index) =>
       day(`1991-08-${String(index + 1).padStart(2, "0")}`, "observed", extra(index)),
@@ -647,52 +648,36 @@ describe("the year laid under the one asked for", () => {
   });
 
   it("names the band on the drawing, in the margin above the plot", () => {
-    const node = chart(series(10), SCALE, { compared: past(10) });
-    const [written] = byClass(node, "chart-legend-year");
+    const node = chart(series(10), SCALE, { compared: past(10), label: LABEL });
+    const [written] = byClass(node, "chart-legend-label");
 
-    assert.equal(written.textContent, "1991");
+    assert.equal(written.textContent, LABEL);
     // Above the panel, where the window guarantees no mark can be: a legend
     // anchored to the band itself would have to dodge whichever curve is there.
     assert.ok(Number(written.attrs.y) < frame(10).temperature.top);
     // And right-anchored, clear of the title on the same line.
+    assert.equal(written.attrs["text-anchor"], "end");
     assert.ok(Number(written.attrs.x) > frame(10).plot.to - 60);
 
-    assert.equal(byClass(chart(series(10), SCALE), "chart-legend-year").length, 0);
+    assert.equal(byClass(chart(series(10), SCALE), "chart-legend-label").length, 0);
+    // No label without normals to name, even if one is passed.
+    assert.equal(byClass(chart(series(10), SCALE, { label: LABEL }), "chart-legend-label").length, 0);
   });
 
-  it("names the year over every panel that carries it", () => {
-    // Three panels draw the compared year, so three name it: a grey mark whose
-    // only legend is two panels higher has to be gone and identified.
-    const geometry = frame(10);
-    const node = chart(series(10), SCALE, { compared: past(10) });
-    const labels = byClass(node, "chart-legend-year");
+  it("names the normals in its own label too", () => {
+    const node = chart(series(10), SCALE, { compared: past(10), label: LABEL });
 
-    assert.deepEqual(
-      labels.map((label) => label.textContent),
-      ["1991", "1991", "1991"],
-    );
-    // One on each title line, and all three on the same vertical.
-    assert.deepEqual(
-      labels.map((label) => Number(label.attrs.y)),
-      [geometry.temperature.top, geometry.rain.top, geometry.cumul.top].map((top) => top - 12),
-    );
-    assert.equal(new Set(labels.map((label) => label.attrs.x)).size, 1);
+    assert.equal(node.attrs["aria-label"], texts.chart.label(LABEL));
+    assert.match(node.attrs["aria-label"], /1991-2020/);
   });
 
-  it("names the compared year in its own label too", () => {
-    const node = chart(series(10), SCALE, { compared: past(10) });
-
-    assert.equal(node.attrs["aria-label"], texts.chart.label("1991"));
-    assert.match(node.attrs["aria-label"], /1991/);
-  });
-
-  it("adds the year to the drawing and nothing else with it", () => {
+  it("adds the label to the drawing and nothing else with it", () => {
     // The list of what may be written here gained one entry, and that was a
     // deliberate act rather than a slip: a year names a mark, the way the seam
     // label names a crossing. What the rule was written against — a total, an
     // average, a count, an extreme of the range — is still refused, and this
     // checks the widening did not let anything else through with it.
-    const node = chart(series(20), SCALE, { compared: past(20) });
+    const node = chart(series(20), SCALE, { compared: past(20), label: LABEL });
     const written = walk(node)
       .map((child) => child.textContent)
       .filter(Boolean);
@@ -702,7 +687,7 @@ describe("the year laid under the one asked for", () => {
       texts.chart.temperatures,
       texts.chart.precipitation,
       texts.chart.cumulative,
-      "1991",
+      LABEL,
       ...byClass(node, "chart-axis").map((child) => child.textContent),
       ...byClass(node, "chart-date").map((child) => child.textContent),
       ...byClass(node, "chart-month").map((child) => child.textContent),
@@ -712,50 +697,17 @@ describe("the year laid under the one asked for", () => {
     }
   });
 
-  it("lays the compared year over the rain, and frames both on one ceiling", () => {
-    // The compared year is soaked. Its bars are drawn, so the ceiling has to
-    // rise to hold them: framed on the drawn year alone they would run off the
-    // top of the panel, and a bar taller than its own panel says nothing.
-    const days = series(10, () => ({ precipitation: 1 }));
-    const wet = past(10, () => ({ precipitation: 200 }));
-    const node = chart(days, SCALE, { compared: wet });
+  it("leaves the rain panels without normals", () => {
+    const node = chart(series(10, () => ({ precipitation: 1 })), SCALE, {
+      compared: past(10),
+      label: LABEL,
+    });
 
-    assert.equal(rainCeiling(days), RAIN_FLOOR_MM);
-    assert.equal(rainCeiling(days, wet), 200);
-
-    // Counted inside the panel: the legend's own sample is a real `chart-bar
-    // past`, deliberately — one declaration of what a compared bar looks like,
-    // not two — and it would be counted with the days otherwise.
-    const [panel] = byClass(node, "chart-rain");
-    const drawn = byClass(panel, "chart-bar").filter((bar) => !bar.className.includes("past"));
-    const grey = byClass(panel, "chart-bar").filter((bar) => bar.className.includes("past"));
-    assert.equal(drawn.length, 10);
-    assert.equal(grey.length, 10);
-
-    // Over, not under: the shorter bar stands inside the taller one, so the
-    // grey has to be laid on top to be readable at all where the drawn year is
-    // the wetter of the two.
-    const bars = byClass(panel, "chart-bar");
-    assert.ok(bars.indexOf(grey[0]) > bars.indexOf(drawn.at(-1)));
-  });
-
-  it("totals the compared year too, under the curve of the year asked for", () => {
-    const days = series(10, () => ({ precipitation: 1 }));
-    const wet = past(10, () => ({ precipitation: 20 }));
-    const node = chart(days, SCALE, { compared: wet });
-
-    const totals = byClass(node, "cumulative").filter((mark) => mark.tag === "path");
-    // One run apiece, the grey first so the drawn year runs over it.
-    assert.equal(totals.length, 2);
-    assert.ok(totals[0].className.includes("past"));
-    assert.ok(!totals[1].className.includes("past"));
-
-    // Ten days at 20 mm is 200 mm of total, and the axis has to reach it.
-    assert.equal(cumulativeCeiling(days, wet), 200);
-  });
-
-  it("draws no grey rain at all when no year is compared", () => {
-    const node = chart(series(10, () => ({ precipitation: 1 })), SCALE);
+    assert.equal(byClass(node, "chart-legend-label").length, 1);
+    assert.deepEqual(
+      byClass(node, "cumulative").filter((mark) => mark.className.includes("past")),
+      [],
+    );
 
     assert.deepEqual(
       byClass(node, "chart-bar").filter((bar) => bar.className.includes("past")),

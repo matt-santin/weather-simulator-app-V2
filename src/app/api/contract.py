@@ -90,6 +90,23 @@ class Grid(BaseModel):
     generated: date = Field(description="When the store was built")
 
 
+class NormalDay(BaseModel):
+    """The seasonal normal of one date: a mean over the reference period, not a day."""
+
+    date: date
+    temperature_min: float | None = Field(default=None, description="degrees Celsius")
+    temperature_max: float | None = Field(default=None, description="degrees Celsius")
+
+
+class Normals(BaseModel):
+    """The seasonal normals of a range, at the cells the range is read at."""
+
+    reference_start: date
+    reference_end: date
+    window_days: int = Field(description="Width of the centred moving window, days")
+    days: list[NormalDay]
+
+
 class Series(BaseModel):
     """The answer to one search."""
 

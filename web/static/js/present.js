@@ -52,7 +52,7 @@ const TENTH = new Intl.NumberFormat("fr-FR", {
  *
  * Both spellings, because both arrive: the JSON contract sends `null` for a day
  * a source left empty, and `undefined` is what an array reads back where the
- * compared year has no such day at all. Every caller that draws or writes a
+ * normals have no such day at all. Every caller that draws or writes a
  * value asks here — `band.js` for the label it owes a missing number, `chart.js`
  * to break a curve rather than join across the hole — and it is exported for
  * that reason rather than kept private to the formatting below.

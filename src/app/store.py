@@ -150,12 +150,14 @@ class Store:
             return float(self.latitude010[cell.fine[0]]), float(self.longitude010[cell.fine[1]])
         return float(self.latitude[cell.coarse[0]]), float(self.longitude[cell.coarse[1]])
 
-    def series(self, source: str, cell: Cell, start: date, end: date) -> dict[str, list]:
+    def series(self, source: str, cell: Cell, start: date, end: date,
+               names: tuple[str, ...] = tuple(FIELDS)) -> dict[str, list]:
         """Each variable over start..end, in its stored unit, None for a gap. The
         temperatures from the 0.1 deg cell if there is one."""
-        out = self._read(source, cell.coarse, start, end, FIELDS)
-        if cell.fine:
-            out |= self._read(FINE[source], cell.fine, start, end, TEMPERATURES)
+        out = self._read(source, cell.coarse, start, end, names)
+        fine = [n for n in TEMPERATURES if n in names]
+        if cell.fine and fine:
+            out |= self._read(FINE[source], cell.fine, start, end, fine)
         return out
 
     def _read(self, source, at, start, end, names) -> dict[str, list]:

@@ -138,11 +138,20 @@ export async function geocode(name, config, { count = 5, language = "fr" } = {})
  * One search: the server reads the store and returns the classified days.
  * Every value in the answer was computed there.
  */
-export async function search({ latitude, longitude, start, end }) {
+export function search(asked) {
+  return ask("/api/days", asked);
+}
+
+/** The 1991-2020 seasonal normals of the same dates, at the same place. */
+export function normals(asked) {
+  return ask("/api/normals", asked);
+}
+
+async function ask(path, { latitude, longitude, start, end }) {
   const query = new URLSearchParams({ latitude, longitude, start, end });
   let response;
   try {
-    response = await fetch(`/api/days?${query}`, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+    response = await fetch(`${path}?${query}`, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
   } catch (cause) {
     throw new SearchError(reasonFor(cause, texts.transport.serviceFailed), 0, { cause });
   }

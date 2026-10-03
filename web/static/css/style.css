@@ -1785,18 +1785,6 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
   opacity: 0.75;
 }
 
-/* The compared year's rain, laid *over* the drawn year's bars and not under
-   them. Two bars stand on the same baseline, so the shorter one is inside the
-   taller and not beside it: underneath, the grey would show only on the days
-   the past was the wetter of the two, which is half a comparison. The
-   translucency is what makes the overlay legible rather than an erasure — the
-   crossing reads as a third shade belonging to neither year. Below the 0,75 of
-   the bars it crosses, so the year asked for is still the one read first. */
-.chart-bar.past {
-  fill: var(--past);
-  opacity: 0.55;
-}
-
 /* The running total, in the panel under the bars it totals. **The same colour as
    them**, which is the one honest choice available: a second hue would make the
    curve a second quantity, and it is the same water measured twice. Full
@@ -1810,17 +1798,6 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
   color: var(--cool);
 }
 
-/* The compared year's total is both things at once: a `cumulative` curve and a
-   `past` one. The two rules above carry the same weight, so this file's order
-   decides — and the order handed the colour to the panel, drawing the older
-   year in the live year's blue, which is the one thing the grey exists to
-   prevent. Naming both classes puts the tone back on top. Written here rather
-   than by swapping the two rules, because a swap is undone by the next edit
-   that does not know why the order mattered. */
-.chart-line.past.cumulative {
-  color: var(--past);
-}
-
 /* A day whose rain is missing, which would otherwise draw exactly what a dry
    day draws: nothing at all. */
 .chart-gap {
@@ -1829,7 +1806,7 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
 
 .chart-axis,
 .chart-date,
-.chart-legend-year,
+.chart-legend-label,
 .chart-month,
 .chart-seam-label,
 .chart-title {
@@ -1843,7 +1820,7 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
    grey of the band it names: the band is a mark and clears 3:1, a four-digit
    number is text and has to clear 4,5:1, which `--past` does not. What ties the
    two together is the sample drawn next to it, not the colour of the digits. */
-.chart-legend-year {
+.chart-legend-label {
   color: var(--ink-soft);
 }
 
@@ -1876,7 +1853,7 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
   color: var(--ink);
 }
 
-/* --- the other year --------------------------------------------------------
+/* --- the seasonal normals -------------------------------------------------
    The one control on this page, and it borrows rather than invents: the toggle
    is a `.link`, the notes are the small ink the cards already use. Nothing here
    is a filled button — `--mode` and its neighbours are declared for the home
@@ -1911,27 +1888,6 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
   margin-top: calc(var(--space) * 4);
   padding-top: calc(var(--space) * 4);
   border-top: 1px solid var(--rule);
-}
-
-.compare-field {
-  display: flex;
-  align-items: baseline;
-  gap: calc(var(--space) * 3);
-  margin: 0;
-}
-
-.compare-field label {
-  font-family: var(--font);
-  font-size: var(--label-size);
-  font-weight: 500;
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
-}
-
-.compare-field select {
-  width: auto;
-  font-family: var(--font-display);
-  font-size: 1.125rem;
 }
 
 /* The measure is the line, not the block: the paper runs the width of the page

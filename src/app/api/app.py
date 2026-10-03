@@ -1,10 +1,11 @@
-"""The HTTP layer: two endpoints and three pages, no state.
+"""The HTTP layer: three endpoints and three pages, no state.
 
     uvicorn src.app.api.app:app --port 8000
 
 ``/api/config`` serves the constants the form shares with the API: served
 periods, maximum range, temperature scale, geocoding address. ``/api/days``
-reads one series from the store and returns the classified days.
+reads one series from the store and returns the classified days;
+``/api/normals`` serves the 1991-2020 seasonal normals of the same dates.
 
 The store is opened at start-up, not on the first visit: a missing or
 unfinished array stops the boot rather than failing on a visitor. Geocoding
@@ -27,8 +28,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
-from src.app.api import errors, pipeline, validation
-from src.app.api.contract import Series
+from src.app.api import errors, normals, pipeline, validation
+from src.app.api.contract import Normals, Series
 from src.app.domain import thresholds
 from src.app.store import PERIODS, Store
 
@@ -111,6 +112,25 @@ def days(
     if cell is None:
         raise errors.OutsideDomain(search.latitude, search.longitude)
     return pipeline.run(store, search.period, cell, search.start, search.end)
+
+
+@app.get("/api/normals", response_model=Normals)
+def seasonal_normals(
+    store: StoreDep,
+    latitude: Annotated[float, Query()],
+    longitude: Annotated[float, Query()],
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+) -> Normals:
+    """The 1991-2020 normals of the dates of a search, under the same rules."""
+    try:
+        search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end)
+    except ValidationError as error:
+        raise RequestValidationError(error.errors()) from error
+    cell = store.cell(search.latitude, search.longitude)
+    if cell is None:
+        raise errors.OutsideDomain(search.latitude, search.longitude)
+    return normals.run(store, cell, search.start, search.end)
 
 
 # --- the pages and their files -----------------------------------------------
