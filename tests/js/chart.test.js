@@ -697,17 +697,35 @@ describe("the normals laid under the days", () => {
     }
   });
 
-  it("leaves the rain panels without normals", () => {
+  it("totals the normals under the days, and names them there too", () => {
+    const days = series(10, () => ({ precipitation: 1 }));
+    const wet = past(10, () => ({ precipitation: 20 }));
+    const node = chart(days, SCALE, { compared: wet, label: LABEL });
+
+    const totals = byClass(node, "cumulative").filter((mark) => mark.tag === "path");
+    // One run apiece, the grey first so the days run over it.
+    assert.equal(totals.length, 2);
+    assert.ok(totals[0].className.includes("past"));
+    assert.ok(!totals[1].className.includes("past"));
+
+    // Ten days at 20 mm is 200 mm of total, and the axis has to reach it.
+    assert.equal(cumulativeCeiling(days, wet), 200);
+
+    // One label on the temperatures, one on the total, on the same vertical.
+    const geometry = frame(10);
+    const labels = byClass(node, "chart-legend-label");
+    assert.deepEqual(
+      labels.map((label) => Number(label.attrs.y)),
+      [geometry.temperature.top, geometry.cumul.top].map((top) => top - 12),
+    );
+    assert.equal(new Set(labels.map((label) => label.attrs.x)).size, 1);
+  });
+
+  it("draws no grey bars on the daily rain", () => {
     const node = chart(series(10, () => ({ precipitation: 1 })), SCALE, {
-      compared: past(10),
+      compared: past(10, () => ({ precipitation: 5 })),
       label: LABEL,
     });
-
-    assert.equal(byClass(node, "chart-legend-label").length, 1);
-    assert.deepEqual(
-      byClass(node, "cumulative").filter((mark) => mark.className.includes("past")),
-      [],
-    );
 
     assert.deepEqual(
       byClass(node, "chart-bar").filter((bar) => bar.className.includes("past")),

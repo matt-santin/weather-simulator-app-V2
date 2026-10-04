@@ -51,7 +51,9 @@
  * would put each series on its own scale, and two curves on two scales say
  * nothing about each other — which is the same reason docs/application.md gives for refusing a
  * fixed absolute axis, applied inside one panel instead of between two searches.
- * The normals are temperatures only: the two rain panels never carry them.
+ * The normals are drawn as a band on the temperatures and as a grey total on
+ * the third panel; the daily rain bars carry none, a normal daily rain (a
+ * little every day) being a shape no real period has.
  *
  * Nothing in here fetches or holds state: a series and a scale go in, one node
  * comes out. Which is what lets `node --test` check the geometry.
@@ -273,15 +275,21 @@ export function rainTicks(ceiling) {
  */
 export function cumulative(days) {
   let total = 0;
+  // `day?.` and not `day.`: the normals arrive with a null in every slot they
+  // have no day for, and a running total is asked of them too.
   const totals = days.map((day) =>
-    missing(day.precipitation) ? null : (total += day.precipitation),
+    missing(day?.precipitation) ? null : (total += day.precipitation),
   );
   return runs(totals, (value) => value);
 }
 
-/** The top of the right-hand axis: where the total ends, or the floor. */
-export function cumulativeCeiling(days) {
-  return Math.max(RAIN_FLOOR_MM, cumulative(days).at(-1)?.at(-1)?.value ?? 0);
+/**
+ * The top of the right-hand axis: where the higher total ends, or the floor.
+ * One ceiling over both, or each curve would be drawn on its own scale.
+ */
+export function cumulativeCeiling(days, compared = null) {
+  const end = (list) => cumulative(list).at(-1)?.at(-1)?.value ?? 0;
+  return Math.max(RAIN_FLOOR_MM, end(days), compared ? end(compared) : 0);
 }
 
 /**
@@ -430,7 +438,7 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
     ...(span && compared ? curves(geometry, compared, y, { tone: "past", points: false }) : []),
     ...(span ? curves(geometry, days, y) : []),
     rain(geometry, days),
-    cumul(geometry, days),
+    cumul(geometry, days, compared),
     ...(span
       ? [
           dates(geometry, days, geometry.temperature.bottom, geometry.temperature.dates),
@@ -442,7 +450,12 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
     dates(geometry, days, geometry.cumul.base, geometry.cumul.dates),
     months(geometry, days, geometry.cumul.months),
     seamMark(geometry, days),
-    ...(legend ? [pastLegend(geometry, legend, geometry.temperature.top)] : []),
+    ...(legend
+      ? [
+          pastLegend(geometry, legend, geometry.temperature.top, SAMPLES.band),
+          pastLegend(geometry, legend, geometry.cumul.top, SAMPLES.line),
+        ]
+      : []),
   ].filter(Boolean);
 
   return svg(
@@ -484,36 +497,53 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
 const LEGEND = { swatch: 18, gap: 6 };
 
 /**
- * The sample: two edges and the fill between them, which is what the panel
- * draws. **It is the page's own classes and not a drawing of them**, so a
- * colour or a width changed in the stylesheet moves the sample with the panel.
+ * The samples, one per panel: what the grey looks like on the panel it labels.
+ * **They are the page's own classes and not a drawing of them**, so a colour
+ * or a width changed in the stylesheet moves the sample with the panel.
  * Centred on the text rather than sat on its baseline: anything hanging under
  * the digits reads as an underline.
  */
-function sample(left, baseline) {
-  const top = baseline - 8;
-  const bottom = baseline - 1;
-  const edge = (at) =>
-    svg("line", {
-      className: "chart-line past",
-      attrs: { x1: round(left), x2: round(left + LEGEND.swatch), y1: at, y2: at },
-    });
+const SAMPLES = {
+  // Two edges and the fill between them, which is what the temperature panel
+  // draws.
+  band: (left, baseline) => {
+    const top = baseline - 8;
+    const bottom = baseline - 1;
+    const edge = (at) =>
+      svg("line", {
+        className: "chart-line past",
+        attrs: { x1: round(left), x2: round(left + LEGEND.swatch), y1: at, y2: at },
+      });
 
-  return [
-    svg("rect", {
-      className: "chart-past-band",
-      attrs: { x: round(left), y: top, width: LEGEND.swatch, height: bottom - top },
+    return [
+      svg("rect", {
+        className: "chart-past-band",
+        attrs: { x: round(left), y: top, width: LEGEND.swatch, height: bottom - top },
+      }),
+      edge(top),
+      edge(bottom),
+    ];
+  },
+  // A line, which is what a running total is.
+  line: (left, baseline) => [
+    svg("line", {
+      className: "chart-line past cumulative",
+      attrs: {
+        x1: round(left),
+        x2: round(left + LEGEND.swatch),
+        y1: baseline - 4,
+        y2: baseline - 4,
+      },
     }),
-    edge(top),
-    edge(bottom),
-  ];
-}
+  ],
+};
 
 /**
- * The label, on the title line of the temperature panel. The sample sits at the
- * right edge and the text ends just before it, so the label may be any length.
+ * The label, on the title line of each panel that carries the normals. The
+ * sample sits at the right edge and the text ends just before it, so the label
+ * may be any length and the samples stay on one vertical.
  */
-function pastLegend(frame, label, top) {
+function pastLegend(frame, label, top, sample) {
   const left = frame.plot.to - LEGEND.swatch;
   const baseline = top - TITLE_LIFT;
 
@@ -769,18 +799,22 @@ function rain(frame, days) {
  * series would be a drawing that changes shape for reasons the reader cannot
  * see.
  */
-function cumul(frame, days) {
-  const ceiling = cumulativeCeiling(days);
+function cumul(frame, days, compared) {
+  const ceiling = cumulativeCeiling(days, compared);
   const height = (value) => (value / ceiling) * frame.box.cumul;
   const scale = millimetres(frame, frame.cumul.base, ceiling, height);
   const y = (value) => frame.cumul.base - height(value);
-  const total = cumulative(days).flatMap((run) =>
-    stroke(frame, run, y, "cumulative", { points: false }),
-  );
+  const total = (list, tone) =>
+    cumulative(list).flatMap((run) =>
+      stroke(frame, run, y, [tone, "cumulative"].filter(Boolean).join(" "), { points: false }),
+    );
 
+  // The normal total under the one of the days: the grey is the ground here as
+  // it is on the temperature panel.
   return svg("g", { className: "chart-cumul" }, [
     ...scale.rules,
-    ...total,
+    ...(compared ? total(compared, "past") : []),
+    ...total(days),
     ...scale.foot,
   ]);
 }

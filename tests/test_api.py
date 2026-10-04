@@ -176,10 +176,10 @@ def test_the_normals_are_the_1991_2020_mean_over_15_days(client: TestClient, sta
         (first + timedelta(days=k)).isoformat() for k in range((last - first).days + 1)]
     for served in answer["days"]:
         day = date.fromisoformat(served["date"])
-        # Temperatures from the 0.1 deg cell, always ERA5-Land; no rain.
+        # Temperatures from the 0.1 deg cell, rain from the 0.25 deg one, always ERA5.
         assert served["temperature_max"] == pytest.approx(brute_normal(day, "tasmax", True), abs=0.051)
         assert served["temperature_min"] == pytest.approx(brute_normal(day, "tasmin", True), abs=0.051)
-        assert "precipitation" not in served
+        assert served["precipitation"] == pytest.approx(brute_normal(day, "pr", False), abs=0.006)
 
 
 def test_the_normals_follow_the_rules_of_a_search(client: TestClient) -> None:

@@ -53,7 +53,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 |---|---|
 | `GET /api/config` | périodes servies, plage maximale, échelle des températures, adresse du géocodage |
 | `GET /api/days?latitude&longitude&start&end` | la série journalière classée, ou un refus avec sa phrase |
-| `GET /api/normals?latitude&longitude&start&end` | les normales 1991-2020 de Tx et Tn aux mêmes dates (section 5), mêmes refus |
+| `GET /api/normals?latitude&longitude&start&end` | les normales 1991-2020 (Tx, Tn, précipitations) aux mêmes dates (section 5), mêmes refus |
 | `/`, `/resultats`, `/documentation` | les pages |
 
 - Le stockage est ouvert au démarrage ; il vérifie que chaque groupe couvre la période servie.
@@ -70,11 +70,14 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 
 ## 5. Normales de saison
 
-Sur la page de résultats, « Comparer aux normales de saison » superpose en gris aux températures affichées, passées ou simulées, une bande entre la Tn normale et la Tx normale 1991-2020 du même lieu. Pas de normale de précipitations : une pluie normale journalière (un peu chaque jour) ne ressemble à aucune journée réelle.
+Sur la page de résultats, « Comparer aux normales de saison » superpose en gris aux journées affichées, passées ou simulées, les normales 1991-2020 du même lieu :
+
+- températures : une bande entre la Tn normale et la Tx normale ;
+- précipitations : la courbe du cumul normal, sur le panneau du cumul. Pas de barres journalières : une pluie normale journalière (un peu chaque jour) ne ressemble à aucune journée réelle.
 
 Calcul (`src/app/api/normals.py`), à la volée, sans précalcul (30 ans en un point : un bloc par variable) :
 
-- mêmes mailles que la série : ERA5-Land à 0,1° si le lieu en a une, sinon ERA5 à 0,25° ;
+- mêmes mailles que la série : températures ERA5-Land à 0,1° si le lieu en a une, sinon ERA5 à 0,25° ; précipitations ERA5 à 0,25° ;
 - la normale d'une date est la moyenne de toutes les valeurs 1991-2020 situées à 7 jours au plus de ce jour du calendrier, quelle que soit l'année : fenêtre centrée de 15 jours, environ 450 valeurs ;
 - calendrier de 366 jours, 29 février compris (8 années) ; la fenêtre passe le 1er janvier ;
 - sommes et effectifs sont cumulés sur la fenêtre avant division : chaque valeur pèse autant.

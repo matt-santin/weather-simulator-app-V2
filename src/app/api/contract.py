@@ -96,6 +96,7 @@ class NormalDay(BaseModel):
     date: date
     temperature_min: float | None = Field(default=None, description="degrees Celsius")
     temperature_max: float | None = Field(default=None, description="degrees Celsius")
+    precipitation: float | None = Field(default=None, description="millimetres per day")
 
 
 class Normals(BaseModel):

@@ -1798,6 +1798,13 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
   color: var(--cool);
 }
 
+/* The normal total is both a `cumulative` curve and a `past` one. The two rules
+   above carry the same weight, so the file order would hand it the blue of the
+   days; naming both classes puts the grey back on top. */
+.chart-line.past.cumulative {
+  color: var(--past);
+}
+
 /* A day whose rain is missing, which would otherwise draw exactly what a dry
    day draws: nothing at all. */
 .chart-gap {

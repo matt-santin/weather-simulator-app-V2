@@ -1,7 +1,7 @@
 """Seasonal normals at a place: the 1991-2020 climate, day by day.
 
-Temperatures only, read at the cells of the search (0.1 deg where there is a
-cell, 0.25 deg otherwise), from ERA5-Land or ERA5, whatever the period shown:
+Read at the cells of the search (temperatures at 0.1 deg where there is a cell,
+precipitation at 0.25 deg), from ERA5-Land and ERA5, whatever the period shown:
 the normal of a simulated summer is the one of the observed climate.
 
 The normal of a day is the mean of every value from REFERENCE within
@@ -22,7 +22,7 @@ from src.app.store import Cell, Store
 REFERENCE = (date(1991, 1, 1), date(2020, 12, 31))
 HALF_WINDOW = 7  # days either side: a 15-day window
 SOURCE = "era5"
-NAMES = {"tasmax": "temperature_max", "tasmin": "temperature_min"}
+NAMES = {"tasmax": "temperature_max", "tasmin": "temperature_min", "pr": "precipitation"}
 
 
 def calendar_day(day: date) -> int:
@@ -71,4 +71,5 @@ def run(store: Store, cell: Cell, start: date, end: date) -> Normals:
 
 
 def _round(value: float) -> float | None:
-    return None if np.isnan(value) else round(float(value), 1)
+    # Two decimals, not one: the chart adds the daily rain up over 92 days.
+    return None if np.isnan(value) else round(float(value), 2)
