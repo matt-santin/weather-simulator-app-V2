@@ -84,6 +84,32 @@
       <p id="humid-note" class="humid-note" hidden></p>
 
       <!--
+        The seasonal normals: one button over the chart, and the menu of the
+        reference period beside it, which also sets the grey of the climate
+        diagram. On the chart's paper and against its top edge, so that it reads
+        as the chart's own control. The periods and the method note come from
+        the API, so results.js writes them.
+      -->
+      <div id="compare" class="compare-bar" hidden>
+        <div class="compare-row">
+          <button
+            type="button"
+            id="compare-toggle"
+            class="toggle"
+            aria-pressed="false"
+            data-text="compare.open"
+          ></button>
+          <p class="compare-field">
+            <label for="compare-reference" data-text="compare.reference"></label>
+            <select id="compare-reference"></select>
+          </p>
+        </div>
+        <p id="compare-status" class="compare-note" aria-live="polite"></p>
+        <p id="compare-method" class="compare-note" hidden></p>
+        <p id="compare-failure" class="failure" role="alert" hidden></p>
+      </div>
+
+      <!--
         The same days again, drawn: the strip says one day at a time and never
         the shape of the period. Filled by chart.js, and hidden until it is —
         an empty frame under the cards would announce something that is not
@@ -92,35 +118,26 @@
       <div id="chart-panel" class="chart-panel" hidden></div>
 
       <!--
-        The seasonal normals, under the days. Outside the panel above and never
-        in it: that panel scrolls sideways under 58 rem, and a control inside
-        would leave the screen with the drawing.
-
-        The legend and the method note name the reference period served by
-        /api/normals, so results.js writes them; the rest is the dictionary's.
+        The climate diagram: twelve months over the 15 years around the year
+        searched, and the reference period of the normals in grey. Filled by
+        results.js and climate.js; hidden until it is.
       -->
-      <div id="compare" class="compare" hidden>
-        <button
-          type="button"
-          id="compare-toggle"
-          class="link"
-          aria-expanded="false"
-          aria-controls="compare-panel"
-          data-text="compare.open"
-        ></button>
-
-        <div id="compare-panel" class="compare-panel" hidden>
-          <p id="compare-status" class="compare-note" aria-live="polite"></p>
-          <p id="compare-legend" class="compare-legend" hidden>
-            <span class="compare-swatch" aria-hidden="true"></span>
-            <span id="compare-legend-text"></span>
-          </p>
-
-          <p id="compare-method" class="compare-note"></p>
-
-          <p id="compare-failure" class="failure" role="alert" hidden></p>
-        </div>
-      </div>
+      <section id="climate" class="climate-section" hidden>
+        <h2 class="climate-title" data-text="climate.title"></h2>
+        <p id="climate-subtitle" class="compare-note"></p>
+        <div id="climate-panel" class="chart-panel"></div>
+        <ul class="climate-legend">
+          <li><span class="climate-swatch line" aria-hidden="true"></span><span id="climate-legend-temperature"></span></li>
+          <li><span class="climate-swatch bar" aria-hidden="true"></span><span id="climate-legend-rain"></span></li>
+          <li><span class="climate-swatch past" aria-hidden="true"></span><span id="climate-legend-reference"></span></li>
+          <li><span class="climate-swatch dry" aria-hidden="true"></span><span data-text="climate.legendDry"></span></li>
+        </ul>
+        <p id="climate-summary" class="compare-note"></p>
+        <p id="climate-summary-reference" class="compare-note"></p>
+        <p class="compare-note" data-text="climate.criterion"></p>
+        <p id="climate-status" class="compare-note" aria-live="polite"></p>
+        <p id="climate-failure" class="failure" role="alert" hidden></p>
+      </section>
 
       <!--
         The days on screen, as a file.

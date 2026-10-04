@@ -50,3 +50,13 @@ class OutsideDomain(ApiError):
             f"{latitude:.4f}, {longitude:.4f} is outside the domain",
             "Lieu hors de la zone couverte (Europe).",
         )
+
+
+class UnknownReference(ApiError):
+    """The reference period of the normals is not one of normals.REFERENCES."""
+
+    def __init__(self, first: int, offered: str) -> None:
+        super().__init__(
+            f"no normals from {first}",
+            f"Période de référence inconnue. Les normales disponibles sont {offered}.",
+        )

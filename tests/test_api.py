@@ -35,6 +35,12 @@ def test_config_serves_the_two_periods(client: TestClient) -> None:
         {"start": "2027-01-01", "end": "2100-12-31", "origin": "simulated"},
     ]
     assert config["max_days"] == 92
+    assert config["normals"] == [
+        {"first": 1971, "label": "1971-2000"},
+        {"first": 1981, "label": "1981-2010"},
+        {"first": 1991, "label": "1991-2020"},
+    ]
+    assert config["normals_default"] == 1991
 
 
 def test_a_past_range_is_era5_and_carries_no_warning(client: TestClient) -> None:
@@ -149,13 +155,13 @@ def test_a_malformed_search_gets_one_sentence(client: TestClient) -> None:
     assert response.json()["message"].startswith("Recherche invalide")
 
 
-def brute_normal(target: date, name: str, fine: bool) -> float:
-    """Every 1991-2020 day within 7 calendar days of the target's month and day,
+def brute_normal(target: date, name: str, fine: bool, first: int = 1991) -> float:
+    """Every day of the 30 years from `first` within 7 calendar days of the target's month and day,
     across the new year, averaged: the definition, without the server's arithmetic."""
     key = (date(2000, target.month, target.day) - date(2000, 1, 1)).days
     values = []
-    day = date(1991, 1, 1)
-    while day <= date(2020, 12, 31):
+    day = date(first, 1, 1)
+    while day <= date(first + 29, 12, 31):
         other = (date(2000, day.month, day.day) - date(2000, 1, 1)).days
         if min(abs(other - key), 366 - abs(other - key)) <= 7:
             values.append(expected("era5", day, name, fine=fine))
@@ -189,3 +195,63 @@ def test_the_normals_follow_the_rules_of_a_search(client: TestClient) -> None:
                                        {"latitude": 46.0, "longitude": 5.0}).status_code != 200
     unavailable = client.get("/api/normals", params={**GRENOBLE, "start": "2026-06-21", "end": "2026-06-23"})
     assert unavailable.status_code != 200
+
+
+@pytest.mark.parametrize("first", [1971, 1981])
+def test_the_normals_may_be_an_older_30_years(client: TestClient, first) -> None:
+    answer = client.get("/api/normals", params={**GRENOBLE, "start": "2044-07-14", "end": "2044-07-15",
+                                                "reference": first}).json()
+    assert (answer["reference_start"], answer["reference_end"]) == (f"{first}-01-01", f"{first + 29}-12-31")
+    served = answer["days"][0]
+    assert served["temperature_max"] == pytest.approx(brute_normal(date(2044, 7, 14), "tasmax", True, first),
+                                                      abs=0.006)
+    assert served["precipitation"] == pytest.approx(brute_normal(date(2044, 7, 14), "pr", False, first),
+                                                    abs=0.006)
+
+
+def test_an_unknown_reference_period_is_refused(client: TestClient) -> None:
+    response = client.get("/api/normals", params={**GRENOBLE, "start": "2044-07-14", "end": "2044-07-15",
+                                                  "reference": 1961})
+    assert response.status_code == 400
+    assert response.json()["message"] == ("Période de référence inconnue. Les normales disponibles "
+                                          "sont 1971-2000, 1981-2010 et 1991-2020.")
+
+
+@pytest.mark.parametrize(("year", "first", "last", "origin"), [
+    (1985, 1978, 1992, "observed"), (1972, 1970, 1984, "observed"), (2020, 2011, 2025, "observed"),
+    (2030, 2027, 2041, "simulated"), (2084, 2077, 2091, "simulated"), (2098, 2086, 2100, "simulated"),
+])
+def test_the_climate_window_is_15_years_inside_one_source(year, first, last, origin) -> None:
+    from src.app.api import climate
+    period, start, end = climate.window(year)
+    assert (start, end) == (first, last)
+    assert ("simulated" if period.source == "cordex" else "observed") == origin
+
+
+def test_the_climate_diagram_is_twelve_monthly_means(client: TestClient) -> None:
+    response = client.get("/api/climate", params={**GRENOBLE, "start": "2084-06-21", "end": "2084-09-20"})
+    assert response.status_code == 200
+    answer = response.json()
+    assert answer["window"] == {"start_year": 2077, "end_year": 2091, "origin": "simulated",
+                                "source": "CORDEX EUR-11 corrigé"}
+    assert answer["reference"]["start_year"] == 1991 and answer["reference"]["origin"] == "observed"
+    assert [m["month"] for m in answer["months"]] == list(range(1, 13))
+
+    # July, by brute force on the small store: tas from the 0.1 deg cell, pr at 0.25 deg,
+    # rain as mean daily rain x 31 days.
+    july = [date(y, 7, d) for y in range(2077, 2092) for d in range(1, 32)]
+    temperature = sum(expected("cordex", d, "tas", fine=True) for d in july) / len(july)
+    rain = sum(expected("cordex", d, "pr") for d in july if d != GAP) / len([d for d in july if d != GAP]) * 31
+    served = answer["months"][6]
+    assert served["temperature_mean"] == pytest.approx(temperature, abs=0.051)
+    assert served["precipitation"] == pytest.approx(rain, abs=0.051)
+    assert served["dry"] is (rain <= 2 * temperature)
+
+
+def test_the_climate_diagram_follows_the_reference(client: TestClient) -> None:
+    answer = client.get("/api/climate", params={**GRENOBLE, "start": "1985-01-01", "end": "1985-01-31",
+                                                "reference": 1971}).json()
+    assert answer["window"]["start_year"] == 1978 and answer["window"]["source"] == "ERA5"
+    assert (answer["reference"]["start_year"], answer["reference"]["end_year"]) == (1971, 2000)
+    refused = client.get("/api/climate", params={**GRENOBLE, "start": "2026-06-21", "end": "2026-06-23"})
+    assert refused.status_code != 200

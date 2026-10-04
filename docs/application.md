@@ -53,7 +53,8 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 |---|---|
 | `GET /api/config` | périodes servies, plage maximale, échelle des températures, adresse du géocodage |
 | `GET /api/days?latitude&longitude&start&end` | la série journalière classée, ou un refus avec sa phrase |
-| `GET /api/normals?latitude&longitude&start&end` | les normales 1991-2020 (Tx, Tn, précipitations) aux mêmes dates (section 5), mêmes refus |
+| `GET /api/normals?latitude&longitude&start&end` | les normales (Tx, Tn, précipitations) aux mêmes dates, `reference` = 1971, 1981 ou 1991 (section 5), mêmes refus |
+| `GET /api/climate?latitude&longitude&start&end&reference` | le diagramme climatique du lieu (section 6), mêmes refus |
 | `/`, `/resultats`, `/documentation` | les pages |
 
 - Le stockage est ouvert au démarrage ; il vérifie que chaque groupe couvre la période servie.
@@ -65,12 +66,15 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `src/app/api/validation.py`, `errors.py` | règles de la recherche, refus |
 | `src/app/api/pipeline.py`, `contract.py` | du stockage au JSON |
 | `src/app/api/normals.py` | normales de saison |
+| `src/app/api/climate.py` | diagramme climatique |
 | `src/app/domain/` | règles d'affichage (V1) |
 | `web/` | pages, feuille de style, modules JavaScript (V1, adaptés) |
 
 ## 5. Normales de saison
 
-Sur la page de résultats, « Comparer aux normales de saison » superpose en gris aux journées affichées, passées ou simulées, les normales 1991-2020 du même lieu :
+Sur la page de résultats, le bouton « Comparer aux normales de saison », dans un bandeau au-dessus du graphique, superpose en gris aux journées affichées, passées ou simulées, les normales du même lieu. Un menu du même bandeau propose trois périodes de référence : 1971-2000, 1981-2010 et 1991-2020 (par défaut). Le stockage commençant en 1970, il n'y en a pas d'antérieure ; la liste est servie par `/api/config` (`normals`, `normals_default`).
+
+Ce qui est tracé :
 
 - températures : une bande entre la Tn normale et la Tx normale ;
 - précipitations : la courbe du cumul normal, sur le panneau du cumul. Pas de barres journalières : une pluie normale journalière (un peu chaque jour) ne ressemble à aucune journée réelle.
@@ -78,12 +82,24 @@ Sur la page de résultats, « Comparer aux normales de saison » superpose en gr
 Calcul (`src/app/api/normals.py`), à la volée, sans précalcul (30 ans en un point : un bloc par variable) :
 
 - mêmes mailles que la série : températures ERA5-Land à 0,1° si le lieu en a une, sinon ERA5 à 0,25° ; précipitations ERA5 à 0,25° ;
-- la normale d'une date est la moyenne de toutes les valeurs 1991-2020 situées à 7 jours au plus de ce jour du calendrier, quelle que soit l'année : fenêtre centrée de 15 jours, environ 450 valeurs ;
+- la normale d'une date est la moyenne de toutes les valeurs de la période de référence situées à 7 jours au plus de ce jour du calendrier, quelle que soit l'année : fenêtre centrée de 15 jours, environ 450 valeurs ;
 - calendrier de 366 jours, 29 février compris (8 années) ; la fenêtre passe le 1er janvier ;
 - sommes et effectifs sont cumulés sur la fenêtre avant division : chaque valeur pèse autant.
 
-La normale d'un jour futur est celle du climat observé 1991-2020, pas celle du modèle. Les normales ne vont pas dans le fichier CSV.
+La normale d'un jour futur est celle du climat observé sur la période de référence, pas celle du modèle. Une période inconnue est refusée (« Période de référence inconnue… »). Les normales ne vont pas dans le fichier CSV.
 
-## 6. Tests
+## 6. Diagramme climatique
+
+Sous le graphique, le diagramme ombrothermique du lieu : douze mois moyennés sur 15 ans autour de l'année de la recherche (année du jour du milieu de la plage), et en gris la période de référence choisie dans le menu des normales (même menu, 1991-2020 par défaut).
+
+- Fenêtre de 15 ans dans une seule source : décalée pour rester dans 1970-2025 (ERA5) ou 2027-2100 (CORDEX corrigé). 2020 donne 2011-2025, 2030 donne 2027-2041, 2098 donne 2086-2100. Une fenêtre simulée le dit (« une simulation, pas une prévision »).
+- Par mois : température moyenne (`tas`), Tn et Tx moyennes, précipitations d'un mois moyen (pluie journalière moyenne × longueur moyenne du mois). Mêmes mailles que la série.
+- Échelle de Bagnouls et Gaussen : 20 mm au niveau de 10 °C. Mois sec si P ≤ 2T (P en mm, T en °C), calculé par le serveur (`dry`) ; les mois secs sont teintés. Sources : Bagnouls et Gaussen (1957), repris par Charre, *Mappemonde* (https://www.mgm.fr/PUB/Mappemonde/M297/Charre.pdf).
+- L'axe est cadré sur la plus haute des températures et des demi-pluies ; les degrés ne sont numérotés que jusqu'à la dizaine au-dessus du mois le plus chaud. Dans un lieu très arrosé, la courbe des températures est donc tassée en bas.
+- Sous le diagramme : température annuelle, cumul annuel et mois secs, pour la fenêtre et pour la référence.
+
+`GET /api/climate?latitude&longitude&start&end&reference` (`src/app/api/climate.py`, dessin `web/static/js/climate.js`), environ 0,1 s.
+
+## 7. Tests
 
 `python -m pytest` : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages) et suite JavaScript (`node --test`, si `node` est installé).

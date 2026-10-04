@@ -24,14 +24,15 @@
  * corner.
  */
 
-import { loadConfig, normals, search, SearchError } from "./fetch.js";
+import { climate as climateOf, loadConfig, normals, search, SearchError } from "./fetch.js";
 import { sources, strip } from "./band.js";
 import { chart } from "./chart.js";
+import { diagram, summary, years as yearsOf } from "./climate.js";
 import { alignByDate, referenceYears } from "./compare.js";
 import { toCsv, fileName } from "./csv.js";
 import { applyTexts, el } from "./dom.js";
 import { texts } from "./i18n.js";
-import { fullDate } from "./present.js";
+import * as present from "./present.js";
 import { dominantSeason } from "./season.js";
 
 const place = document.getElementById("place");
@@ -48,12 +49,21 @@ const provenanceGrid = document.getElementById("provenance-grid");
 
 const compare = document.getElementById("compare");
 const compareToggle = document.getElementById("compare-toggle");
-const comparePanel = document.getElementById("compare-panel");
+const compareReference = document.getElementById("compare-reference");
 const compareStatus = document.getElementById("compare-status");
-const compareLegend = document.getElementById("compare-legend");
-const compareLegendText = document.getElementById("compare-legend-text");
 const compareMethod = document.getElementById("compare-method");
 const compareFailure = document.getElementById("compare-failure");
+
+const climateSection = document.getElementById("climate");
+const climatePanel = document.getElementById("climate-panel");
+const climateSubtitle = document.getElementById("climate-subtitle");
+const climateLegendTemperature = document.getElementById("climate-legend-temperature");
+const climateLegendRain = document.getElementById("climate-legend-rain");
+const climateLegendReference = document.getElementById("climate-legend-reference");
+const climateSummary = document.getElementById("climate-summary");
+const climateSummaryReference = document.getElementById("climate-summary-reference");
+const climateStatus = document.getElementById("climate-status");
+const climateFailure = document.getElementById("climate-failure");
 
 const exportBlock = document.getElementById("export");
 const exportButton = document.getElementById("export-button");
@@ -69,7 +79,7 @@ applyTexts();
  * folded into `null` here rather than thrown — the search has its own refusals
  * to report, and none of them is this one.
  *
- * Only the ladder is read from it here.
+ * The ladder, and the reference periods of the normals, are read from it.
  */
 const settings = loadConfig().then(
   (config) => config,
@@ -95,16 +105,19 @@ if (season) document.body.dataset.season = season;
 // textContent, never innerHTML: the name came from the query string, which is
 // to say from outside.
 place.textContent = asked.place;
-range.textContent = texts.results.range(fullDate(asked.start), fullDate(asked.end));
+range.textContent = texts.results.range(present.fullDate(asked.start), present.fullDate(asked.end));
 
 /** What the chart needs to graduate its axis, and the node it last drew. */
 let scale = null;
 let drawn = null;
 
-/** The normals, fetched once. Toggling twice costs nothing after the first. */
-let kept = null;
+/** The normals, one fetch per reference period at most. */
+const kept = new Map();
 
-/** Bumped on closing, so that an answer landing after it draws nothing. */
+/**
+ * Which request is the current one: the menu can be changed faster than the
+ * server answers, and only the latest request may draw.
+ */
 let asking = 0;
 
 run();
@@ -161,7 +174,8 @@ async function show(series) {
     drawn = chart(series.days, scale);
     chartPanel.append(drawn);
     chartPanel.hidden = false;
-    offer(series);
+    offer(series, config);
+    showClimate();
   }
 
   const pairs = sources(series.grid);
@@ -173,56 +187,134 @@ async function show(series) {
   provenance.hidden = false;
 }
 
-/** Show the control. The normals exist for every place and date the API serves. */
-function offer(series) {
+/**
+ * Fill the menu of reference periods and show the control. The normals exist for
+ * every place and date the API serves.
+ */
+function offer(series, config) {
+  compareReference.append(
+    ...config.normals.map((reference) =>
+      el("option", { text: reference.label, attrs: { value: String(reference.first) } }),
+    ),
+  );
+  compareReference.value = String(config.normals_default);
+
   compareToggle.addEventListener("click", () => toggle(series));
+  // One menu for both: the normals and the grey diagram share their period.
+  compareReference.addEventListener("change", () => {
+    if (shown()) lay(series);
+    showClimate();
+  });
   compare.hidden = false;
 }
 
-/** Open or close the panel, and put the normals on the chart or take them off. */
+/** Whether the normals are on the chart: the state of the button. */
+function shown() {
+  return compareToggle.getAttribute("aria-pressed") === "true";
+}
+
+/** Press or release the button, and put the normals on the chart or take them off. */
 function toggle(series) {
-  const opening = comparePanel.hidden;
-  comparePanel.hidden = !opening;
-  compareToggle.setAttribute("aria-expanded", String(opening));
-  compareToggle.textContent = opening ? texts.compare.close : texts.compare.open;
+  const opening = !shown();
+  compareToggle.setAttribute("aria-pressed", String(opening));
 
   if (opening) {
     lay(series);
   } else {
     asking += 1; // Anything still in flight has lost its turn.
+    compareMethod.hidden = true;
+    compareFailure.hidden = true;
+    compareStatus.textContent = "";
     redraw(series, null);
   }
 }
 
-/** Fetch the normals if they have not been fetched, then redraw. */
+/** Fetch the chosen normals if they have not been fetched, then redraw. */
 async function lay(series) {
+  const reference = compareReference.value;
   const turn = (asking += 1);
   compareFailure.hidden = true;
 
   try {
-    if (kept === null) {
+    if (!kept.has(reference)) {
       compareStatus.textContent = texts.compare.loading;
-      kept = await normals(asked);
+      kept.set(reference, await normals(asked, reference));
     }
     if (turn !== asking) return;
 
-    const years = referenceYears(kept);
-    redraw(series, alignByDate(series.days, kept.days), texts.compare.legend(years));
-    compareLegendText.textContent = texts.compare.legend(years);
-    compareMethod.textContent = texts.compare.method(years, kept.window_days);
-    compareLegend.hidden = false;
+    const answer = kept.get(reference);
+    const years = referenceYears(answer);
+    redraw(series, alignByDate(series.days, answer.days), texts.compare.legend(years));
+    compareMethod.textContent = texts.compare.method(years, answer.window_days);
+    compareMethod.hidden = false;
   } catch (error) {
     if (turn !== asking) return;
     // The normals failing is not the page failing: the days the visitor came
     // for are already on screen, and this says so in its own corner.
     redraw(series, null);
-    compareLegend.hidden = true;
+    compareMethod.hidden = true;
     compareFailure.hidden = false;
     compareFailure.textContent =
       error instanceof SearchError ? error.message : texts.transport.serviceFailed;
   } finally {
     if (turn === asking) compareStatus.textContent = "";
   }
+}
+
+/** The climate diagrams, one fetch per reference period at most. */
+const climates = new Map();
+let climateTurn = 0;
+
+/**
+ * Draw the climate diagram beside the reference period chosen in the normals
+ * menu. A failure stays in its own section: the days are already on screen.
+ */
+async function showClimate() {
+  const reference = compareReference.value;
+  const turn = (climateTurn += 1);
+  climateFailure.hidden = true;
+  climateSection.hidden = false;
+
+  try {
+    if (!climates.has(reference)) {
+      climateStatus.textContent = texts.climate.loading;
+      climates.set(reference, await climateOf(asked, reference));
+    }
+    if (turn !== climateTurn) return;
+
+    const answer = climates.get(reference);
+    const years = yearsOf(answer.window);
+    const referenceYears = yearsOf(answer.reference);
+    climatePanel.replaceChildren(diagram(answer));
+    climateSubtitle.textContent = texts.climate.subtitle(
+      years,
+      answer.window.source,
+      answer.window.origin === "simulated",
+    );
+    climateLegendTemperature.textContent = texts.climate.legendTemperature(years);
+    climateLegendRain.textContent = texts.climate.legendRain(years);
+    climateLegendReference.textContent = texts.climate.legendReference(referenceYears);
+    climateSummary.textContent = sentence(years, summary(answer.months));
+    climateSummaryReference.textContent = sentence(referenceYears, summary(answer.reference_months));
+  } catch (error) {
+    if (turn !== climateTurn) return;
+    climatePanel.replaceChildren();
+    climateFailure.hidden = false;
+    climateFailure.textContent =
+      error instanceof SearchError ? error.message : texts.transport.serviceFailed;
+  } finally {
+    if (turn === climateTurn) climateStatus.textContent = "";
+  }
+}
+
+/** The line under the diagram, from its twelve months. */
+function sentence(years, { temperature, precipitation, dry }) {
+  return texts.climate.summary(
+    years,
+    present.temperature(temperature),
+    String(Math.round(precipitation)),
+    dry.map((month) => texts.climate.monthNames[month - 1]),
+  );
 }
 
 /**

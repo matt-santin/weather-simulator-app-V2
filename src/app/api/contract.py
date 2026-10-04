@@ -108,6 +108,34 @@ class Normals(BaseModel):
     days: list[NormalDay]
 
 
+class ClimateMonth(BaseModel):
+    """One month of the climate diagram: means over the years of the window."""
+
+    month: int = Field(description="1 to 12")
+    temperature_mean: float | None = Field(default=None, description="degrees Celsius")
+    temperature_min: float | None = Field(default=None, description="degrees Celsius")
+    temperature_max: float | None = Field(default=None, description="degrees Celsius")
+    precipitation: float | None = Field(default=None, description="millimetres per month")
+    dry: bool | None = Field(default=None, description="P <= 2T (Bagnouls and Gaussen)")
+
+
+class ClimateWindow(BaseModel):
+    start_year: int
+    end_year: int
+    origin: Origin = Field(description="observed (ERA5) or simulated (corrected CORDEX)")
+    source: str
+
+
+class Climate(BaseModel):
+    """The climate diagram of a place: the window around the year searched, and a
+    reference period of the normals."""
+
+    window: ClimateWindow
+    months: list[ClimateMonth]
+    reference: ClimateWindow
+    reference_months: list[ClimateMonth]
+
+
 class Series(BaseModel):
     """The answer to one search."""
 

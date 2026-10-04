@@ -164,12 +164,44 @@ export const texts = {
   // The seasonal normals of the temperatures.
   compare: {
     open: "Comparer aux normales de saison",
-    close: "Masquer les normales",
+    reference: "Période de référence",
     loading: "Calcul des normales…",
     legend: (years) => `Normales ${years}`,
     method: (years, window) =>
       `Normales ${years} : pour chaque date, moyenne des 30 années sur ${window} jours ` +
       "centrés, au même lieu, d'après les réanalyses ERA5-Land et ERA5.",
+  },
+
+  // The climate diagram, under the chart. Its window is said with its source,
+  // and a simulated one says so: rule 1 holds for twelve means as for a day.
+  climate: {
+    title: "Diagramme climatique",
+    months: ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"],
+    subtitle: (years, source, simulated) =>
+      `Moyennes mensuelles ${years}, ${source}` +
+      (simulated ? " : une simulation, pas une prévision." : "."),
+    legendTemperature: (years) => `Température moyenne ${years}`,
+    legendRain: (years) => `Précipitations ${years}`,
+    legendReference: (years) => `${years}, en gris`,
+    legendDry: "Mois sec",
+    criterion:
+      "Échelle de Bagnouls et Gaussen : 20 mm de pluie au niveau de 10 °C. " +
+      "Un mois est sec quand ses précipitations (mm) sont au plus le double de sa " +
+      "température moyenne (°C) : la barre reste sous la courbe.",
+    summary: (years, temperature, rain, dry = []) =>
+      `${years} : ${temperature} °C en moyenne annuelle, ${rain} mm par an, ` +
+      (dry.length === 0
+        ? "aucun mois sec."
+        : `${dry.length === 1 ? "1 mois sec" : `${dry.length} mois secs`} (${dry.join(", ")}).`),
+    monthNames: [
+      "janvier", "février", "mars", "avril", "mai", "juin",
+      "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+    ],
+    label: (years, referenceYears) =>
+      `Diagramme climatique du lieu : température moyenne et précipitations de chaque mois, ` +
+      `${years}, et en gris ${referenceYears}. ` +
+      "Les valeurs sont résumées sous le diagramme.",
+    loading: "Calcul du diagramme climatique…",
   },
 
   // The file the visitor takes away, and the words written in it.

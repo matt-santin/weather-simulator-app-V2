@@ -1,11 +1,13 @@
-"""The HTTP layer: three endpoints and three pages, no state.
+"""The HTTP layer: four endpoints and three pages, no state.
 
     uvicorn src.app.api.app:app --port 8000
 
 ``/api/config`` serves the constants the form shares with the API: served
 periods, maximum range, temperature scale, geocoding address. ``/api/days``
 reads one series from the store and returns the classified days;
-``/api/normals`` serves the 1991-2020 seasonal normals of the same dates.
+``/api/normals`` serves the seasonal normals of the same dates (1971-2000,
+1981-2010 or 1991-2020). ``/api/climate`` serves the climate diagram
+of the place around the year searched.
 
 The store is opened at start-up, not on the first visit: a missing or
 unfinished array stops the boot rather than failing on a visitor. Geocoding
@@ -28,8 +30,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
-from src.app.api import errors, normals, pipeline, validation
-from src.app.api.contract import Normals, Series
+from src.app.api import climate, errors, normals, pipeline, validation
+from src.app.api.contract import Climate, Normals, Series
 from src.app.domain import thresholds
 from src.app.store import PERIODS, Store
 
@@ -66,12 +68,19 @@ class Coverage(BaseModel):
     origin: str
 
 
+class Reference(BaseModel):
+    first: int
+    label: str
+
+
 class Config(BaseModel):
     geocoding_url: str
     coverage_start: str
     coverage_end: str
     periods: list[Coverage]
     max_days: int
+    normals: list[Reference]
+    normals_default: int
     temperature_band_edges: list[float]
     temperature_band_step: float
 
@@ -91,6 +100,8 @@ def config() -> Config:
             for p in PERIODS
         ],
         max_days=validation.MAX_DAYS,
+        normals=[Reference(first=f, label=normals.label(f)) for f in normals.REFERENCES],
+        normals_default=normals.DEFAULT,
         temperature_band_edges=list(thresholds.TEMPERATURE_BAND_EDGES),
         temperature_band_step=thresholds.TEMPERATURE_BAND_STEP_C,
     )
@@ -114,15 +125,13 @@ def days(
     return pipeline.run(store, search.period, cell, search.start, search.end)
 
 
-@app.get("/api/normals", response_model=Normals)
-def seasonal_normals(
-    store: StoreDep,
-    latitude: Annotated[float, Query()],
-    longitude: Annotated[float, Query()],
-    start: Annotated[date, Query()],
-    end: Annotated[date, Query()],
-) -> Normals:
-    """The 1991-2020 normals of the dates of a search, under the same rules."""
+def located(store: Store, latitude: float, longitude: float, start: date, end: date,
+            reference: int):
+    """The checks the normals and the climate diagram share with a search, plus
+    the reference period. Returns the search and the cell."""
+    if reference not in normals.REFERENCES:
+        labels = [normals.label(f) for f in normals.REFERENCES]
+        raise errors.UnknownReference(reference, ", ".join(labels[:-1]) + " et " + labels[-1])
     try:
         search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end)
     except ValidationError as error:
@@ -130,7 +139,38 @@ def seasonal_normals(
     cell = store.cell(search.latitude, search.longitude)
     if cell is None:
         raise errors.OutsideDomain(search.latitude, search.longitude)
-    return normals.run(store, cell, search.start, search.end)
+    return search, cell
+
+
+@app.get("/api/normals", response_model=Normals)
+def seasonal_normals(
+    store: StoreDep,
+    latitude: Annotated[float, Query()],
+    longitude: Annotated[float, Query()],
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+    reference: Annotated[int, Query()] = normals.DEFAULT,
+) -> Normals:
+    """The normals of the dates of a search, under the same rules, over the
+    30 years starting in ``reference`` (normals.REFERENCES)."""
+    search, cell = located(store, latitude, longitude, start, end, reference)
+    return normals.run(store, cell, search.start, search.end, reference)
+
+
+@app.get("/api/climate", response_model=Climate)
+def climate_diagram(
+    store: StoreDep,
+    latitude: Annotated[float, Query()],
+    longitude: Annotated[float, Query()],
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+    reference: Annotated[int, Query()] = normals.DEFAULT,
+) -> Climate:
+    """The climate diagram of the place over the 15 years around the year of the
+    search (climate.window), beside the reference period."""
+    search, cell = located(store, latitude, longitude, start, end, reference)
+    middle = search.start + (search.end - search.start) / 2
+    return climate.run(store, cell, middle.year, reference)
 
 
 # --- the pages and their files -----------------------------------------------

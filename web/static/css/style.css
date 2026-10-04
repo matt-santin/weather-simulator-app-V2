@@ -1861,26 +1861,103 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
 }
 
 /* --- the seasonal normals -------------------------------------------------
-   The one control on this page, and it borrows rather than invents: the toggle
-   is a `.link`, the notes are the small ink the cards already use. Nothing here
-   is a filled button — `--mode` and its neighbours are declared for the home
-   page's sky and would land brown on a light ground.
-
-   It sits outside `.chart-panel` and must stay there: that panel scrolls
-   sideways under 58 rem, and a control inside it would leave with the drawing.
-
-   **The whole block is on the chart's paper, and the render is what settled
-   that.** Left on the sky it measured 1,1:1 — dark ink on a gradient that is
-   heading for black by the time it gets here. Turning it pale like the
-   provenance was the other answer and it is the wrong one: the provenance is
-   pinned to the foot of the page, while this sits wherever the chart ends, which
-   on a tall window is the middle of the orange. Paper is the only ground that
-   does not move, and it is what the chart itself is drawn on for the same
-   reason. It also spares the two notes, which are the ones keeping the
-   comparison honest: a caveat that cannot be read is a caveat that is not there.
+   A strip on the chart's paper, against the top edge of the chart: the
+   button that lays the normals on the drawing, and the menu of the reference
+   period beside it. Paper rather than the sky because the gradient behind the
+   results turns dark, and a control has to stay readable wherever it lands.
    -------------------------------------------------------------------------- */
 
-.compare {
+.compare-bar {
+  margin-top: calc(var(--space) * 6);
+  padding: calc(var(--space) * 3) calc(var(--space) * 4);
+  border: 1px solid var(--rule);
+  border-bottom: 0;
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
+/* Attached to the strip: the chart loses its own gap above. */
+.compare-bar:not([hidden]) + .chart-panel {
+  margin-top: 0;
+}
+
+.compare-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--space) * 3);
+}
+
+/* A button with two states, said by `aria-pressed`: outlined when the chart
+   shows the days alone, filled grey, the colour of the normals, when it carries
+   them. The label does not change; the state does. */
+.toggle {
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 3);
+  border: 1px solid var(--past);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--past-fill);
+}
+
+.toggle[aria-pressed="true"] {
+  background: var(--past);
+  color: var(--raised);
+}
+
+.compare-field {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--space) * 2);
+  margin: 0;
+}
+
+.compare-field label {
+  color: var(--ink-soft);
+  font-family: var(--font);
+  font-size: var(--label-size);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.compare-field select {
+  width: auto;
+  font-family: var(--font);
+  font-size: 0.875rem;
+}
+
+.compare-note {
+  max-width: 46rem;
+  margin: calc(var(--space) * 2) 0 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.compare-bar .failure {
+  margin: calc(var(--space) * 2) 0 0;
+}
+
+/* The wait line holds no room when it has nothing to say: it is announced by
+   aria-live, so it must stay in the document rather than be toggled hidden. */
+#compare-status:empty {
+  display: none;
+}
+
+/* --- the climate diagram ----------------------------------------------------
+   On the chart's paper, like the normals block above and for the same reason:
+   it sits wherever the chart ends, on a ground that turns with the season. */
+.climate-section {
   margin-top: calc(var(--space) * 4);
   padding: calc(var(--space) * 4) calc(var(--space) * 6);
   border: 1px solid var(--rule);
@@ -1889,57 +1966,82 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
   font-size: 0.875rem;
 }
 
-/* Divided from the toggle by a rule rather than by a second box: it is one
-   block that grows, not a panel that appears under a button. */
-.compare-panel {
-  margin-top: calc(var(--space) * 4);
-  padding-top: calc(var(--space) * 4);
-  border-top: 1px solid var(--rule);
+.climate-title {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
 }
 
-/* The measure is the line, not the block: the paper runs the width of the page
-   under a chart that does, and a note running with it would be unreadable for
-   the other reason. */
-.compare-note,
-.compare-legend {
-  max-width: 46rem;
+.climate-section .chart-panel {
+  margin-top: calc(var(--space) * 3);
+}
+
+/* Narrower than the chart above: twelve columns need less room than ninety. */
+.chart.climate {
+  min-width: 36rem;
+}
+
+/* A dry month: the column behind it, tinted warm and faint, under every mark. */
+.climate-dry {
+  fill: color-mix(in srgb, var(--warm) 14%, transparent);
+}
+
+.climate-bar {
+  fill: var(--cool);
+  opacity: 0.75;
+}
+
+/* The reference rain, beside the window's: grey, filled. */
+.climate-bar.past {
+  fill: var(--past);
+  opacity: 0.6;
+}
+
+.climate-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 2) calc(var(--space) * 5);
   margin: calc(var(--space) * 3) 0 0;
-  line-height: 1.5;
+  padding: 0;
+  list-style: none;
 }
 
-/* Quieter than the legend, but on paper — the two notes are read once and have
-   to be readable that once. */
-.compare-note {
-  color: var(--ink-soft);
-}
-
-/* The legend of the grey curves, and the only place the page says which colour
-   means what. It is here rather than in the drawing because the chart writes no
-   text of its own — a name inside the viewBox would be the first thing on it
-   that is not a title, an axis or a reading mark. */
-.compare-legend {
+.climate-legend li {
   display: flex;
   align-items: center;
   gap: calc(var(--space) * 2);
-  color: var(--ink);
 }
 
-/* A band, because a band is what the panel now shows: two edges with the wash
-   between them, at the strength the drawing uses. A single rule here would name
-   the curves and say nothing about the fill, which is the part a reader is
-   actually reading the period against. */
-.compare-swatch {
+.climate-swatch {
   display: inline-block;
-  width: 1.75rem;
+  width: 1.25rem;
   height: 0.7rem;
-  border-top: 1px solid var(--past);
-  border-bottom: 1px solid var(--past);
-  background: var(--past-fill);
 }
 
-/* The wait line holds no room when it has nothing to say: it is announced by
-   aria-live, so it must stay in the document rather than be toggled hidden. */
-#compare-status:empty {
+.climate-swatch.line {
+  height: 0;
+  border-top: 2px solid var(--warm);
+}
+
+.climate-swatch.bar {
+  background: var(--cool);
+  opacity: 0.75;
+}
+
+.climate-swatch.past {
+  background: var(--past);
+  opacity: 0.6;
+}
+
+.climate-swatch.dry {
+  background: color-mix(in srgb, var(--warm) 14%, transparent);
+  border: 1px solid var(--rule);
+}
+
+#climate-status:empty {
   display: none;
 }
 

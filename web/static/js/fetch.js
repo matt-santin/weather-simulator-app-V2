@@ -142,13 +142,19 @@ export function search(asked) {
   return ask("/api/days", asked);
 }
 
-/** The 1991-2020 seasonal normals of the same dates, at the same place. */
-export function normals(asked) {
-  return ask("/api/normals", asked);
+/** The climate diagram around the year of the same search, beside `reference`. */
+export function climate(asked, reference) {
+  return ask("/api/climate", asked, { reference });
 }
 
-async function ask(path, { latitude, longitude, start, end }) {
-  const query = new URLSearchParams({ latitude, longitude, start, end });
+/** The seasonal normals of the same dates, at the same place, over the 30 years
+ * starting in `reference` (one of those /api/config serves). */
+export function normals(asked, reference) {
+  return ask("/api/normals", asked, { reference });
+}
+
+async function ask(path, { latitude, longitude, start, end }, extra = {}) {
+  const query = new URLSearchParams({ latitude, longitude, start, end, ...extra });
   let response;
   try {
     response = await fetch(`${path}?${query}`, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
