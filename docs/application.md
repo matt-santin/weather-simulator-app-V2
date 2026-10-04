@@ -118,6 +118,29 @@ Sous le diagramme, une tuile par année de 1970 à 2100, dix par ligne (une déc
 
 Limite visible : à Paris en été, 2027-2035 (CORDEX) sont plus frais que 2018-2025 (ERA5), effet du déficit de réchauffement du modèle.
 
-## 8. Tests
+## 8. Cartes
+
+Page `/cartes`, reliée depuis l'accueil (en haut à droite : contour de l'Europe, « Cartes météos »). Une grandeur, une saison (printemps, été, automne, hiver, bornes du formulaire) et une année, dans l'adresse (`?grandeur=tasmax&saison=summer&annee=2100`, Tx de l'été 2100 par défaut), sur l'Europe. Grandeurs : températures maximales et minimales, précipitations, nébulosité ; la page ne propose que celles que le stockage contient (`variables` de `/api/map/cells`).
+
+| Grandeur | Bandes | Panneau | Frise |
+|---|---|---|---|
+| Tx, Tn | celles du site (5 °C, `/api/config`), 40 °C et plus hachuré | maille la plus chaude, médiane | médiane |
+| Précipitations | moins de 1 mm (sec : seuil d'un jour de pluie, DRIAS et Météo-France), 1, 5, 10, 20, 50 mm et plus | maille la plus arrosée, part de mailles sèches | moyenne (la médiane est souvent nulle) |
+| Nébulosité | par 20 % | médiane, part de mailles à moins de 20 % | médiane |
+
+- Carte jour par jour (Tx, Tn et pluie : valeur du jour ; nébulosité : moyenne du jour), mailles terrestres de 0,25° (masque terre-mer ERA5 ≥ 0,5, dans le domaine CORDEX), cadre 25° O à 45° E, 34° N à 72° N : 19 249 mailles. Contours des pays : Natural Earth 1:50m (domaine public).
+- Lecture, jour précédent et suivant, vitesse (1, 3 ou 8 jours par seconde), frise des jours (souris ou flèches du clavier). Survol : valeur et coordonnées de la maille. Panneau : les deux chiffres du tableau ci-dessus, répartition par bande. Mention « simulation » pour 2027-2100. Retour au site en haut à droite : soleil et nuage en traits (`web/static/icons/weather.svg`) et « Weather Simulator ». Zoom : molette, double-clic, pincement, boutons + et − et « voir toute l'Europe » ; glisser pour se déplacer, jusqu'à ×12 (on voit alors les mailles de 0,25°).
+- Sources : ERA5 (1970-2025), CORDEX corrigé contre ERA5 (2027-2100), à 0,25° ; pas ERA5-Land, réservé aux points.
+
+Stockage `data/serve/map.zarr` (`python -m src.store.maps tasmax tasmin pr clt`, environ 1 min par grandeur, LaCie branché pour le masque) : copie de `point.zarr` découpée par paquets de 32 jours sur un quart du domaine, mêmes entiers (vérifiés égaux). Par grandeur, ERA5 et CORDEX : `tasmax` 0,67 + 1,68 Go, `tasmin` 0,70 + 1,71, `pr` 0,56 + 0,59, `clt` 1,47 + 2,04 ; 8,8 Go en tout. Facultatif : sans lui, le site tourne et la page des cartes le dit.
+
+| Appel | Rôle |
+|---|---|
+| `GET /api/map/cells` | les mailles de la carte (lignes et colonnes de la grille), envoyées une fois |
+| `GET /api/map/{grandeur}?start&end` | jours × mailles en entiers 16 bits, dixièmes de l'unité (°C, mm, %) ; -32768 : pas de valeur ; jours, mailles, premier jour et origine dans les en-têtes ; mêmes refus qu'une recherche |
+
+Une saison pèse 3,5 Mo, 1,8 Mo compressée (gzip, comme toutes les réponses de plus de 1 ko) ; lecture en 0,02 s, réponse en 0,2 s en local. Contours et icône : `python -m src.store.outlines` (`web/static/geo/europe.json`, 133 ko ; `web/static/icons/europe.svg`, tracé depuis le masque de `map.zarr`).
+
+## 9. Tests
 
 `python -m pytest` : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages) et suite JavaScript (`node --test`, si `node` est installé).

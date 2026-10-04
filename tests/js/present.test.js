@@ -140,6 +140,7 @@ describe("the vocabulary, rule 1", () => {
     "warning.noteMeaning",
     "warning.notAForecast",
     "years.simulated",
+    "maps.simulated",
   ];
 
   /** Every string in the dictionary, including those a function returns. */

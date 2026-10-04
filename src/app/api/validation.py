@@ -23,14 +23,14 @@ def periods_text() -> str:
     return " et ".join(f"{p.start.year}-{p.end.year}" for p in PERIODS)
 
 
-class Search(BaseModel):
-    latitude: float = Field(ge=-90.0, le=90.0)
-    longitude: float = Field(ge=-180.0, le=180.0)
+class Range(BaseModel):
+    """The dates of a search, alone: what a map asks for."""
+
     start: date
     end: date
 
     @model_validator(mode="after")
-    def _check_range(self) -> Search:
+    def _check_range(self) -> Range:
         if self.start > self.end:
             raise errors.EmptyRange(self.start, self.end)
         days = (self.end - self.start).days + 1
@@ -43,3 +43,8 @@ class Search(BaseModel):
     @property
     def period(self) -> Period | None:
         return next((p for p in PERIODS if p.holds(self.start, self.end)), None)
+
+
+class Search(Range):
+    latitude: float = Field(ge=-90.0, le=90.0)
+    longitude: float = Field(ge=-180.0, le=180.0)

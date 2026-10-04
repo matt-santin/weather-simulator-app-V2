@@ -2750,3 +2750,363 @@ body.results .provenance .pairs dd {
     --card: 12rem;
   }
 }
+
+/* --- the link to the maps, on the home page ---------------------------------
+   Top right, over the sky: the outline of Europe and two words under it. The
+   icon is a mask filled with the ink, so that it takes the colour of the text
+   around it rather than one of its own. */
+.maps-link {
+  position: absolute;
+  top: calc(var(--space) * 5);
+  right: calc(var(--space) * 5);
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: calc(var(--space) * 1);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--label-size);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.maps-link-icon {
+  width: clamp(2.5rem, 6vw, 3.5rem);
+  aspect-ratio: 1;
+  background: currentColor;
+  -webkit-mask: url("/static/icons/europe.svg") center / contain no-repeat;
+  mask: url("/static/icons/europe.svg") center / contain no-repeat;
+}
+
+.maps-link:hover .maps-link-text,
+.maps-link:focus-visible .maps-link-text {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* --- the map page ----------------------------------------------------------
+   On the site's dark paper, as the first map was. */
+body.maps {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+/* As wide as the window: the map is the page. */
+.maps-page {
+  display: grid;
+  max-width: none;
+  gap: calc(var(--space) * 3);
+  padding: calc(var(--space) * 4) clamp(12px, 2vw, 32px) calc(var(--space) * 8);
+}
+
+/* One line when there is room: back, title, season and year. What is left of
+   the window's height goes to the map. */
+.maps-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: calc(var(--space) * 2) calc(var(--space) * 6);
+}
+
+.maps-header .maps-eyebrow {
+  display: none;
+}
+
+/* Back to the site, at the right end of the header line: the same outline
+   drawing as the link to the maps on the home page, beside its name rather than
+   over it, so that the header stays one line high. */
+.maps-home {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  margin-left: auto;
+  color: var(--ink);
+  font-size: var(--label-size);
+  letter-spacing: var(--label-tracking);
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.maps-home-icon {
+  width: 2.25rem;
+  aspect-ratio: 1;
+  background: currentColor;
+  -webkit-mask: url("/static/icons/weather.svg") center / contain no-repeat;
+  mask: url("/static/icons/weather.svg") center / contain no-repeat;
+}
+
+.maps-home:hover .maps-home-text,
+.maps-home:focus-visible .maps-home-text {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.maps-eyebrow,
+.maps-label,
+.maps-field label,
+.maps-figures dt {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.maps-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.6vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.maps-period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 3) calc(var(--space) * 6);
+}
+
+.maps-field {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--space) * 2);
+  margin: 0;
+}
+
+.maps-field select {
+  width: auto;
+}
+
+/* In the panel, over the date: the map keeps the height. */
+.maps-warning {
+  margin: 0;
+  padding-block: calc(var(--space) * 2);
+  border-block: 1px solid var(--rule-strong);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.maps-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+#maps-status:empty {
+  display: none;
+}
+
+/* The map and its player take every pixel the panel leaves; maps.js sizes the
+   map to that width, or to the window's height when that is the tighter. */
+.maps-stage {
+  display: flex;
+  gap: clamp(16px, 2vw, 32px);
+  align-items: flex-start;
+}
+
+.maps-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.maps-panel {
+  flex: 0 0 15rem;
+}
+
+@media (max-width: 900px) {
+  .maps-stage {
+    flex-direction: column;
+  }
+
+  .maps-panel {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+.maps-map,
+.maps-player {
+  width: var(--map-width, 100%);
+  margin-inline: auto;
+}
+
+.maps-map {
+  position: relative;
+}
+
+#map {
+  display: block;
+  width: 100%;
+  touch-action: none;
+}
+
+.maps-tip {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  padding: 6px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  background: var(--raised);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(12px, -110%);
+}
+
+.maps-panel {
+  display: grid;
+  gap: calc(var(--space) * 3);
+}
+
+.maps-date {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.maps-figures {
+  display: grid;
+  gap: calc(var(--space) * 3);
+  margin: 0;
+}
+
+.maps-figures dd {
+  margin: calc(var(--space) * 1) 0 0;
+}
+
+.maps-value {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.maps-bands {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.maps-bands li {
+  display: grid;
+  grid-template-columns: 12px 5.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+}
+
+.maps-bands li.empty {
+  color: var(--ink-soft);
+}
+
+.maps-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.maps-bands li.hottest .maps-swatch {
+  background-image: repeating-linear-gradient(135deg, transparent 0 3px, rgb(236 231 221 / 0.55) 3px 4px);
+}
+
+.maps-bar {
+  height: 8px;
+  background: var(--ink-soft);
+  border-radius: 1px;
+}
+
+.maps-share {
+  text-align: right;
+}
+
+.maps-player {
+  display: flex;
+  margin-top: calc(var(--space) * 3);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--space) * 3);
+}
+
+.maps-step {
+  min-width: 2.25rem;
+  padding: calc(var(--space) * 1) calc(var(--space) * 2);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* On the line of the buttons, taking what they leave: one row under the map. */
+.maps-timeline {
+  flex: 1 1 12rem;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.maps-timeline:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+body.maps .toggle {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+body.maps .toggle[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.maps-source {
+  max-width: 78ch;
+}
+
+/* Zoom: three buttons over the Atlantic, top left of the map. The map can be
+   dragged once zoomed in. */
+.maps-zoom {
+  position: absolute;
+  top: calc(var(--space) * 2);
+  left: calc(var(--space) * 2);
+  display: grid;
+  gap: 4px;
+}
+
+.maps-zoom button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: rgb(23 20 15 / 0.85);
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.maps-zoom button:hover:not(:disabled) {
+  border-color: var(--ink-soft);
+}
+
+.maps-zoom button:disabled {
+  color: var(--rule-strong);
+  cursor: default;
+}
+
+#map.zoomed {
+  cursor: grab;
+}
+
+#map.zoomed:active {
+  cursor: grabbing;
+}

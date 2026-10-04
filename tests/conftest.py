@@ -92,3 +92,36 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
             arr = group.create_array(name, data=data, chunks=(n, *shape))
             arr.attrs.update({"scale_factor": 0.01, "_FillValue": fill("int16"), "built": "2026-10-02 12:00"})
     return path
+
+
+MAP_SOURCES = {"era5": date(1970, 1, 1), "cordex": date(2027, 1, 1)}
+MAP_DAYS = {"era5": 20454, "cordex": 27028}
+
+
+@pytest.fixture(scope="session")
+def map_store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The layout of src.store.maps on the 5 x 5 grid above: tasmax holds the day
+    index since the source's first day (modulo 3000) plus 10 x the cell's row,
+    in hundredths. The north-west cell is sea. pr holds the day index in tenths
+    of a mm, none on the first day; clt is not built."""
+    path = tmp_path_factory.mktemp("maps") / "map.zarr"
+    root = zarr.open_group(path, mode="w", zarr_format=3)
+    root.create_array("latitude", data=LATITUDE)
+    root.create_array("longitude", data=LONGITUDE)
+    land = np.ones((5, 5), dtype="uint8")
+    land[0, 0] = 0
+    root.create_array("land", data=land)
+    for source, first in MAP_SOURCES.items():
+        n = MAP_DAYS[source]
+        data = ((np.arange(n) % 3000)[:, None, None] + 10 * np.arange(5)[None, :, None]
+                + np.zeros((1, 1, 5), dtype="int64")).astype("int16")
+        arr = root.require_group(source).create_array("tasmax", data=data, chunks=(32, 5, 5))
+        arr.attrs.update({"scale_factor": 0.01, "_FillValue": -32768, "start": first.isoformat(),
+                          "built": "2026-10-04 21:42"})
+        # Rain as the store keeps it: uint16 in tenths of a mm, 65535 for no value.
+        rain = ((np.arange(n) % 3000)[:, None, None] + np.zeros((1, 5, 5), dtype="int64")).astype("uint16")
+        rain[0] = 65535
+        arr = root[source].create_array("pr", data=rain, chunks=(32, 5, 5))
+        arr.attrs.update({"scale_factor": 0.1, "_FillValue": 65535, "start": first.isoformat(),
+                          "built": "2026-10-04 21:42"})
+    return path

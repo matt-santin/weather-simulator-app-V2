@@ -248,6 +248,65 @@ export const texts = {
       "au-dessus de 150 %.",
   },
 
+  // The map page. Every sentence it shows, as on every other page.
+  maps: {
+    pageTitle: "Cartes météo",
+    homeLink: "Cartes météos",
+    back: "Weather Simulator",
+    title: (variable, season, year) => `${variable}, ${season.toLowerCase()} ${year}`,
+    variable: "Grandeur",
+    variables: {
+      tasmax: "Températures maximales",
+      tasmin: "Températures minimales",
+      pr: "Précipitations",
+      clt: "Nébulosité",
+    },
+    // The two figures of the panel, by kind and by variable.
+    figures: {
+      max: {
+        tasmax: "Maille la plus chaude",
+        tasmin: "Nuit la plus chaude",
+        pr: "Maille la plus arrosée",
+      },
+      median: "Médiane des mailles",
+      share: {
+        pr: "Mailles sèches (moins de 1 mm)",
+        clt: "Mailles peu nuageuses (moins de 20 %)",
+      },
+    },
+    eyebrow: "Cartographie, Europe",
+    season: "Saison",
+    year: "Année",
+    simulated:
+      "Simulation : la météo de ces journées n'est pas une prévision, mais une météo " +
+      "plausible sous le scénario RCP 4.5.",
+    play: "Lecture",
+    pause: "Pause",
+    previous: "Jour précédent",
+    next: "Jour suivant",
+    speed: "Vitesse",
+    speeds: { 1: "1 jour/s", 3: "3 jours/s", 8: "8 jours/s" },
+    timeline: "Choisir la journée",
+    zoomIn: "Zoomer",
+    zoomOut: "Dézoomer",
+    zoomWhole: "Voir toute l'Europe",
+    dayOf: (index, total) => `Jour ${index} sur ${total}`,
+    cells: (n) => `${n} mailles terrestres`,
+    distribution: "Répartition des mailles",
+    loading: "Chargement de la carte…",
+    mapLabel: "Carte d'Europe de la grandeur choisie, pour la journée affichée",
+    source:
+      "Valeurs journalières sur les mailles terrestres de 0,25° (environ 28 km) : " +
+      "températures maximale et minimale, cumul de précipitations, nébulosité moyenne. " +
+      "1970-2025 : réanalyse ERA5. 2027-2100 : CORDEX EUR-11 (EC-EARTH / RCA4) corrigé " +
+      "contre ERA5. Un jour de pluie compte au moins 1 mm (DRIAS, Météo-France). " +
+      "Contours : Natural Earth.",
+    north: "N",
+    south: "S",
+    east: "E",
+    west: "O",
+  },
+
   // The file the visitor takes away, and the words written in it.
   //
   // **`origin` is a column, so its three words are dictionary entries like any

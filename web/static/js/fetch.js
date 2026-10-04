@@ -172,3 +172,42 @@ async function ask(path, { latitude, longitude, start, end }, extra = {}) {
   }
   return payload;
 }
+
+/** The land cells every map is drawn on (/api/map/cells), asked for once. */
+export function mapCells() {
+  return getJson("/api/map/cells", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
+}
+
+/** The country outlines, a static file. */
+export function outlines() {
+  return getJson("/static/geo/europe.json", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
+}
+
+/**
+ * One variable over a range, as days x cells of 16-bit integers in tenths of a
+ * degree, with what the headers say about them. A refusal arrives as JSON and
+ * is thrown with its sentence, as `search` does.
+ */
+export async function mapDays(name, start, end) {
+  const query = new URLSearchParams({ start, end });
+  let response;
+  try {
+    response = await fetch(`/api/map/${name}?${query}`, {
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
+  } catch (cause) {
+    throw new SearchError(reasonFor(cause, texts.transport.serviceFailed), 0, { cause });
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new SearchError(payload?.message ?? texts.transport.serviceFailed, response.status);
+  }
+  const buffer = await response.arrayBuffer();
+  return {
+    values: new Int16Array(buffer),
+    days: Number(response.headers.get("X-Days")),
+    cells: Number(response.headers.get("X-Cells")),
+    start: response.headers.get("X-Start"),
+    origin: response.headers.get("X-Origin"),
+  };
+}

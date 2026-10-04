@@ -300,3 +300,61 @@ def test_a_winter_running_into_2026_has_no_values(client: TestClient) -> None:
     assert by_year[2025]["temperature_mean"] is None  # 21/12/2025 to 20/03/2026
     assert by_year[2100]["temperature_mean"] is None  # runs into 2101
     assert by_year[2024]["temperature_mean"] is not None
+
+
+@pytest.fixture
+def map_client(store_path, map_store_path) -> TestClient:
+    from src.app.api.app import get_map_store
+    from src.app.maps import MapStore
+    store, maps_store = Store(store_path), MapStore(map_store_path)
+    app.dependency_overrides[get_store] = lambda: store
+    app.dependency_overrides[get_map_store] = lambda: maps_store
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+def test_the_map_cells_are_the_land_cells(map_client: TestClient) -> None:
+    cells = map_client.get("/api/map/cells").json()
+    assert cells["step"] == 0.25 and cells["north"] == 46.0 and cells["west"] == 5.0
+    assert len(cells["rows"]) == 24  # 25 cells, the north-west one is sea
+    assert (0, 0) not in set(zip(cells["rows"], cells["cols"]))
+
+
+def test_a_map_is_days_by_cells_in_tenths(map_client: TestClient) -> None:
+    import numpy as np
+    response = map_client.get("/api/map/tasmax", params={"start": "2044-07-14", "end": "2044-07-16"})
+    assert response.status_code == 200
+    assert response.headers["x-days"] == "3" and response.headers["x-cells"] == "24"
+    assert response.headers["x-origin"] == "simulated" and response.headers["x-start"] == "2044-07-14"
+    values = np.frombuffer(response.content, dtype="<i2").reshape(3, 24)
+    rows = map_client.get("/api/map/cells").json()["rows"]
+    k = (date(2044, 7, 14) - date(2027, 1, 1)).days % 3000
+    # Hundredths in the store, tenths on the wire.
+    assert values[0].tolist() == [round((k + 10 * r) / 10) for r in rows]
+    assert values[1, 0] - values[0, 0] in (0, 1)
+
+
+def test_a_map_follows_the_rules_of_a_search(map_client: TestClient) -> None:
+    past = map_client.get("/api/map/tasmax", params={"start": "1985-07-14", "end": "1985-07-14"})
+    assert past.headers["x-origin"] == "observed"
+    assert map_client.get("/api/map/tasmax", params={"start": "2026-07-01", "end": "2026-07-02"}).status_code == 400
+    assert map_client.get("/api/map/tasmax", params={"start": "2044-01-01", "end": "2044-06-30"}).status_code == 400
+    assert map_client.get("/api/map/sfcWind", params={"start": "2044-07-01", "end": "2044-07-02"}).status_code == 404
+
+
+def test_without_a_map_store_the_maps_say_so(client: TestClient) -> None:
+    from src.app.api.app import get_map_store
+    app.dependency_overrides[get_map_store] = lambda: None
+    response = client.get("/api/map/cells")
+    assert response.status_code == 503
+    assert response.json()["message"] == "Les cartes ne sont pas disponibles sur ce serveur."
+
+
+def test_rain_maps_are_tenths_of_a_mm_and_unbuilt_variables_are_absent(map_client: TestClient) -> None:
+    import numpy as np
+    assert map_client.get("/api/map/cells").json()["variables"] == ["tasmax", "pr"]
+    response = map_client.get("/api/map/pr", params={"start": "2027-01-01", "end": "2027-01-02"})
+    values = np.frombuffer(response.content, dtype="<i2").reshape(2, 24)
+    assert (values[0] == -32768).all()  # no value on the first day
+    assert (values[1] == 1).all()  # day index 1, 0.1 mm
+    assert map_client.get("/api/map/clt", params={"start": "2044-07-01", "end": "2044-07-02"}).status_code == 404

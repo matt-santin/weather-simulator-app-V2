@@ -60,3 +60,19 @@ class UnknownReference(ApiError):
             f"no normals from {first}",
             f"Période de référence inconnue. Les normales disponibles sont {offered}.",
         )
+
+
+class MapsUnavailable(ApiError):
+    """No map store on this server (src.app.maps)."""
+
+    status_code = 503
+
+    def __init__(self) -> None:
+        super().__init__("no map store", "Les cartes ne sont pas disponibles sur ce serveur.")
+
+
+class UnknownMapVariable(ApiError):
+    status_code = 404
+
+    def __init__(self, name: str) -> None:
+        super().__init__(f"no map of {name}", "Cette grandeur n'a pas de carte.")

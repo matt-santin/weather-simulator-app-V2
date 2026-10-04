@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cartes météo · Weather Simulator</title>
+    <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <script type="module" src="/static/js/maps.js"></script>
+  </head>
+  <!--
+    The map page: one season over Europe, day after day. Every sentence is
+    filled from the dictionary; the season and year travel in the URL
+    (?saison=summer&annee=2100) so that a map can be shared.
+  -->
+  <body class="maps">
+    <main class="maps-page">
+      <header class="maps-header">
+        <p class="maps-eyebrow" data-text="maps.eyebrow"></p>
+        <h1 id="maps-title" class="maps-title"></h1>
+
+        <form id="maps-period" class="maps-period">
+          <p class="maps-field">
+            <label for="maps-variable" data-text="maps.variable"></label>
+            <select id="maps-variable" name="grandeur"></select>
+          </p>
+          <p class="maps-field">
+            <label for="maps-season" data-text="maps.season"></label>
+            <select id="maps-season" name="saison"></select>
+          </p>
+          <p class="maps-field">
+            <label for="maps-year" data-text="maps.year"></label>
+            <select id="maps-year" name="annee"></select>
+          </p>
+        </form>
+
+        <!-- Back to the site: top right, a sun behind a cloud and the name. -->
+        <a class="maps-home" href="/">
+          <span class="maps-home-icon" aria-hidden="true"></span>
+          <span class="maps-home-text" data-text="maps.back"></span>
+        </a>
+      </header>
+
+      <p id="maps-status" class="maps-note" aria-live="polite"></p>
+      <p id="maps-failure" class="failure" role="alert" hidden></p>
+
+      <section id="maps-stage" class="maps-stage" hidden>
+        <div id="maps-main" class="maps-main">
+          <div class="maps-map">
+            <canvas id="map" data-attr-aria-label="maps.mapLabel" role="img"></canvas>
+            <div id="maps-tip" class="maps-tip" hidden></div>
+            <div class="maps-zoom">
+              <button type="button" id="maps-zoom-in" data-attr-aria-label="maps.zoomIn" data-attr-title="maps.zoomIn"><span aria-hidden="true">+</span></button>
+              <button type="button" id="maps-zoom-out" data-attr-aria-label="maps.zoomOut" data-attr-title="maps.zoomOut"><span aria-hidden="true">−</span></button>
+              <button type="button" id="maps-zoom-whole" data-attr-aria-label="maps.zoomWhole" data-attr-title="maps.zoomWhole"><span aria-hidden="true">⤢</span></button>
+            </div>
+          </div>
+
+          <div id="maps-player" class="maps-player">
+            <button type="button" id="maps-play" class="toggle" aria-pressed="false" data-text="maps.play"></button>
+            <button type="button" id="maps-prev" class="maps-step" data-attr-aria-label="maps.previous"><span aria-hidden="true">‹</span></button>
+            <button type="button" id="maps-next" class="maps-step" data-attr-aria-label="maps.next"><span aria-hidden="true">›</span></button>
+            <p class="maps-field">
+              <label for="maps-speed" data-text="maps.speed"></label>
+              <select id="maps-speed"></select>
+            </p>
+            <canvas id="maps-timeline" class="maps-timeline" tabindex="0" role="slider" data-attr-aria-label="maps.timeline"></canvas>
+          </div>
+        </div>
+
+        <aside class="maps-panel">
+          <p id="maps-warning" class="maps-warning" data-text="maps.simulated" hidden></p>
+          <p id="maps-date" class="maps-date"></p>
+          <p id="maps-day" class="maps-note"></p>
+          <dl class="maps-figures">
+            <div>
+              <dt id="maps-first-label"></dt>
+              <dd><span id="maps-first" class="maps-value"></span> <span id="maps-first-where" class="maps-note"></span></dd>
+            </div>
+            <div>
+              <dt id="maps-second-label"></dt>
+              <dd><span id="maps-second" class="maps-value"></span> <span id="maps-cells" class="maps-note"></span></dd>
+            </div>
+          </dl>
+          <p class="maps-label" data-text="maps.distribution"></p>
+          <ul id="maps-bands" class="maps-bands"></ul>
+        </aside>
+
+      </section>
+
+      <p class="maps-note maps-source" data-text="maps.source"></p>
+    </main>
+  </body>
+</html>

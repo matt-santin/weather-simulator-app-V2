@@ -1,0 +1,194 @@
+/**
+ * The arithmetic of the map page: bands, projection, the grid of cells, and the
+ * summary of a day. No DOM, no fetching: `node --test` checks it.
+ *
+ * **Each variable has its bands.** The temperatures use the site's, served by
+ * /api/config (the five degrees the cards and the chart use): nine colours for
+ * eight edges, the last (40 °C and above) hatched by the page. Rain is cut at
+ * 1 mm, the threshold of a rainy day (DRIAS, Météo-France), then 5, 10, 20 and
+ * 50 mm; cloud cover in fifths.
+ *
+ * **The projection is the flattened one of the first map**: longitude scaled by
+ * the cosine of 52° N, latitude as is. Over Europe it keeps shapes close
+ * enough, and it is its own inverse in two lines, which the tooltip needs.
+ */
+
+/** One colour per band of temperature, from below the first edge to above the last. */
+export const COLORS = [
+  "#123a72",
+  "#5aa9de",
+  "#8bc94a",
+  "#f2ce1b",
+  "#f0902a",
+  "#e9634a",
+  "#b01712",
+  "#6b0a0a",
+  "#16100c",
+];
+
+/**
+ * What each variable is drawn with. `edges: null` means the edges served by
+ * /api/config for the temperatures. `first` and `second` are the two figures of
+ * the panel: the highest cell, the median, or the share of cells in the first
+ * band (dry, clear). `timeline` is what each day's bar shows.
+ */
+export const VARIABLES = {
+  tasmax: {
+    unit: "°C",
+    decimals: 1,
+    colors: COLORS,
+    edges: null,
+    hatchTop: true,
+    first: "max",
+    second: "median",
+    timeline: "median",
+  },
+  tasmin: {
+    unit: "°C",
+    decimals: 1,
+    colors: COLORS,
+    edges: null,
+    hatchTop: true,
+    first: "max",
+    second: "median",
+    timeline: "median",
+  },
+  pr: {
+    unit: "mm",
+    decimals: 1,
+    colors: ["#4a4136", "#bfe0f5", "#6aaed6", "#2b7bba", "#7b4fa8", "#e05fb0"],
+    edges: [1, 5, 10, 20, 50],
+    hatchTop: false,
+    first: "max",
+    second: "share",
+    timeline: "mean",
+  },
+  clt: {
+    unit: "%",
+    decimals: 0,
+    colors: ["#f2ce1b", "#d6c27a", "#a8a596", "#7f7f86", "#5d5f69"],
+    edges: [20, 40, 60, 80],
+    hatchTop: false,
+    first: "median",
+    second: "share",
+    timeline: "median",
+  },
+};
+
+/** Missing value in the integers /api/map serves (tenths of a degree). */
+export const FILL = -32768;
+
+/** The band of a temperature: 0 below the first edge, edges.length above the last. */
+export function band(value, edges) {
+  let index = 0;
+  while (index < edges.length && value >= edges[index]) index += 1;
+  return index;
+}
+
+const K = Math.cos((52 * Math.PI) / 180);
+
+/** Map coordinates to pixels and back, for a box drawn `width` pixels wide. */
+export function projection(box, width) {
+  const scale = width / ((box.east - box.west) * K);
+  const height = (box.north - box.south) * scale;
+  return {
+    width,
+    height,
+    project: (lon, lat) => [(lon - box.west) * K * scale, (box.north - lat) * scale],
+    unproject: (x, y) => [box.west + x / (K * scale), box.north - y / scale],
+  };
+}
+
+/**
+ * The cells as a small image: the rows and columns /api/map/cells serves,
+ * shifted so that the first used row and column are 0. `index` finds the cell
+ * under a row and column of that image, for the tooltip.
+ */
+export function grid(cells) {
+  const top = Math.min(...cells.rows);
+  const left = Math.min(...cells.cols);
+  const rows = Math.max(...cells.rows) - top + 1;
+  const cols = Math.max(...cells.cols) - left + 1;
+  const index = new Map();
+  const at = cells.rows.map((row, k) => {
+    const pixel = (row - top) * cols + (cells.cols[k] - left);
+    index.set(pixel, k);
+    return pixel;
+  });
+  return {
+    rows,
+    cols,
+    at,
+    index,
+    // The outer edges of the image, in degrees: cell centres plus half a step.
+    north: cells.north - top * cells.step + cells.step / 2,
+    west: cells.west + left * cells.step - cells.step / 2,
+    step: cells.step,
+    latitude: (k) => cells.north - cells.rows[k] * cells.step,
+    longitude: (k) => cells.west + cells.cols[k] * cells.step,
+  };
+}
+
+/** The values of one day, in degrees, out of the integers for all days. */
+export function day(values, cells, index) {
+  return values.subarray(index * cells, (index + 1) * cells);
+}
+
+/** Highest cell, median, mean and the count of cells in each band, for one day. */
+export function summary(tenths, edges) {
+  const counts = new Array(edges.length + 1).fill(0);
+  const sorted = [];
+  let hottest = null;
+  let at = -1;
+  let total = 0;
+  for (let k = 0; k < tenths.length; k += 1) {
+    if (tenths[k] === FILL) continue;
+    const value = tenths[k] / 10;
+    sorted.push(value);
+    total += value;
+    counts[band(value, edges)] += 1;
+    if (hottest === null || value > hottest) {
+      hottest = value;
+      at = k;
+    }
+  }
+  sorted.sort((a, b) => a - b);
+  const n = sorted.length;
+  const median = n === 0 ? null : n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+  return { hottest, at, median, mean: n ? total / n : null, counts, cells: n };
+}
+
+/** How far the map zooms in, and the view it opens on. */
+export const MAX_ZOOM = 12;
+export const WHOLE = { scale: 1, x: 0, y: 0 };
+
+/**
+ * The zoom as a scale and an offset, the offset in fractions of the map's width
+ * and height so that it survives a resize. A point at (px, py) on the map
+ * drawn whole is shown at (px * scale + x * width, py * scale + y * height).
+ * The offset is held so that the map always covers its frame: no empty band
+ * opens at an edge.
+ */
+function clamped({ scale, x, y }) {
+  const low = 1 - scale;
+  return { scale, x: Math.min(0, Math.max(low, x)), y: Math.min(0, Math.max(low, y)) };
+}
+
+/** Zoom by `factor` keeping the point (cx, cy) of the frame where it is. */
+export function zoomAt(zoom, factor, cx, cy, width, height) {
+  const scale = Math.min(MAX_ZOOM, Math.max(1, zoom.scale * factor));
+  const k = scale / zoom.scale;
+  const x = (cx - (cx - zoom.x * width) * k) / width;
+  const y = (cy - (cy - zoom.y * height) * k) / height;
+  return clamped({ scale, x, y });
+}
+
+/** Move the zoomed map by (dx, dy) pixels. */
+export function pan(zoom, dx, dy, width, height) {
+  return clamped({ scale: zoom.scale, x: zoom.x + dx / width, y: zoom.y + dy / height });
+}
+
+/** The point of the map drawn whole that is under (x, y) of the frame. */
+export function unzoom(zoom, x, y, width, height) {
+  return [(x - zoom.x * width) / zoom.scale, (y - zoom.y * height) / zoom.scale];
+}

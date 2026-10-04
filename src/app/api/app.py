@@ -1,4 +1,4 @@
-"""The HTTP layer: five endpoints and three pages, no state.
+"""The HTTP layer: seven endpoints and four pages, no state.
 
     uvicorn src.app.api.app:app --port 8000
 
@@ -8,7 +8,8 @@ reads one series from the store and returns the classified days;
 ``/api/normals`` serves the seasonal normals of the same dates (1971-2000,
 1981-2010 or 1991-2020). ``/api/climate`` serves the climate diagram
 of the place around the year searched. ``/api/years`` serves the same dates in every
-year from 1970 to 2100.
+year from 1970 to 2100. ``/api/map/cells`` and ``/api/map/{name}`` serve the
+maps of the page /cartes (src.app.maps), when the map store is there.
 
 The store is opened at start-up, not on the first visit: a missing or
 unfinished array stops the boot rather than failing on a visitor. Geocoding
@@ -26,14 +27,17 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
+from src.app import maps
 from src.app.api import climate, errors, normals, pipeline, validation, years
 from src.app.api.contract import Climate, Normals, Series, Years
 from src.app.domain import thresholds
+from src.app.maps import MapStore
 from src.app.store import PERIODS, Store
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -52,6 +56,7 @@ StoreDep = Annotated[Store, Depends(get_store)]
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     get_store()
+    get_map_store()
     yield
 
 
@@ -61,6 +66,10 @@ app = FastAPI(
     "(2027-2100). Ce n'est pas une prévision.",
     lifespan=lifespan,
 )
+
+# The maps travel as megabytes of integers that compress threefold; the JSON
+# answers gain too. Under a kilobyte, compressing costs more than it saves.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 class Coverage(BaseModel):
@@ -189,6 +198,57 @@ def every_year(
     return years.run(store, cell, search.start, search.end, reference)
 
 
+# --- the maps ----------------------------------------------------------------
+
+@lru_cache(maxsize=1)
+def get_map_store() -> MapStore | None:
+    return maps.open_store()
+
+
+MapStoreDep = Annotated[MapStore | None, Depends(get_map_store)]
+
+
+@app.get("/api/map/cells")
+def map_cells(store: MapStoreDep) -> dict:
+    """The land cells every map is drawn on, sent once."""
+    if store is None:
+        raise errors.MapsUnavailable()
+    return store.cells()
+
+
+@app.get("/api/map/{name}")
+def map_days(
+    store: MapStoreDep,
+    name: str,
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+) -> Response:
+    """Days x cells of one variable, as little-endian 16-bit integers in tenths of
+    its unit (deg C, mm, %; -32768 where there is no value), the cells in the
+    order of /api/map/cells. What the browser needs to read them travels in headers."""
+    if store is None:
+        raise errors.MapsUnavailable()
+    if name not in store.variables:
+        raise errors.UnknownMapVariable(name)
+    try:
+        dates = validation.Range(start=start, end=end)
+    except ValidationError as error:
+        raise RequestValidationError(error.errors()) from error
+    source = dates.period.source
+    values = store.read(source, name, dates.start, dates.end)
+    return Response(
+        content=values.tobytes(),
+        media_type="application/octet-stream",
+        headers={
+            "X-Days": str(values.shape[0]),
+            "X-Cells": str(values.shape[1]),
+            "X-Start": dates.start.isoformat(),
+            "X-Origin": "simulated" if source == "cordex" else "observed",
+            "Cache-Control": "public, max-age=86400",
+        },
+    )
+
+
 # --- the pages and their files -----------------------------------------------
 
 # Ask before reusing: the copy is kept, and a file that has not moved comes back
@@ -217,6 +277,10 @@ def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
     @target.get("/resultats", include_in_schema=False)
     def results() -> FileResponse:
         return FileResponse(directory / "pages" / "results.html", headers=REVALIDATE)
+
+    @target.get("/cartes", include_in_schema=False)
+    def maps_page() -> FileResponse:
+        return FileResponse(directory / "pages" / "maps.html", headers=REVALIDATE)
 
     @target.get("/documentation", include_in_schema=False)
     def documentation() -> FileResponse:
