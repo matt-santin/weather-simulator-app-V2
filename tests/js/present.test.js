@@ -135,7 +135,12 @@ describe("the vocabulary, rule 1", () => {
   // The sentences whose whole job is to place the word correctly: each names
   // the forecast in order to say that this is not one. Widening this list is
   // the moment to stop and think, which is why it is written out.
-  const ALLOWED = ["warning.note", "warning.noteMeaning", "warning.notAForecast"];
+  const ALLOWED = [
+    "warning.note",
+    "warning.noteMeaning",
+    "warning.notAForecast",
+    "years.simulated",
+  ];
 
   /** Every string in the dictionary, including those a function returns. */
   function* strings(node, path = "") {

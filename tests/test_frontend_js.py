@@ -29,3 +29,17 @@ def test_javascript_suite() -> None:
         text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("module", sorted((ROOT / "web" / "static" / "js").glob("*.js")), ids=lambda p: p.name)
+def test_every_module_parses_as_the_browser_reads_it(module: Path) -> None:
+    """A module that does not parse stops the whole page, and the pages' own
+    modules (results.js, home.js) are imported by no test: checked here as ES
+    modules, which is how the browser loads them."""
+    result = subprocess.run(
+        ["node", "--input-type=module", "--check"],
+        input=module.read_text(),
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr

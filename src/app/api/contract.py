@@ -147,3 +147,32 @@ class Series(BaseModel):
     humid_heat_peak: int = Field(default=0, description="Highest humid-heat level of the range")
     grid: Grid | None = Field(default=None, description="Null for ERA5 days")
     days: list[Day]
+
+
+class YearSummary(BaseModel):
+    """One year of the matrix: the dates of the search in that year."""
+
+    year: int
+    start: date
+    end: date
+    origin: Origin | None = Field(default=None, description="null when no source serves these dates")
+    temperature_mean: float | None = Field(default=None, description="degrees Celsius, tas")
+    temperature_anomaly: float | None = Field(default=None, description="degrees, to the reference")
+    temperature_sigmas: float | None = Field(default=None, description="anomaly in standard deviations")
+    temperature_class: str | None = Field(
+        default=None, description="much_colder, colder, near, warmer, much_warmer")
+    precipitation: float | None = Field(default=None, description="millimetres over the dates")
+    precipitation_ratio: float | None = Field(default=None, description="to the reference mean")
+    precipitation_class: str | None = Field(
+        default=None, description="much_drier, drier, near, wetter, much_wetter")
+
+
+class Years(BaseModel):
+    """Every year from 1970 to 2100, beside a reference period of the normals."""
+
+    reference_start: date
+    reference_end: date
+    temperature_normal: float = Field(description="mean of the reference years, degrees Celsius")
+    temperature_sigma: float = Field(description="interannual standard deviation, degrees")
+    precipitation_normal: float = Field(description="mean of the reference years, millimetres")
+    years: list[YearSummary]

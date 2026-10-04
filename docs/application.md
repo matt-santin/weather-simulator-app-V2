@@ -55,6 +55,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `GET /api/days?latitude&longitude&start&end` | la série journalière classée, ou un refus avec sa phrase |
 | `GET /api/normals?latitude&longitude&start&end` | les normales (Tx, Tn, précipitations) aux mêmes dates, `reference` = 1971, 1981 ou 1991 (section 5), mêmes refus |
 | `GET /api/climate?latitude&longitude&start&end&reference` | le diagramme climatique du lieu (section 6), mêmes refus |
+| `GET /api/years?latitude&longitude&start&end&reference` | les mêmes dates chaque année de 1970 à 2100 (section 7), mêmes refus |
 | `/`, `/resultats`, `/documentation` | les pages |
 
 - Le stockage est ouvert au démarrage ; il vérifie que chaque groupe couvre la période servie.
@@ -67,6 +68,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `src/app/api/pipeline.py`, `contract.py` | du stockage au JSON |
 | `src/app/api/normals.py` | normales de saison |
 | `src/app/api/climate.py` | diagramme climatique |
+| `src/app/api/years.py` | matrice des années |
 | `src/app/domain/` | règles d'affichage (V1) |
 | `web/` | pages, feuille de style, modules JavaScript (V1, adaptés) |
 
@@ -100,6 +102,22 @@ Sous le graphique, le diagramme ombrothermique du lieu : douze mois moyennés su
 
 `GET /api/climate?latitude&longitude&start&end&reference` (`src/app/api/climate.py`, dessin `web/static/js/climate.js`), environ 0,1 s.
 
-## 7. Tests
+## 7. Matrice des années
+
+Sous le diagramme, une tuile par année de 1970 à 2100, dix par ligne (une décennie par ligne), l'année écrite sur la tuile. Chaque année porte les mêmes dates que la recherche (le 29 février devient le 28) ; une année dont les dates sortent d'une période servie (2026, un hiver qui court sur 2026 ou au-delà de 2100) est hachurée et inactive. Les années simulées portent un liseré pointillé, de la couleur de leur chiffre.
+
+- Valeurs par année : température moyenne (`tas`, mêmes mailles que la série) et cumul de pluie (pluie journalière moyenne × nombre de jours) ; ERA5 et ERA5-Land jusqu'en 2025, CORDEX corrigé à partir de 2027.
+- Référence : la période du bandeau des normales (1991-2020 par défaut), mêmes dates, ERA5 : moyenne, écart-type interannuel (ddof = 1), cumul moyen.
+- Couleur : écart en écarts-types, bleu (-3 σ), vert, jaune (la normale), orange, rouge (+3 σ), saturée au-delà. L'année est écrite en blanc ou en noir, celle des deux qui contraste le plus avec la tuile : au moins 4,5:1 sur toute l'échelle. La grille occupe toute la largeur du cadre ; tuiles et chiffres suivent la largeur de l'écran.
+- Survol : légère surbrillance. Clic : une petite fenêtre blanche, ancrée à la tuile (au-dessus, ou en dessous faute de place), donne la température moyenne, écart à la référence, cumul et pourcentage de la normale, avec un commentaire, et un lien vers les mêmes dates cette année-là. Elle se ferme par sa croix, Échap ou un clic ailleurs ; le focus revient à la tuile.
+- Commentaires, calculés par le serveur (seuils propres au projet, pas une norme) :
+  - température : à moins de 0,5 σ, « proche de la normale » ; de 0,5 à 1,5 σ, « plus chaud » ou « plus froid » ; à partir de 1,5 σ, « bien plus chaud » ou « bien plus froid » ;
+  - précipitations, rapport à la normale : sous 0,5, « bien plus sec » ; sous 0,8, « plus sec » ; jusqu'à 1,2, « proche de la normale » ; jusqu'à 1,5, « plus humide » ; au-delà, « bien plus humide ».
+
+`GET /api/years?latitude&longitude&start&end&reference` (`src/app/api/years.py`, tuiles `web/static/js/matrix.js`), environ 0,1 s.
+
+Limite visible : à Paris en été, 2027-2035 (CORDEX) sont plus frais que 2018-2025 (ERA5), effet du déficit de réchauffement du modèle.
+
+## 8. Tests
 
 `python -m pytest` : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages) et suite JavaScript (`node --test`, si `node` est installé).

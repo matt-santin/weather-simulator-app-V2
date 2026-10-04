@@ -24,13 +24,21 @@
  * corner.
  */
 
-import { climate as climateOf, loadConfig, normals, search, SearchError } from "./fetch.js";
+import {
+  climate as climateOf,
+  loadConfig,
+  normals,
+  search,
+  SearchError,
+  years as everyYear,
+} from "./fetch.js";
 import { sources, strip } from "./band.js";
 import { chart } from "./chart.js";
 import { diagram, summary, years as yearsOf } from "./climate.js";
 import { alignByDate, referenceYears } from "./compare.js";
 import { toCsv, fileName } from "./csv.js";
 import { applyTexts, el } from "./dom.js";
+import { decimal, detail, tiles } from "./matrix.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
 import { dominantSeason } from "./season.js";
@@ -64,6 +72,20 @@ const climateSummary = document.getElementById("climate-summary");
 const climateSummaryReference = document.getElementById("climate-summary-reference");
 const climateStatus = document.getElementById("climate-status");
 const climateFailure = document.getElementById("climate-failure");
+
+const yearsSection = document.getElementById("years");
+const yearsTitle = document.getElementById("years-title");
+const yearsIntro = document.getElementById("years-intro");
+const yearsGrid = document.getElementById("years-grid");
+const yearsDetail = document.getElementById("years-detail");
+const yearsHeading = document.getElementById("years-heading");
+const yearsClose = document.getElementById("years-close");
+const yearsTemperature = document.getElementById("years-temperature");
+const yearsRain = document.getElementById("years-rain");
+const yearsSimulated = document.getElementById("years-simulated");
+const yearsLink = document.getElementById("years-link");
+const yearsStatus = document.getElementById("years-status");
+const yearsFailure = document.getElementById("years-failure");
 
 const exportBlock = document.getElementById("export");
 const exportButton = document.getElementById("export-button");
@@ -176,6 +198,7 @@ async function show(series) {
     chartPanel.hidden = false;
     offer(series, config);
     showClimate();
+    showYears();
   }
 
   const pairs = sources(series.grid);
@@ -200,10 +223,12 @@ function offer(series, config) {
   compareReference.value = String(config.normals_default);
 
   compareToggle.addEventListener("click", () => toggle(series));
-  // One menu for both: the normals and the grey diagram share their period.
+  // One menu for all three: the normals, the grey of the climate diagram and
+  // the colours of the matrix share their period.
   compareReference.addEventListener("change", () => {
     if (shown()) lay(series);
     showClimate();
+    showYears();
   });
   compare.hidden = false;
 }
@@ -315,6 +340,142 @@ function sentence(years, { temperature, precipitation, dry }) {
     String(Math.round(precipitation)),
     dry.map((month) => texts.climate.monthNames[month - 1]),
   );
+}
+
+/** The matrices of years, one fetch per reference period at most. */
+const matrices = new Map();
+let yearsTurn = 0;
+
+/**
+ * Draw the matrix of years against the reference period of the bandeau. The
+ * year shown in the detail is kept across a change of reference.
+ */
+async function showYears() {
+  const reference = compareReference.value;
+  const turn = (yearsTurn += 1);
+  yearsFailure.hidden = true;
+  yearsSection.hidden = false;
+  // textContent: the name came from the query string.
+  yearsTitle.textContent = texts.years.title(asked.place);
+
+  try {
+    if (!matrices.has(reference)) {
+      yearsStatus.textContent = texts.years.loading;
+      matrices.set(reference, await everyYear(asked, reference));
+    }
+    if (turn !== yearsTurn) return;
+
+    const answer = matrices.get(reference);
+    const first = answer.years.find((year) => year.temperature_mean !== null);
+    yearsIntro.textContent = texts.years.intro(
+      present.dayMonth(first.start),
+      present.dayMonth(first.end),
+      `${answer.reference_start.slice(0, 4)}-${answer.reference_end.slice(0, 4)}`,
+      decimal(answer.temperature_normal),
+    );
+    const shown = Number(yearsDetail.dataset.year);
+    const pick = (year, tile, options) => {
+      for (const other of yearsGrid.querySelectorAll("[aria-pressed]")) {
+        other.setAttribute("aria-pressed", "false");
+      }
+      tile.setAttribute("aria-pressed", "true");
+      describe(answer, year, tile, options);
+    };
+    const made = tiles(answer, pick);
+    yearsGrid.replaceChildren(...made);
+    // A window open before a change of reference stays open, on the new tiles,
+    // without taking the focus from the menu.
+    const again = answer.years.findIndex((year) => year.year === shown);
+    if (again >= 0 && answer.years[again].temperature_mean !== null) {
+      pick(answer.years[again], made[again], { focus: false });
+    }
+  } catch (error) {
+    if (turn !== yearsTurn) return;
+    yearsGrid.replaceChildren();
+    yearsFailure.hidden = false;
+    yearsFailure.textContent =
+      error instanceof SearchError ? error.message : texts.transport.serviceFailed;
+  } finally {
+    if (turn === yearsTurn) yearsStatus.textContent = "";
+  }
+}
+
+/** The detail of the year clicked, in its window, anchored to `tile`. */
+function describe(answer, year, tile, { focus = true } = {}) {
+  const [temperature, rain] = detail(answer, year);
+  yearsDetail.dataset.year = String(year.year);
+  yearsHeading.textContent = `${year.year} : ${texts.years.heading(
+    present.dayMonth(year.start),
+    present.dayMonth(year.end),
+  ).toLowerCase()}`;
+  yearsTemperature.textContent = temperature;
+  yearsRain.textContent = rain ?? "";
+  yearsSimulated.hidden = year.origin !== "simulated";
+  yearsLink.href = url(year);
+  yearsLink.textContent = texts.years.see(year.year);
+  yearsDetail.hidden = false;
+  anchor = tile;
+  placeDetail();
+  if (focus) yearsClose.focus();
+}
+
+/** The tile the window belongs to, while it is open. */
+let anchor = null;
+
+/**
+ * Put the window over its tile, centred on it and inside the section; under
+ * the tile when there is no room above it.
+ */
+function placeDetail() {
+  if (!anchor || yearsDetail.hidden) return;
+  const frame = yearsSection.getBoundingClientRect();
+  const tile = anchor.getBoundingClientRect();
+  const width = yearsDetail.offsetWidth;
+  const height = yearsDetail.offsetHeight;
+  const gap = 8;
+
+  const centre = tile.left - frame.left + tile.width / 2;
+  const left = Math.max(gap, Math.min(centre - width / 2, frame.width - width - gap));
+  const above = tile.top - frame.top - height - gap;
+  const room = tile.top - height - gap >= 0; // room in the viewport above the tile
+  const top = room && above >= 0 ? above : tile.bottom - frame.top + gap;
+
+  yearsDetail.style.left = `${Math.round(left)}px`;
+  yearsDetail.style.top = `${Math.round(top)}px`;
+}
+
+/** Close the window, release the tile, and give it the focus back if the window had it. */
+function closeDetail() {
+  if (yearsDetail.hidden) return;
+  const had = yearsDetail.contains(document.activeElement);
+  yearsDetail.hidden = true;
+  delete yearsDetail.dataset.year;
+  anchor?.setAttribute("aria-pressed", "false");
+  if (had) anchor?.focus();
+  anchor = null;
+}
+
+yearsClose.addEventListener("click", closeDetail);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeDetail();
+});
+document.addEventListener("click", (event) => {
+  if (yearsDetail.hidden) return;
+  if (yearsDetail.contains(event.target) || event.target.closest?.(".year-tile")) return;
+  closeDetail();
+});
+window.addEventListener("resize", placeDetail);
+
+/** This page's own URL, on the dates of another year. */
+function url({ start, end }) {
+  const query = new URLSearchParams({
+    lieu: asked.place,
+    lat: String(asked.latitude),
+    lon: String(asked.longitude),
+    debut: start,
+    fin: end,
+  });
+  return `${window.location.pathname}?${query}`;
 }
 
 /**

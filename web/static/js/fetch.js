@@ -147,6 +147,11 @@ export function climate(asked, reference) {
   return ask("/api/climate", asked, { reference });
 }
 
+/** The same dates in every year from 1970 to 2100, beside `reference`. */
+export function years(asked, reference) {
+  return ask("/api/years", asked, { reference });
+}
+
 /** The seasonal normals of the same dates, at the same place, over the 30 years
  * starting in `reference` (one of those /api/config serves). */
 export function normals(asked, reference) {

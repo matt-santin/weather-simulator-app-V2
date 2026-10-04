@@ -140,6 +140,39 @@
       </section>
 
       <!--
+        Every year from 1970 to 2100: the dates of the search in each, one tile
+        per year, coloured by the anomaly to the reference period. Filled by
+        results.js and matrix.js; hidden until it is.
+      -->
+      <section id="years" class="climate-section" hidden>
+        <h2 id="years-title" class="climate-title"></h2>
+        <p id="years-intro" class="compare-note"></p>
+        <div id="years-grid" class="years-grid"></div>
+        <ul class="climate-legend">
+          <li><span class="years-scale" aria-hidden="true"></span><span data-text="years.legendCold"></span>, <span data-text="years.legendNear"></span>, <span data-text="years.legendWarm"></span></li>
+          <li><span class="climate-swatch years-simulated" aria-hidden="true"></span><span data-text="years.legendSimulated"></span></li>
+          <li><span class="climate-swatch years-none" aria-hidden="true"></span><span data-text="years.legendNone"></span></li>
+        </ul>
+        <p class="compare-note" data-text="years.thresholds"></p>
+        <p id="years-status" class="compare-note" aria-live="polite"></p>
+        <p id="years-failure" class="failure" role="alert" hidden></p>
+
+        <!--
+          The year clicked, in a small white window over the page, anchored to
+          its tile. Placed by results.js; closed by its button, Escape or a
+          click elsewhere.
+        -->
+        <div id="years-detail" class="years-popup" role="dialog" aria-labelledby="years-heading" hidden>
+          <button type="button" id="years-close" class="years-close" data-attr-aria-label="years.close"><span aria-hidden="true">×</span></button>
+          <p id="years-heading" class="years-heading"></p>
+          <p id="years-temperature"></p>
+          <p id="years-rain"></p>
+          <p id="years-simulated" class="compare-note" data-text="years.simulated" hidden></p>
+          <p><a id="years-link" href="/"></a></p>
+        </div>
+      </section>
+
+      <!--
         The days on screen, as a file.
 
         **Outside the comparison box on purpose.** It offers what is drawn

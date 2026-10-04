@@ -255,3 +255,48 @@ def test_the_climate_diagram_follows_the_reference(client: TestClient) -> None:
     assert (answer["reference"]["start_year"], answer["reference"]["end_year"]) == (1971, 2000)
     refused = client.get("/api/climate", params={**GRENOBLE, "start": "2026-06-21", "end": "2026-06-23"})
     assert refused.status_code != 200
+
+
+def test_the_year_classes_follow_the_thresholds() -> None:
+    from src.app.api import years
+    assert [years.temperature_class(s) for s in (-2, -1.5, -1, -0.49, 0, 0.5, 1.49, 1.5)] == [
+        "much_colder", "much_colder", "colder", "near", "near", "warmer", "warmer", "much_warmer"]
+    assert [years.rain_class(r) for r in (0.3, 0.5, 0.79, 0.8, 1.2, 1.21, 1.5, 1.6)] == [
+        "much_drier", "drier", "drier", "near", "near", "wetter", "wetter", "much_wetter"]
+
+
+def test_the_same_dates_move_to_every_year() -> None:
+    from src.app.api import years
+    assert years.shifted(date(2048, 2, 29), date(2048, 4, 30), 2047) == (date(2047, 2, 28), date(2047, 4, 30))
+    assert years.shifted(date(2046, 12, 21), date(2047, 3, 20), 1991) == (date(1991, 12, 21), date(1992, 3, 20))
+
+
+def test_every_year_from_1970_to_2100(client: TestClient) -> None:
+    response = client.get("/api/years", params={**GRENOBLE, "start": "2044-07-01", "end": "2044-07-10"})
+    assert response.status_code == 200
+    answer = response.json()
+    by_year = {y["year"]: y for y in answer["years"]}
+    assert sorted(by_year) == list(range(1970, 2101))
+    assert by_year[2026]["origin"] is None and by_year[2026]["temperature_mean"] is None
+    assert by_year[1985]["origin"] == "observed" and by_year[2085]["origin"] == "simulated"
+
+    # By brute force on the small store: tas from the 0.1 deg cell, ERA5 then CORDEX.
+    def mean(source, year):
+        days = [date(year, 7, d) for d in range(1, 11)]
+        return sum(expected(source, d, "tas", fine=True) for d in days) / len(days)
+
+    reference = [mean("era5", y) for y in range(1991, 2021)]
+    normal = sum(reference) / 30
+    sigma = (sum((t - normal) ** 2 for t in reference) / 29) ** 0.5
+    assert answer["temperature_normal"] == pytest.approx(normal, abs=0.051)
+    assert answer["temperature_sigma"] == pytest.approx(sigma, abs=0.006)
+    assert by_year[2085]["temperature_mean"] == pytest.approx(mean("cordex", 2085), abs=0.051)
+    assert by_year[2085]["temperature_anomaly"] == pytest.approx(mean("cordex", 2085) - normal, abs=0.11)
+
+
+def test_a_winter_running_into_2026_has_no_values(client: TestClient) -> None:
+    answer = client.get("/api/years", params={**GRENOBLE, "start": "2044-12-21", "end": "2045-03-20"}).json()
+    by_year = {y["year"]: y for y in answer["years"]}
+    assert by_year[2025]["temperature_mean"] is None  # 21/12/2025 to 20/03/2026
+    assert by_year[2100]["temperature_mean"] is None  # runs into 2101
+    assert by_year[2024]["temperature_mean"] is not None

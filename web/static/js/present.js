@@ -101,6 +101,7 @@ const FULL = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
   timeZone: "UTC",
 });
+const DAY_MONTH = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
 
 /** "samedi 14/07" — what a card carries: the weekday spelled out, the date not. */
 export function dayLabel(iso) {
@@ -115,6 +116,11 @@ export function monthLabel(iso) {
 /** "14 juillet 2046" — the header, where there is room. */
 export function fullDate(iso) {
   return FULL.format(new Date(iso));
+}
+
+/** "14 juillet": a date that recurs every year, in the matrix of years. */
+export function dayMonth(iso) {
+  return DAY_MONTH.format(new Date(iso));
 }
 
 /** "2046-07": what tells one month from the next, without parsing a date. */

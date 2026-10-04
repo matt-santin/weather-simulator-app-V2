@@ -204,6 +204,50 @@ export const texts = {
     loading: "Calcul du diagramme climatique…",
   },
 
+  // The matrix of years, under the climate diagram. The classes are the
+  // server's (`/api/years`); their words are here.
+  years: {
+    title: (place) => `Toutes les années à ${place}`,
+    intro: (from, to, reference, normal) =>
+      `Du ${from} au ${to}, chaque année de 1970 à 2100. Couleur : écart de la température ` +
+      `moyenne à celle de ${reference} (${normal} °C). Cliquez sur une année.`,
+    legendCold: "Plus froid",
+    legendNear: "Normale",
+    legendWarm: "Plus chaud",
+    legendSimulated: "Simulation (2027-2100)",
+    legendNone: "Indisponible",
+    temperature: {
+      much_colder: "bien plus froid",
+      colder: "plus froid",
+      near: "proche de la normale",
+      warmer: "plus chaud",
+      much_warmer: "bien plus chaud",
+    },
+    rain: {
+      much_drier: "bien plus sec",
+      drier: "plus sec",
+      near: "proche de la normale",
+      wetter: "plus humide",
+      much_wetter: "bien plus humide",
+    },
+    heading: (from, to) => `Du ${from} au ${to}`,
+    simulated: "Simulation, pas une prévision.",
+    temperatureLine: (mean, anomaly, reference, word) =>
+      `Température moyenne ${mean} °C, ${anomaly} °C par rapport à ${reference} : ${word}.`,
+    rainLine: (total, percent, word) =>
+      `Précipitations ${total} mm, ${percent} % de la normale : ${word}.`,
+    tileLabel: (year, mean, word) => `${year} : ${mean} °C, ${word}`,
+    unavailable: (year) => `${year} : données indisponibles`,
+    see: (year) => `Voir cette période en ${year}`,
+    close: "Fermer",
+    loading: "Calcul des années…",
+    thresholds:
+      "Température : proche de la normale à moins d'un demi-écart-type des années de " +
+      "référence, bien plus chaud ou froid au-delà d'un écart-type et demi. Précipitations : " +
+      "proche de la normale entre 80 et 120 %, bien plus sec sous 50 %, bien plus humide " +
+      "au-dessus de 150 %.",
+  },
+
   // The file the visitor takes away, and the words written in it.
   //
   // **`origin` is a column, so its three words are dictionary entries like any

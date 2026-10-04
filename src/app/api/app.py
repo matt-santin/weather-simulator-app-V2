@@ -1,4 +1,4 @@
-"""The HTTP layer: four endpoints and three pages, no state.
+"""The HTTP layer: five endpoints and three pages, no state.
 
     uvicorn src.app.api.app:app --port 8000
 
@@ -7,7 +7,8 @@ periods, maximum range, temperature scale, geocoding address. ``/api/days``
 reads one series from the store and returns the classified days;
 ``/api/normals`` serves the seasonal normals of the same dates (1971-2000,
 1981-2010 or 1991-2020). ``/api/climate`` serves the climate diagram
-of the place around the year searched.
+of the place around the year searched. ``/api/years`` serves the same dates in every
+year from 1970 to 2100.
 
 The store is opened at start-up, not on the first visit: a missing or
 unfinished array stops the boot rather than failing on a visitor. Geocoding
@@ -30,8 +31,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
-from src.app.api import climate, errors, normals, pipeline, validation
-from src.app.api.contract import Climate, Normals, Series
+from src.app.api import climate, errors, normals, pipeline, validation, years
+from src.app.api.contract import Climate, Normals, Series, Years
 from src.app.domain import thresholds
 from src.app.store import PERIODS, Store
 
@@ -171,6 +172,21 @@ def climate_diagram(
     search, cell = located(store, latitude, longitude, start, end, reference)
     middle = search.start + (search.end - search.start) / 2
     return climate.run(store, cell, middle.year, reference)
+
+
+@app.get("/api/years", response_model=Years)
+def every_year(
+    store: StoreDep,
+    latitude: Annotated[float, Query()],
+    longitude: Annotated[float, Query()],
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+    reference: Annotated[int, Query()] = normals.DEFAULT,
+) -> Years:
+    """The dates of the search in every year from 1970 to 2100, beside the
+    reference period (years.run)."""
+    search, cell = located(store, latitude, longitude, start, end, reference)
+    return years.run(store, cell, search.start, search.end, reference)
 
 
 # --- the pages and their files -----------------------------------------------
