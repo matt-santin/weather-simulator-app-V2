@@ -13,6 +13,7 @@ import {
   MAX_ZOOM,
   WHOLE,
   band,
+  boxFrame,
   grid,
   pan,
   projection,
@@ -36,11 +37,25 @@ describe("the bands", () => {
 
 describe("the projection", () => {
   it("is its own inverse", () => {
-    const view = projection({ west: -25, east: 45, south: 34, north: 72 }, 800);
+    const view = projection(boxFrame({ west: -25, east: 45, south: 34, north: 72 }), 800);
     const [x, y] = view.project(2.35, 48.85);
     const [lon, lat] = view.unproject(x, y);
     assert.ok(Math.abs(lon - 2.35) < 1e-9 && Math.abs(lat - 48.85) < 1e-9);
-    assert.deepEqual(view.project(-25, 72), [0, 0]);
+  });
+
+  it("holds the whole box inside the frame", () => {
+    const box = { west: -25, east: 45, south: 34, north: 72 };
+    const view = projection(boxFrame(box), 800);
+    for (const [lon, lat] of [[-25, 34], [-25, 72], [45, 34], [45, 72], [10, 72], [10, 34]]) {
+      const [x, y] = view.project(lon, lat);
+      assert.ok(x >= -1e-6 && x <= 800 + 1e-6 && y >= -1e-6 && y <= view.height + 1e-6, `${lon} ${lat}`);
+    }
+  });
+
+  it("closes the meridians in towards the north", () => {
+    const view = projection(boxFrame({ west: -25, east: 45, south: 34, north: 72 }), 800);
+    const width = (lat) => view.project(20, lat)[0] - view.project(0, lat)[0];
+    assert.ok(width(70) < width(40));
   });
 });
 

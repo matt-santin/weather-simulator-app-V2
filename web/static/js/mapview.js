@@ -11,9 +11,8 @@
  * 1 mm, the threshold of a rainy day (DRIAS, Météo-France), then 5, 10, 20 and
  * 50 mm; cloud cover in fifths.
  *
- * **The projection is the flattened one of the first map**: longitude scaled by
- * the cosine of 52° N, latitude as is. Over Europe it keeps shapes close
- * enough, and it is its own inverse in two lines, which the tooltip needs.
+ * **The projection is Lambert azimuthal equal-area centred on Europe**, with its
+ * inverse, which the tooltip needs.
  */
 
 /** One colour per band of temperature, from below the first edge to above the last. */
@@ -105,17 +104,92 @@ export function band(value, edges) {
   return index;
 }
 
-const K = Math.cos((52 * Math.PI) / 180);
+/**
+ * Lambert azimuthal equal-area, centred on Europe (52° N, 10° E), on the
+ * sphere: the projection of the European statistical maps (ETRS89-LAEA). The
+ * meridians close in towards the north and the parallels curve, so the map
+ * reads as a piece of the globe; areas are kept, which suits a share of cells.
+ */
+const CENTRE = { lat: 52, lon: 10 };
+const RAD = Math.PI / 180;
+const SIN0 = Math.sin(CENTRE.lat * RAD);
+const COS0 = Math.cos(CENTRE.lat * RAD);
 
-/** Map coordinates to pixels and back, for a box drawn `width` pixels wide. */
-export function projection(box, width) {
-  const scale = width / ((box.east - box.west) * K);
-  const height = (box.north - box.south) * scale;
+/** Longitude and latitude in degrees to the plane, in Earth radii. */
+export function laea(lon, lat) {
+  const phi = lat * RAD;
+  const dl = (lon - CENTRE.lon) * RAD;
+  const k = Math.sqrt(2 / (1 + SIN0 * Math.sin(phi) + COS0 * Math.cos(phi) * Math.cos(dl)));
+  return [
+    k * Math.cos(phi) * Math.sin(dl),
+    k * (COS0 * Math.sin(phi) - SIN0 * Math.cos(phi) * Math.cos(dl)),
+  ];
+}
+
+/** The plane back to longitude and latitude in degrees. */
+export function unlaea(x, y) {
+  const rho = Math.hypot(x, y);
+  if (rho === 0) return [CENTRE.lon, CENTRE.lat];
+  const c = 2 * Math.asin(Math.min(1, rho / 2));
+  const lat = Math.asin(Math.cos(c) * SIN0 + (y * Math.sin(c) * COS0) / rho);
+  const lon =
+    CENTRE.lon * RAD +
+    Math.atan2(x * Math.sin(c), rho * COS0 * Math.cos(c) - y * SIN0 * Math.sin(c));
+  return [lon / RAD, lat / RAD];
+}
+
+/**
+ * The frame: the rectangle, on the projected plane, around the given points
+ * (longitude, latitude), with a margin in degrees. The map page passes the
+ * corners of its cells, so that the land fills the frame and the empty corners
+ * the projection opens (Greenland, beyond the domain's eastern edge) are cut.
+ */
+export function frame(points, margin = 0) {
+  let left = Infinity;
+  let right = -Infinity;
+  let top = -Infinity;
+  let bottom = Infinity;
+  const offsets = [
+    [-margin, -margin],
+    [margin, margin],
+    [-margin, margin],
+    [margin, -margin],
+  ];
+  for (const [lon, lat] of points) {
+    for (const [dx, dy] of offsets) {
+      const [x, y] = laea(lon + dx, lat + dy);
+      left = Math.min(left, x);
+      right = Math.max(right, x);
+      top = Math.max(top, y);
+      bottom = Math.min(bottom, y);
+    }
+  }
+  return { left, right, top, bottom };
+}
+
+/** The frame around a box of longitudes and latitudes, edges walked a degree at a time. */
+export function boxFrame(box) {
+  const points = [];
+  for (let lon = box.west; lon <= box.east; lon += 1) {
+    points.push([lon, box.south], [lon, box.north]);
+  }
+  for (let lat = box.south; lat <= box.north; lat += 1) {
+    points.push([box.west, lat], [box.east, lat]);
+  }
+  return frame(points);
+}
+
+/** Map coordinates to pixels and back, for a frame drawn `width` pixels wide. */
+export function projection({ left, right, top, bottom }, width) {
+  const scale = width / (right - left);
   return {
     width,
-    height,
-    project: (lon, lat) => [(lon - box.west) * K * scale, (box.north - lat) * scale],
-    unproject: (x, y) => [box.west + x / (K * scale), box.north - y / scale],
+    height: (top - bottom) * scale,
+    project: (lon, lat) => {
+      const [x, y] = laea(lon, lat);
+      return [(x - left) * scale, (top - y) * scale];
+    },
+    unproject: (px, py) => unlaea(left + px / scale, top - py / scale),
   };
 }
 

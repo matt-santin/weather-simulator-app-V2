@@ -19,6 +19,7 @@ import {
   WHOLE,
   band,
   day,
+  frame,
   grid,
   pan,
   projection,
@@ -108,6 +109,12 @@ async function boot() {
     state.geometry = grid(cells);
     state.rings = shapes.rings;
     state.box = shapes.box;
+    // Framed on the cells, half a cell and a little sea around them.
+    const g = state.geometry;
+    state.frame = frame(
+      cells.rows.map((_, k) => [g.longitude(k), g.latitude(k)]),
+      g.step / 2 + 0.5,
+    );
   } catch (error) {
     fail(error);
     return;
@@ -273,7 +280,7 @@ function dateOf(index) {
  * what is left under the controls.
  */
 function mapWidth() {
-  const shape = projection(state.box, 1000);
+  const shape = projection(state.frame, 1000);
   const columns = window.matchMedia("(min-width: 1000px)").matches;
   const top = columns
     ? stage.getBoundingClientRect().top - document.documentElement.getBoundingClientRect().top
@@ -291,41 +298,78 @@ function redraw() {
 }
 
 /**
- * The cells of the current day as an image of the grid, one pixel per cell.
- * Kept until the day or the season changes: panning redraws it many times.
+ * The cells of the current day, one path per band, in the coordinates of the
+ * map drawn whole. In this projection a cell is a small quadrilateral, not a
+ * pixel: each is drawn from its four projected corners. Kept until the day,
+ * the season or the width changes: zooming and panning redraw it many times.
  */
-function cellImage() {
+function cellPaths(view) {
   const kept = state.image;
-  if (kept && kept.season === state.season && kept.current === state.current) return kept;
+  if (
+    kept &&
+    kept.season === state.season &&
+    kept.current === state.current &&
+    kept.width === view.width
+  ) {
+    return kept;
+  }
   const values = day(state.season.values, state.season.cells, state.current);
   const g = state.geometry;
-  const canvas = document.createElement("canvas");
-  canvas.width = g.cols;
-  canvas.height = g.rows;
-  const context = canvas.getContext("2d");
-  const image = context.createImageData(g.cols, g.rows);
-  const rgb = state.spec.colors.map((hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)));
+  const half = g.step / 2;
+  const paths = state.spec.colors.map(() => new Path2D());
   const hottest = [];
   for (let k = 0; k < values.length; k += 1) {
     if (values[k] === FILL) continue;
     const b = band(values[k] / 10, state.edges);
     if (state.spec.hatchTop && b === state.edges.length) hottest.push(k);
-    const [r, gr, bl] = rgb[b];
-    const p = g.at[k] * 4;
-    image.data[p] = r;
-    image.data[p + 1] = gr;
-    image.data[p + 2] = bl;
-    image.data[p + 3] = 255;
+    const lon = g.longitude(k);
+    const lat = g.latitude(k);
+    const path = paths[b];
+    const corners = [
+      view.project(lon - half, lat + half),
+      view.project(lon + half, lat + half),
+      view.project(lon + half, lat - half),
+      view.project(lon - half, lat - half),
+    ];
+    path.moveTo(...corners[0]);
+    path.lineTo(...corners[1]);
+    path.lineTo(...corners[2]);
+    path.lineTo(...corners[3]);
+    path.closePath();
   }
-  context.putImageData(image, 0, 0);
-  state.image = { season: state.season, current: state.current, canvas, hottest };
+  state.image = { season: state.season, current: state.current, width: view.width, paths, hottest };
   return state.image;
+}
+
+/** Meridians and parallels every 10°, faint, under the cells: seen on the sea. */
+function graticule(context, view, scale) {
+  const box = state.box;
+  context.save();
+  context.strokeStyle = "rgba(236, 231, 221, 0.12)";
+  context.lineWidth = 0.6 / scale;
+  context.beginPath();
+  for (let lon = Math.ceil(box.west / 10) * 10; lon <= box.east; lon += 10) {
+    for (let lat = box.south; lat <= box.north; lat += 1) {
+      const [x, y] = view.project(lon, lat);
+      if (lat === box.south) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+  }
+  for (let lat = Math.ceil(box.south / 10) * 10; lat <= box.north; lat += 10) {
+    for (let lon = box.west; lon <= box.east; lon += 1) {
+      const [x, y] = view.project(lon, lat);
+      if (lon === box.west) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+  }
+  context.stroke();
+  context.restore();
 }
 
 function draw() {
   const season = state.season;
   if (!season || stage.hidden) return;
-  const view = projection(state.box, mapWidth());
+  const view = projection(state.frame, mapWidth());
   const ratio = window.devicePixelRatio || 1;
   mapCanvas.width = Math.round(view.width * ratio);
   mapCanvas.height = Math.round(view.height * ratio);
@@ -342,11 +386,17 @@ function draw() {
   );
 
   const g = state.geometry;
-  const { canvas, hottest } = cellImage();
-  const [x0, y0] = view.project(g.west, g.north);
-  const [x1, y1] = view.project(g.west + g.cols * g.step, g.north - g.rows * g.step);
-  context.imageSmoothingEnabled = false;
-  context.drawImage(canvas, x0, y0, x1 - x0, y1 - y0);
+  graticule(context, view, z.scale);
+  const { paths, hottest } = cellPaths(view);
+  // Filled, then stroked in their own colour: neighbouring cells meet without
+  // the hairline gap antialiasing would leave between them.
+  context.lineWidth = 0.5 / z.scale;
+  paths.forEach((path, b) => {
+    context.fillStyle = state.spec.colors[b];
+    context.strokeStyle = state.spec.colors[b];
+    context.fill(path);
+    context.stroke(path);
+  });
 
   // 40 °C and above: the darkest colour, hatched, so that it never reads as a shadow.
   // Line widths are divided by the zoom: a stroke stays a hairline at any scale.
