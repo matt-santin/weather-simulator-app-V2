@@ -235,6 +235,7 @@ async function load() {
     );
     warning.hidden = answer.origin !== "simulated";
     stage.hidden = false;
+    player.hidden = false;
     show(Math.min(state.current, answer.days - 1));
   } catch (error) {
     if (turn !== state.asking) return;
@@ -266,14 +267,18 @@ function dateOf(index) {
 // --- the map ------------------------------------------------------------------
 
 /**
- * As wide as the column, unless the map would then run past the bottom of the
- * window: Europe is nearly square, so on a landscape screen the height is what
- * limits it. The player sits under the map, at its width.
+ * As wide as the middle column, unless the map would then run past the bottom
+ * of the window: Europe is nearly square, so on a computer screen the height is
+ * what limits it. With the three columns the map has the whole height; stacked,
+ * what is left under the controls.
  */
 function mapWidth() {
   const shape = projection(state.box, 1000);
-  const top = stage.getBoundingClientRect().top + window.scrollY;
-  const room = window.innerHeight - top - player.offsetHeight - 24;
+  const columns = window.matchMedia("(min-width: 1000px)").matches;
+  const top = columns
+    ? stage.getBoundingClientRect().top - document.documentElement.getBoundingClientRect().top
+    : stage.getBoundingClientRect().top + window.scrollY;
+  const room = window.innerHeight - top - 16;
   const width = Math.max(280, Math.min(mapMain.clientWidth, (room * 1000) / shape.height));
   mapMain.style.setProperty("--map-width", `${Math.floor(width)}px`);
   return Math.floor(width);
@@ -485,11 +490,19 @@ function tooltip([x, y]) {
 // --- the panel ----------------------------------------------------------------
 
 /**
- * One figure of the panel: the highest cell (and where), the median, or the
- * share of cells in the first band (dry, clear), as VARIABLES says.
+ * One figure of the panel: the highest or the lowest cell (and where), the
+ * median, or the share of cells in the first band (dry, clear), as VARIABLES
+ * says.
  */
 function figure(kind, s) {
   const g = state.geometry;
+  if (kind === "min") {
+    return {
+      label: texts.maps.figures.min[state.variable],
+      value: s.coldest === null ? "" : measure(s.coldest),
+      where: s.coldAt < 0 ? "" : where(g.latitude(s.coldAt), g.longitude(s.coldAt)),
+    };
+  }
   if (kind === "max") {
     return {
       label: texts.maps.figures.max[state.variable],
@@ -533,7 +546,7 @@ function panel() {
 
 function drawTimeline() {
   const width = timeline.clientWidth;
-  const height = 40;
+  const height = 56;
   const ratio = window.devicePixelRatio || 1;
   timeline.width = Math.round(width * ratio);
   timeline.height = Math.round(height * ratio);

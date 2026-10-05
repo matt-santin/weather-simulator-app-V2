@@ -265,8 +265,10 @@ export const texts = {
     figures: {
       max: {
         tasmax: "Maille la plus chaude",
-        tasmin: "Nuit la plus chaude",
         pr: "Maille la plus arrosée",
+      },
+      min: {
+        tasmin: "Maille la plus froide",
       },
       median: "Médiane des mailles",
       share: {

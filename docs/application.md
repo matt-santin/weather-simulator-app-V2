@@ -124,11 +124,13 @@ Page `/cartes`, reliée depuis l'accueil (en haut à droite : contour de l'Europ
 
 | Grandeur | Bandes | Panneau | Frise |
 |---|---|---|---|
-| Tx, Tn | celles du site (5 °C, `/api/config`), 40 °C et plus hachuré | maille la plus chaude, médiane | médiane |
+| Tx | celles du site (5 °C, `/api/config`), 40 °C et plus hachuré | maille la plus chaude, médiane | médiane |
+| Tn | 5 °C de -20 à 30 °C (12 couleurs : violets sous -5 °C, bleus jusqu'à 0 °C, orange et rouge au-dessus de 20 °C, seuil des nuits chaudes de `figures/climat/france_indicateurs.py`) | maille la plus froide, médiane | médiane |
 | Précipitations | moins de 1 mm (sec : seuil d'un jour de pluie, DRIAS et Météo-France), 1, 5, 10, 20, 50 mm et plus | maille la plus arrosée, part de mailles sèches | moyenne (la médiane est souvent nulle) |
 | Nébulosité | par 20 % | médiane, part de mailles à moins de 20 % | médiane |
 
 - Carte jour par jour (Tx, Tn et pluie : valeur du jour ; nébulosité : moyenne du jour), mailles terrestres de 0,25° (masque terre-mer ERA5 ≥ 0,5, dans le domaine CORDEX), cadre 25° O à 45° E, 34° N à 72° N : 19 249 mailles. Contours des pays : Natural Earth 1:50m (domaine public).
+- Mise en page sur ordinateur (1000 px et plus) : trois colonnes, réglages et lecteur à gauche, carte au centre sur toute la hauteur de la fenêtre, lecture du jour à droite ; rien au-dessus ni au-dessous de la carte. En dessous de 1000 px, tout s'empile.
 - Lecture, jour précédent et suivant, vitesse (1, 3 ou 8 jours par seconde), frise des jours (souris ou flèches du clavier). Survol : valeur et coordonnées de la maille. Panneau : les deux chiffres du tableau ci-dessus, répartition par bande. Mention « simulation » pour 2027-2100. Retour au site en haut à droite : soleil et nuage en traits (`web/static/icons/weather.svg`) et « Weather Simulator ». Zoom : molette, double-clic, pincement, boutons + et − et « voir toute l'Europe » ; glisser pour se déplacer, jusqu'à ×12 (on voit alors les mailles de 0,25°).
 - Sources : ERA5 (1970-2025), CORDEX corrigé contre ERA5 (2027-2100), à 0,25° ; pas ERA5-Land, réservé aux points.
 

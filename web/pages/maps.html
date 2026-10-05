@@ -9,14 +9,19 @@
     <script type="module" src="/static/js/maps.js"></script>
   </head>
   <!--
-    The map page: one season over Europe, day after day. Every sentence is
-    filled from the dictionary; the season and year travel in the URL
-    (?saison=summer&annee=2100) so that a map can be shared.
+    The map page: one variable over Europe, a season day after day. Every
+    sentence is filled from the dictionary; the variable, season and year travel
+    in the URL (?grandeur=tasmax&saison=summer&annee=2100) so that a map can be
+    shared.
+
+    Three columns on a computer screen: the controls on the left, the map in the
+    middle at the full height of the window (it is about as wide as it is tall,
+    so the height is what limits it), the reading on the right. Nothing above or
+    under the map. Stacked on a narrow screen.
   -->
   <body class="maps">
     <main class="maps-page">
-      <header class="maps-header">
-        <p class="maps-eyebrow" data-text="maps.eyebrow"></p>
+      <aside class="maps-left">
         <h1 id="maps-title" class="maps-title"></h1>
 
         <form id="maps-period" class="maps-period">
@@ -34,15 +39,22 @@
           </p>
         </form>
 
-        <!-- Back to the site: top right, a sun behind a cloud and the name. -->
-        <a class="maps-home" href="/">
-          <span class="maps-home-icon" aria-hidden="true"></span>
-          <span class="maps-home-text" data-text="maps.back"></span>
-        </a>
-      </header>
+        <p id="maps-status" class="maps-note" aria-live="polite"></p>
+        <p id="maps-failure" class="failure" role="alert" hidden></p>
 
-      <p id="maps-status" class="maps-note" aria-live="polite"></p>
-      <p id="maps-failure" class="failure" role="alert" hidden></p>
+        <div id="maps-player" class="maps-player" hidden>
+          <div class="maps-buttons">
+            <button type="button" id="maps-play" class="toggle" aria-pressed="false" data-text="maps.play"></button>
+            <button type="button" id="maps-prev" class="maps-step" data-attr-aria-label="maps.previous"><span aria-hidden="true">‹</span></button>
+            <button type="button" id="maps-next" class="maps-step" data-attr-aria-label="maps.next"><span aria-hidden="true">›</span></button>
+          </div>
+          <p class="maps-field">
+            <label for="maps-speed" data-text="maps.speed"></label>
+            <select id="maps-speed"></select>
+          </p>
+          <canvas id="maps-timeline" class="maps-timeline" tabindex="0" role="slider" data-attr-aria-label="maps.timeline"></canvas>
+        </div>
+      </aside>
 
       <section id="maps-stage" class="maps-stage" hidden>
         <div id="maps-main" class="maps-main">
@@ -55,40 +67,32 @@
               <button type="button" id="maps-zoom-whole" data-attr-aria-label="maps.zoomWhole" data-attr-title="maps.zoomWhole"><span aria-hidden="true">⤢</span></button>
             </div>
           </div>
-
-          <div id="maps-player" class="maps-player">
-            <button type="button" id="maps-play" class="toggle" aria-pressed="false" data-text="maps.play"></button>
-            <button type="button" id="maps-prev" class="maps-step" data-attr-aria-label="maps.previous"><span aria-hidden="true">‹</span></button>
-            <button type="button" id="maps-next" class="maps-step" data-attr-aria-label="maps.next"><span aria-hidden="true">›</span></button>
-            <p class="maps-field">
-              <label for="maps-speed" data-text="maps.speed"></label>
-              <select id="maps-speed"></select>
-            </p>
-            <canvas id="maps-timeline" class="maps-timeline" tabindex="0" role="slider" data-attr-aria-label="maps.timeline"></canvas>
-          </div>
         </div>
-
-        <aside class="maps-panel">
-          <p id="maps-warning" class="maps-warning" data-text="maps.simulated" hidden></p>
-          <p id="maps-date" class="maps-date"></p>
-          <p id="maps-day" class="maps-note"></p>
-          <dl class="maps-figures">
-            <div>
-              <dt id="maps-first-label"></dt>
-              <dd><span id="maps-first" class="maps-value"></span> <span id="maps-first-where" class="maps-note"></span></dd>
-            </div>
-            <div>
-              <dt id="maps-second-label"></dt>
-              <dd><span id="maps-second" class="maps-value"></span> <span id="maps-cells" class="maps-note"></span></dd>
-            </div>
-          </dl>
-          <p class="maps-label" data-text="maps.distribution"></p>
-          <ul id="maps-bands" class="maps-bands"></ul>
-        </aside>
-
       </section>
 
-      <p class="maps-note maps-source" data-text="maps.source"></p>
+      <aside class="maps-panel">
+        <!-- Back to the site: top right, a sun behind a cloud and the name. -->
+        <a class="maps-home" href="/">
+          <span class="maps-home-icon" aria-hidden="true"></span>
+          <span class="maps-home-text" data-text="maps.back"></span>
+        </a>
+        <p id="maps-warning" class="maps-warning" data-text="maps.simulated" hidden></p>
+        <p id="maps-date" class="maps-date"></p>
+        <p id="maps-day" class="maps-note"></p>
+        <dl class="maps-figures">
+          <div>
+            <dt id="maps-first-label"></dt>
+            <dd><span id="maps-first" class="maps-value"></span> <span id="maps-first-where" class="maps-note"></span></dd>
+          </div>
+          <div>
+            <dt id="maps-second-label"></dt>
+            <dd><span id="maps-second" class="maps-value"></span> <span id="maps-cells" class="maps-note"></span></dd>
+          </div>
+        </dl>
+        <p class="maps-label" data-text="maps.distribution"></p>
+        <ul id="maps-bands" class="maps-bands"></ul>
+        <p class="maps-note maps-source" data-text="maps.source"></p>
+      </aside>
     </main>
   </body>
 </html>

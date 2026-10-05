@@ -18,6 +18,7 @@ import {
   projection,
   summary,
   unzoom,
+  VARIABLES,
   zoomAt,
 } from "../../web/static/js/mapview.js";
 
@@ -95,5 +96,31 @@ describe("the zoom", () => {
     assert.deepEqual(pan(z, 10000, 10000, 800, 600), { scale: 2, x: 0, y: 0 });
     assert.deepEqual(pan(z, -10000, -10000, 800, 600), { scale: 2, x: -1, y: -1 });
     assert.deepEqual(pan(WHOLE, 50, 50, 800, 600), WHOLE);
+  });
+});
+
+describe("the scales of each variable", () => {
+  it("give one colour per band", () => {
+    for (const [name, spec] of Object.entries(VARIABLES)) {
+      if (spec.edges) assert.equal(spec.colors.length, spec.edges.length + 1, name);
+    }
+  });
+
+  it("run the minima from -20 to 30 °C, turning at frost and at warm nights", () => {
+    const { edges } = VARIABLES.tasmin;
+    assert.equal(edges[0], -20);
+    assert.equal(edges.at(-1), 30);
+    assert.ok(edges.includes(0) && edges.includes(20));
+    assert.equal(band(-0.1, edges), 4);
+    assert.equal(band(0, edges), 5);
+    assert.equal(VARIABLES.tasmin.first, "min");
+  });
+});
+
+describe("the coldest cell", () => {
+  it("is found beside the hottest one", () => {
+    const s = summary(Int16Array.from([-153, 405, FILL, 12]), EDGES);
+    assert.equal(s.coldest, -15.3);
+    assert.equal(s.coldAt, 0);
   });
 });

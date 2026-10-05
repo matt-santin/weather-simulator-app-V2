@@ -2795,35 +2795,51 @@ body.maps {
   font-family: var(--font);
 }
 
-/* As wide as the window: the map is the page. */
+/* Three columns on a computer screen: controls, map, reading. The map is about
+   as wide as it is tall, so the window's height is what limits it: nothing
+   stands above or under it, and the page does not scroll. Each side column
+   scrolls on its own if a short window cannot hold it. */
 .maps-page {
   display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr) 15rem;
+  gap: clamp(16px, 2vw, 28px);
+  align-items: start;
   max-width: none;
-  gap: calc(var(--space) * 3);
-  padding: calc(var(--space) * 4) clamp(12px, 2vw, 32px) calc(var(--space) * 8);
+  height: 100vh;
+  box-sizing: border-box;
+  padding: calc(var(--space) * 4) clamp(12px, 1.6vw, 24px);
 }
 
-/* One line when there is room: back, title, season and year. What is left of
-   the window's height goes to the map. */
-.maps-header {
+.maps-left,
+.maps-panel {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: calc(var(--space) * 2) calc(var(--space) * 6);
+  flex-direction: column;
+  gap: calc(var(--space) * 4);
+  max-height: calc(100vh - var(--space) * 8);
+  overflow-y: auto;
 }
 
-.maps-header .maps-eyebrow {
-  display: none;
+/* Stacked under 1000 px: controls, map, reading, and the page scrolls. */
+@media (max-width: 999px) {
+  .maps-page {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .maps-left,
+  .maps-panel {
+    max-height: none;
+    overflow: visible;
+  }
 }
 
-/* Back to the site, at the right end of the header line: the same outline
-   drawing as the link to the maps on the home page, beside its name rather than
-   over it, so that the header stays one line high. */
+/* Back to the site, at the top of the right column, against its right edge:
+   the same outline drawing as the link to the maps on the home page. */
 .maps-home {
   display: flex;
   align-items: center;
+  align-self: flex-end;
   gap: calc(var(--space) * 2);
-  margin-left: auto;
   color: var(--ink);
   font-size: var(--label-size);
   letter-spacing: var(--label-tracking);
@@ -2845,7 +2861,6 @@ body.maps {
   text-underline-offset: 4px;
 }
 
-.maps-eyebrow,
 .maps-label,
 .maps-field label,
 .maps-figures dt {
@@ -2860,29 +2875,29 @@ body.maps {
 .maps-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.6vw, 2.1rem);
+  font-size: clamp(1.3rem, 1.5vw, 1.6rem);
   font-weight: 400;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
+/* One field under the other, the label over its menu. */
 .maps-period {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(var(--space) * 3) calc(var(--space) * 6);
+  display: grid;
+  gap: calc(var(--space) * 3);
 }
 
 .maps-field {
-  display: flex;
-  align-items: baseline;
-  gap: calc(var(--space) * 2);
+  display: grid;
+  gap: calc(var(--space) * 1);
   margin: 0;
 }
 
 .maps-field select {
-  width: auto;
+  width: 100%;
+  font-size: 1rem;
 }
 
-/* In the panel, over the date: the map keeps the height. */
+/* In the panel, over the date. */
 .maps-warning {
   margin: 0;
   padding-block: calc(var(--space) * 2);
@@ -2901,41 +2916,15 @@ body.maps {
   display: none;
 }
 
-/* The map and its player take every pixel the panel leaves; maps.js sizes the
-   map to that width, or to the window's height when that is the tighter. */
-.maps-stage {
-  display: flex;
-  gap: clamp(16px, 2vw, 32px);
-  align-items: flex-start;
-}
-
+/* The middle column: maps.js sizes the map to its width, or to the window's
+   height when that is the tighter, and centres it. */
 .maps-main {
-  flex: 1 1 auto;
   min-width: 0;
 }
 
-.maps-panel {
-  flex: 0 0 15rem;
-}
-
-@media (max-width: 900px) {
-  .maps-stage {
-    flex-direction: column;
-  }
-
-  .maps-panel {
-    flex-basis: auto;
-    width: 100%;
-  }
-}
-
-.maps-map,
-.maps-player {
+.maps-map {
   width: var(--map-width, 100%);
   margin-inline: auto;
-}
-
-.maps-map {
   position: relative;
 }
 
@@ -2957,11 +2946,6 @@ body.maps {
   white-space: nowrap;
   pointer-events: none;
   transform: translate(12px, -110%);
-}
-
-.maps-panel {
-  display: grid;
-  gap: calc(var(--space) * 3);
 }
 
 .maps-date {
@@ -3027,12 +3011,20 @@ body.maps {
   text-align: right;
 }
 
+/* The player, in the left column: the buttons, the speed, then the days. */
 .maps-player {
-  display: flex;
-  margin-top: calc(var(--space) * 3);
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid;
   gap: calc(var(--space) * 3);
+}
+
+.maps-player[hidden] {
+  display: none;
+}
+
+.maps-buttons {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
 }
 
 .maps-step {
@@ -3048,8 +3040,7 @@ body.maps {
 
 /* On the line of the buttons, taking what they leave: one row under the map. */
 .maps-timeline {
-  flex: 1 1 12rem;
-  min-width: 0;
+  width: 100%;
   cursor: pointer;
 }
 
@@ -3069,7 +3060,9 @@ body.maps .toggle[aria-pressed="true"] {
 }
 
 .maps-source {
-  max-width: 78ch;
+  margin-top: auto;
+  font-size: 0.75rem;
+  line-height: 1.45;
 }
 
 /* Zoom: three buttons over the Atlantic, top left of the map. The map can be

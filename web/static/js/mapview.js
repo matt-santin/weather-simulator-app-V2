@@ -2,9 +2,12 @@
  * The arithmetic of the map page: bands, projection, the grid of cells, and the
  * summary of a day. No DOM, no fetching: `node --test` checks it.
  *
- * **Each variable has its bands.** The temperatures use the site's, served by
+ * **Each variable has its bands.** The maxima use the site's, served by
  * /api/config (the five degrees the cards and the chart use): nine colours for
- * eight edges, the last (40 °C and above) hatched by the page. Rain is cut at
+ * eight edges, the last (40 °C and above) hatched by the page. The minima keep
+ * five degrees but run colder, from -20 to 30 °C, with a clear turn at 0 °C
+ * (frost) and at 20 °C (warm nights, Tn > 20 °C as in
+ * figures/climat/france_indicateurs.py). Rain is cut at
  * 1 mm, the threshold of a rainy day (DRIAS, Météo-France), then 5, 10, 20 and
  * 50 mm; cloud cover in fifths.
  *
@@ -26,11 +29,28 @@ export const COLORS = [
   "#16100c",
 ];
 
+/** The minima: 12 colours for 11 edges, violet in the deep cold, blue to 0 °C. */
+export const MINIMA_EDGES = [-20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30];
+export const MINIMA_COLORS = [
+  "#efdff6",
+  "#c39bd3",
+  "#8e5cad",
+  "#4b3a8f",
+  "#1f4f9c",
+  "#4f95d0",
+  "#9fd0e6",
+  "#a6d36a",
+  "#f2ce1b",
+  "#f0902a",
+  "#d9452f",
+  "#8a0f0f",
+];
+
 /**
  * What each variable is drawn with. `edges: null` means the edges served by
  * /api/config for the temperatures. `first` and `second` are the two figures of
- * the panel: the highest cell, the median, or the share of cells in the first
- * band (dry, clear). `timeline` is what each day's bar shows.
+ * the panel: the highest or the lowest cell, the median, or the share of cells
+ * in the first band (dry, clear). `timeline` is what each day's bar shows.
  */
 export const VARIABLES = {
   tasmax: {
@@ -46,10 +66,10 @@ export const VARIABLES = {
   tasmin: {
     unit: "°C",
     decimals: 1,
-    colors: COLORS,
-    edges: null,
-    hatchTop: true,
-    first: "max",
+    colors: MINIMA_COLORS,
+    edges: MINIMA_EDGES,
+    hatchTop: false,
+    first: "min",
     second: "median",
     timeline: "median",
   },
@@ -134,12 +154,14 @@ export function day(values, cells, index) {
   return values.subarray(index * cells, (index + 1) * cells);
 }
 
-/** Highest cell, median, mean and the count of cells in each band, for one day. */
+/** Highest and lowest cells, median, mean and the count of cells in each band, for one day. */
 export function summary(tenths, edges) {
   const counts = new Array(edges.length + 1).fill(0);
   const sorted = [];
   let hottest = null;
   let at = -1;
+  let coldest = null;
+  let coldAt = -1;
   let total = 0;
   for (let k = 0; k < tenths.length; k += 1) {
     if (tenths[k] === FILL) continue;
@@ -151,11 +173,15 @@ export function summary(tenths, edges) {
       hottest = value;
       at = k;
     }
+    if (coldest === null || value < coldest) {
+      coldest = value;
+      coldAt = k;
+    }
   }
   sorted.sort((a, b) => a - b);
   const n = sorted.length;
   const median = n === 0 ? null : n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-  return { hottest, at, median, mean: n ? total / n : null, counts, cells: n };
+  return { hottest, at, coldest, coldAt, median, mean: n ? total / n : null, counts, cells: n };
 }
 
 /** How far the map zooms in, and the view it opens on. */
