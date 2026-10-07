@@ -8,12 +8,13 @@ Le site de la V1 (formulaire, page de résultats, documentation), branché sur l
 |---|---|---|
 | 1970-2025 | ERA5 ; températures : ERA5-Land | réanalyse |
 | 2026 | rien : « Données indisponibles » | |
-| 2027-2100 | CORDEX corrigé (`docs/correction.md`) | simulation, avec avertissement |
+| 2027-2100 | CORDEX corrigé (`docs/correction.md`) : EC-EARTH / RCA4, RCP4.5 | simulation, avec avertissement |
 
 - Une recherche porte sur 92 jours au plus, à l'intérieur d'une seule période. Une plage qui touche 2026, ou qui chevauche 2025 et 2026, est refusée entière.
 - Hors du domaine EUR-11 : « Lieu hors de la zone couverte (Europe) ».
 - Variables lues : `tasmax`, `tasmin`, `tas`, `pr`, `clt`, `hurs`, `sfcWind`. Règles d'affichage reprises de la V1 (classe de ciel, neige, bandes de température, chaleur humide) ; vent moyen à la place du vent maximal ; température humide calculée à partir de `tas` et `hurs`.
 - Comparaison aux normales de saison : voir section 5.
+- Changement de modèle décidé le 6/10/2026 : MPI-ESM1-2-HR / ICON-CLM (EUR-12, SSP3-7.0, `docs/choix_modele_cmip6.md`) remplacera RCA4 une fois corrigé. D'ici là, le site sert RCA4.
 
 ## 2. Deux grilles
 

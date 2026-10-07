@@ -46,7 +46,7 @@ Niveaux de réchauffement de la TRACC (France, par rapport à 1976-2005), même 
 ## 4. Causes et suite
 
 - RCP4.5 est un scénario de stabilisation : forçage quasi stable dès 2070-2080. Les modèles régionaux de cette génération gardent des aérosols constants et ignorent l'effet du CO2 sur la végétation, d'où un été trop frais [6, 7] ; aucune simulation ne reproduit la circulation qui chauffe l'Europe de l'Ouest [8].
-- Pour la suite, deux couples EURO-CORDEX-CMIP6 (EUR-12, environ 12 km) sont jugés plausibles par les critères de sélection d'EURO-CORDEX et déjà publiés sur ESGF, historique et quatre scénarios SSP compris : CNRM-ESM2-1 / ICON-CLM et MPI-ESM1-2-HR / ICON-CLM. À tester sur 2006-2025 avant adoption.
+- Pour la suite, deux couples EURO-CORDEX-CMIP6 (EUR-12, environ 12 km) sont jugés plausibles par les critères de sélection d'EURO-CORDEX et déjà publiés sur ESGF, historique et quatre scénarios SSP compris : CNRM-ESM2-1 / ICON-CLM et MPI-ESM1-2-HR / ICON-CLM. Testés du 4 au 6 octobre 2026 : MPI-ESM1-2-HR / ICON-CLM (SSP3-7.0) est retenu pour remplacer ce couple, voir `docs/choix_modele_cmip6.md`. Il partage le retard sur le réchauffement récent ; un ajustement sur la TRACC reste à décider.
 
 Scripts et données : `figures/climat/france_agregats.py`, `france_indicateurs.py`, `france_meteofrance.py`, `vagues_chaleur.py`, `txx_paris_lyon.py`.
 

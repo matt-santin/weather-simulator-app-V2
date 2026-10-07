@@ -21,6 +21,8 @@ ARCHIVE = Path(os.environ.get("WSA_ARCHIVE", "/Volumes/LaCie/weather-simulator-a
 MANIFEST = DATA / "archive.txt"
 
 CORDEX = DATA / "cordex" / "eur11"
+# CORDEX-CMIP6 run chosen 2026-10-06 (docs/choix_modele_cmip6.md): MPI-ESM1-2-HR driving ICON-CLM on EUR-12.
+CORDEX6 = DATA / "cordex" / "eur12_mpi-esm1-2-hr_icon-clm"
 ERA5 = DATA / "era5"
 ERA5LAND = DATA / "era5land"
 EOBS = DATA / "eobs"

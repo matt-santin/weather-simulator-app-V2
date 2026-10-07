@@ -54,6 +54,18 @@ clt_EUR-11_ICHEC-EC-EARTH_historical_r12i1p1_SMHI-RCA4_v1_day_19850101-19851231.
  └── variable
 ```
 
+#### Changement de modèle : CORDEX-CMIP6 (octobre 2026)
+
+Le couple EC-EARTH / RCA4 s'est révélé trop froid : 1,8 K de biais froid sur les Tx d'été en France (2006-2025, brut) et un réchauffement en retard de 15 à 20 ans sur le climat observé (`docs/resultats_rcp45.md`). Le 6/10/2026, il a été décidé de le remplacer par une simulation de la nouvelle génération EURO-CORDEX, pilotée par CMIP6 :
+pilote    `MPI-ESM1-2-HR`   (CMIP6, membre r1i1p1f1)
+régional  `ICON-CLM-202407-1-1` (CLMcom-DWD)
+domaine   `EUR-12`, 0,11°, soit 12 km (même type de grille que EUR-11, pôle tourné)
+scénario  `ssp370`, `historical` avant 2015
+
+Justification (modèles plus récents, aérosols variables, biais brut quasi nul sur la France, modèles globaux retenus par EURO-CORDEX et bien évalués, pas de palier des Tx d'été dans les années 2030-2040 contrairement à CNRM-ESM2-1) : `docs/choix_modele_cmip6.md`. CORDEX-CMIP6 n'est pas sur le CDS : les données viennent d'ESGF. Noms de fichiers, version, licence et attribution : `data/cordex/eur12_mpi-esm1-2-hr_icon-clm/PROVENANCE.md`. Ce modèle reste lui aussi en retard sur le réchauffement récent, comme toutes les simulations CMIP6 testées : un ajustement sur la TRACC est à décider.
+
+Le site sert RCA4 corrigé tant que MPI-ESM1-2-HR / ICON-CLM n'est pas corrigé.
+
 Les variables téléchargées sont les suivantes : 
 | Nom | Unité | Grandeur |
 |---|---|---|
@@ -100,7 +112,7 @@ Le site de la V1 est branché sur les données V2 (ERA5-Land et ERA5 1970-2025, 
 
 # Téléchargement des données
 
-CORDEX est téléchargé depuis le CDS, une requête par variable et par année ; ERA5 et ERA5-Land depuis Earth Data Hub (DestinE), en horaire, réduits en journalier (jours UTC) sur l'emprise EUR-11 ; E-OBS (validation) depuis KNMI.
+CORDEX est téléchargé depuis le CDS, une requête par variable et par année ; CORDEX-CMIP6 depuis ESGF, fichier par fichier tels qu'ESGF les découpe ; ERA5 et ERA5-Land depuis Earth Data Hub (DestinE), en horaire, réduits en journalier (jours UTC) sur l'emprise EUR-11 ; E-OBS (validation) depuis KNMI.
 Les données arrivent sur le Mac, puis sont transférées et vérifiées sur le disque externe LaCie (4 To, exFAT), qui n'a pas besoin de rester branché.
 
 | Fichier | Rôle |
@@ -109,11 +121,13 @@ Les données arrivent sur le Mac, puis sont transférées et vérifiées sur le 
 | `src/download/cordex.py` | télécharge CORDEX ; `python -m src.download.cordex 1970-2100` |
 | `src/download/era5.py` | télécharge ERA5 horaire et calcule les valeurs journalières, dont `si10`, `hurs`, `huss` et `zg500` ; `python -m src.download.era5 1970-2025` |
 | `src/download/era5land.py` | télécharge ERA5-Land (0,1°, terres) : `t2m`, Tx et Tn horaires, `d2m`, `hurs` ; `python -m src.download.era5land 1970-2025` |
+| `src/download/cordex6.py` | télécharge CORDEX-CMIP6 (MPI-ESM1-2-HR / ICON-CLM) depuis ESGF, contrôle SHA256, reprise des fichiers interrompus, arrêt sous 20 Go libres ; `python -m src.download.cordex6 tas tasmax --years 1970-2100` |
 | `src/download/eobs.py` | télécharge E-OBS (validation de la correction) |
 | `src/store/build.py` | construit le stockage de service du site (`data/serve/point.zarr`) |
-| `src/archive.py` | copie les fichiers terminés sur le disque externe, les vérifie (MD5), les inscrit dans l'inventaire ; `--free` libère le Mac |
+| `src/archive.py` | copie les fichiers terminés sur le disque externe, les vérifie (MD5), les inscrit dans l'inventaire ; `--free` libère le Mac ; un dossier en argument (`cordex/eur12_mpi-esm1-2-hr_icon-clm`) limite l'archivage à ce dossier |
 | `data/archive.txt` | inventaire des fichiers archivés (nom, taille, MD5) : les téléchargements sautent ce qui est déjà sur le disque |
 | `data/cordex/eur11/PROVENANCE.md` | origine des fichiers CORDEX (version ESGF, outils du CDS) |
+| `data/cordex/eur12_mpi-esm1-2-hr_icon-clm/PROVENANCE.md` | origine des fichiers CORDEX-CMIP6 (ESGF, version, licence, attribution) |
 | `data/*/collecte.log` | journaux des téléchargements |
 | `requirements.txt` | dépendances Python |
 
@@ -122,6 +136,8 @@ Les clés d'accès sont dans `~/.cdsapirc` (CDS) et `~/.edhrc` (Earth Data Hub).
 ## CORDEX
 
 Les données sont téléchargées depuis https://cds.climate.copernicus.eu/datasets/projections-cordex-domains-single-levels?tab=overview, avec le choix de modèle, de scénario, de région, etc., explicités ci-dessus. 
+
+CORDEX-CMIP6 (MPI-ESM1-2-HR / ICON-CLM) vient du nœud ESGF du DKRZ (HTTP, sans compte), trouvé par le catalogue STAC d'ESGF (https://api.stac.esgf.ceda.ac.uk, collection `CORDEX-CMIP6`). Le Mac ne peut pas tout contenir : télécharger avec le LaCie branché et archiver au fil de l'eau (`python -m src.archive --free cordex/eur12_mpi-esm1-2-hr_icon-clm`). Les instantanés locaux de Time Machine retiennent les fichiers supprimés : `tmutil thinlocalsnapshots / 300000000000 4` rend la place.
 
 ## ERA5 
 
@@ -136,11 +152,12 @@ Téléchargé depuis Earth Data Hub (`reanalysis-era5-land-no-antartica-v0`), 0,
 Au 02/10/2026, tout est sur le LaCie, vérifié (MD5) et listé dans `data/archive.txt` :
 - CORDEX : 1970-2100, 14 variables, 1834 fichiers, 168,9 Go ;
 - ERA5 : 1970-2025, 17 champs journaliers, 952 fichiers, 51,0 Go ; l'horaire n'est pas conservé ;
+- CORDEX-CMIP6 MPI-ESM1-2-HR / ICON-CLM (au 07/10/2026) : 1966-2100, 14 variables plus `sftlf` et `orog`, 394 fichiers, environ 322 Go, sur le LaCie seulement ; pas encore corrigé ;
 - ERA5-Land : 1970-2025, 5 champs journaliers, 280 fichiers, 41,2 Go ;
 - E-OBS v33.0e : 0,25° (sur le Mac et le LaCie) et 0,1° (sur le LaCie seulement) ;
 - stockage de service : 71 Go, aussi sur le Mac, lu par le site local.
 
-Seul `data/era5/_test` (janvier 1970, tests) reste sur le Mac.
+Restent seulement sur le Mac : `data/era5/_test` (janvier 1970, tests) et `data/cordex/mensuel` (9,7 Go : `tas` et `tasmax` mensuels des simulations CORDEX-CMIP6 comparées pour le choix du modèle, `figures/climat/cmip6_tri.py`).
 
 # Déploiement
 

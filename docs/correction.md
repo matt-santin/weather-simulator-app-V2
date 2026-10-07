@@ -2,6 +2,8 @@
 
 Correction de biais des 14 variables CORDEX (EUR-11, ICHEC-EC-EARTH r12i1p1 / SMHI-RCA4, `historical` puis `rcp_4_5`) contre la réanalyse ERA5, pour 1970-2100. Code dans `src/correction/`.
 
+Ce document décrit la correction de EC-EARTH / RCA4, celle que sert le site. Ce couple sera remplacé par MPI-ESM1-2-HR / ICON-CLM (EUR-12, SSP3-7.0, `docs/choix_modele_cmip6.md`), téléchargé le 7/10/2026 ; la chaîne est à reprendre pour lui (remappage depuis la grille EUR-12, puis mêmes étapes).
+
 Chaîne : remappage (`remap.py`), correction par quantiles (`qdm.py`), variables dérivées (`derive.py`), contrôles (`check.py`, `spells.py`, `violin.py`), scores de distribution et de cohérence spatiale (`scores.py`).
 
 ## 1. Principe

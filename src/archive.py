@@ -2,6 +2,8 @@
 
     python -m src.archive           copy and verify, keep the local copies
     python -m src.archive --free    same, then delete the verified local copies
+    python -m src.archive --free cordex/eur12_mpi-esm1-2-hr_icon-clm
+                                    only the files under that folder of DATA
 
 Run from the repo root, with the drive plugged in. Downloads keep landing in
 ./data on the Mac, so the drive need not stay plugged in.
@@ -46,9 +48,9 @@ def digest(path: Path, nocache: bool = False) -> str:
     return h.hexdigest()
 
 
-def local(pattern: str) -> list[tuple[Path, Path]]:
+def local(pattern: str, under: Path = DATA) -> list[tuple[Path, Path]]:
     out = []
-    for p in sorted(DATA.rglob(pattern)):
+    for p in sorted(under.rglob(pattern)):
         rel = p.relative_to(DATA)
         if any(part.startswith(("_", ".")) for part in rel.parts) or p == MANIFEST:
             continue
@@ -80,12 +82,17 @@ def copy(src: Path, dst: Path) -> None:
 
 def main(argv: list[str]) -> int:
     free = "--free" in argv
+    folders = [a for a in argv if not a.startswith("--")]
+    under = DATA / folders[0] if folders else DATA
+    if not under.is_dir():
+        print(f"Dossier absent : {under}")
+        return 1
     if not ARCHIVE.parents[1].exists():
         print(f"Disque absent : {ARCHIVE.parents[1]} introuvable.")
         return 1
 
     done, md5s = archived(), digests()
-    files = [(p, rel) for p, rel in local("*.nc") + stores()
+    files = [(p, rel) for p, rel in local("*.nc", under) + (stores() if under == DATA else [])
              if time.time() - p.stat().st_mtime >= SETTLE]
     todo = [(p, rel) for p, rel in files
             if str(rel) not in done or (".zarr" in str(rel) and digest(p) != md5s[str(rel)])]
