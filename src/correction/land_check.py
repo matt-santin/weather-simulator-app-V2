@@ -40,6 +40,7 @@ import xarray as xr
 from src.config import ARCHIVE
 from src.correction.land import OUT, VARS, land_file, load_weights, remapped
 from src.correction.land import REFERENCE
+from src.correction.models import MODEL
 from src.correction.qdm import calibrate, correct
 from src.correction.remap import yearly
 
@@ -47,7 +48,7 @@ STRIDE = 4
 EOBS = ARCHIVE / "eobs" / "0.1deg"
 EOBS_NAME = {"tasmax": "tx", "tasmin": "tn", "tas": "tg"}
 ERA5 = {"tasmax": "mx2t", "tasmin": "mn2t", "tas": "t2m"}
-OUT_025 = ARCHIVE / "cordex" / "eur11_025_qdm"
+OUT_025 = ARCHIVE / "cordex" / f"{MODEL.out}_025_qdm"
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
 MIN_VALID = 0.8
 ALTITUDES = [(-500, 500), (500, 1000), (1000, 1500), (1500, 5000)]

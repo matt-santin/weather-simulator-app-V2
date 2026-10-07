@@ -3,6 +3,7 @@
     python -m src.correction.land remap tasmax 1970-2100
     python -m src.correction.land qdm tasmax
     python -m src.correction.land swap          tasmin > tasmax days, once both are done
+    WSA_MODEL=mpi python -m src.correction.land ...   (src.correction.models)
 
 Run from the repo root, with the external drive plugged in. The 0.25 deg chain
 (src.correction.remap, qdm, derive) is left as it is: this one runs beside it,
@@ -46,6 +47,7 @@ import scipy.sparse as sp
 import xarray as xr
 
 from src.config import ARCHIVE, DATA
+from src.correction.models import MODEL
 from src.correction.qdm import CAL, LEVELS, NQ, VARS as VARS_025, WINDOW, YEARS, Var, calibrate, correct, window
 from src.correction.remap import MIN_COVER, SUB, source, to_geographic, yearly
 from src.download.era5 import years_from
@@ -53,9 +55,9 @@ from src.download.era5 import years_from
 LAND = ARCHIVE / "era5land" / "daily"
 GRID = LAND / "t2m_ERA5-Land_day_19700101-19701231.nc"
 WEIGHTS = DATA / "correction" / "poids_eur11_era5land.npz"
-REMAPPED = ARCHIVE / "cordex" / "eur11_010"
-OUT = ARCHIVE / "cordex" / "eur11_010_qdm"
-WORK = DATA / "correction" / "land"
+REMAPPED = ARCHIVE / "cordex" / f"{MODEL.out}_010"
+OUT = ARCHIVE / "cordex" / f"{MODEL.out}_010_qdm"
+WORK = DATA / "correction" / MODEL.tables / "land"
 BATCH = 40_000
 
 REFERENCE = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin"}
@@ -75,7 +77,7 @@ def land_file(field: str, year: int) -> Path:
 def build_weights() -> None:
     """remap.build_weights, onto the ERA5-Land grid; sea cells dropped."""
     src = xr.open_dataset(source("tas", 1970))
-    pole = src.rotated_pole.attrs
+    pole = src[src.tas.attrs["grid_mapping"]].attrs
     rlat, rlon = src.rlat.values, src.rlon.values
     grid = xr.open_dataset(GRID)
     lat, lon = grid.latitude.values, grid.longitude.values
@@ -145,7 +147,7 @@ def remap_year(name: str, year: int, w: sp.csr_matrix, keep: np.ndarray,
                               "latitude": grid.latitude, "longitude": grid.longitude})
     da.attrs = {k: v for k, v in src[name].attrs.items()
                 if k in ("standard_name", "long_name", "units", "cell_methods")}
-    da.attrs["remap"] = (f"area-weighted mean of CORDEX EUR-11 cells onto the ERA5-Land "
+    da.attrs["remap"] = (f"area-weighted mean of CORDEX {MODEL.domain} cells onto the ERA5-Land "
                          f"0.1 deg grid, land only, cells covered < {MIN_COVER:.0%} left missing")
     return da
 

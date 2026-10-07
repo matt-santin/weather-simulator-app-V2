@@ -1,6 +1,7 @@
 """Bias-correct remapped CORDEX daily fields against ERA5, by quantile delta mapping.
 
     python -m src.correction.qdm tas
+    WSA_MODEL=mpi python -m src.correction.qdm tas   (src.correction.models)
 
 Run from the repo root, after src.correction.remap, with the external drive
 plugged in.
@@ -64,11 +65,12 @@ import numpy as np
 import xarray as xr
 
 from src.config import ARCHIVE, DATA
+from src.correction.models import MODEL
 from src.correction.remap import load_weights, target as remapped
 
 TEST = os.environ.get("WSA_QDM_TEST") == "1"
-OUT = ARCHIVE / "cordex" / ("eur11_025_qdm_test" if TEST else "eur11_025_qdm")
-TABLES = DATA / "correction" / ("test" if TEST else "")
+OUT = ARCHIVE / "cordex" / (f"{MODEL.out}_025_qdm" + ("_test" if TEST else ""))
+TABLES = DATA / "correction" / MODEL.tables / ("test" if TEST else "")
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
 
 YEARS = range(1970, 2101)

@@ -1,9 +1,11 @@
-"""Remap CORDEX EUR-11 daily fields onto the ERA5 0.25 deg grid.
+"""Remap CORDEX daily fields onto the ERA5 0.25 deg grid.
 
     python -m src.correction.remap tas 1970-2100
+    WSA_MODEL=mpi python -m src.correction.remap tas 1970-2100
 
 Run from the repo root, with the external drive plugged in: CORDEX is read
-from it and the remapped files are written to it, in cordex/eur11_025.
+from it and the remapped files are written to it, in cordex/eur11_025 (or the
+folder of the run WSA_MODEL picks, src.correction.models), one file per year.
 
 Each ERA5 cell takes the area-weighted mean of the CORDEX cells that overlap
 it. Overlaps are measured by cutting every CORDEX cell into SUB x SUB
@@ -15,7 +17,8 @@ ERA5 cells that CORDEX covers for less than MIN_COVER of their area, along the
 edges of the rotated domain, are left missing.
 
 The weights are computed once, for every variable, and kept in
-data/correction/poids_eur11_era5.npz. Days are stamped at 00h, as in ERA5,
+data/correction/poids_eur11_era5.npz. They serve every run of
+src.correction.models, all on the same grid. Days are stamped at 00h, as in ERA5,
 where CORDEX stamps them at 12h.
 """
 
@@ -29,10 +32,10 @@ import scipy.sparse as sp
 import xarray as xr
 
 from src.config import ARCHIVE, DATA
+from src.correction.models import MODEL
 from src.download.era5 import years_from
 
-SRC = ARCHIVE / "cordex" / "eur11"
-OUT = ARCHIVE / "cordex" / "eur11_025"
+OUT = ARCHIVE / "cordex" / f"{MODEL.out}_025"
 WEIGHTS = DATA / "correction" / "poids_eur11_era5.npz"
 GRID = ARCHIVE / "era5" / "daily" / "t2m_ERA5_day_19700101-19701231.nc"
 
@@ -43,24 +46,8 @@ logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO, datefm
 log = logging.getLogger("remap")
 
 
-def yearly(name: str, year: int) -> str:
-    exp = "historical" if year <= 2005 else "rcp45"
-    return (f"{name}_EUR-11_ICHEC-EC-EARTH_{exp}_r12i1p1_SMHI-RCA4_v1_day_"
-            f"{year}0101-{year}1231.nc")
-
-
-def source(name: str, year: int) -> Path:
-    """The CORDEX file that holds that year: one per year from the CDS, five
-    per file from ESGF (sic, snc, ...)."""
-    path = SRC / yearly(name, year)
-    if path.exists():
-        return path
-    stem = yearly(name, year).rsplit("_", 1)[0]
-    for p in SRC.glob(stem + "_*.nc"):
-        start, end = p.stem.rsplit("_", 1)[1].split("-")
-        if int(start[:4]) <= year <= int(end[:4]):
-            return p
-    raise FileNotFoundError(f"{name} {year} absent de {SRC}")
+yearly = MODEL.yearly
+source = MODEL.source
 
 
 def target(name: str, year: int) -> Path:
@@ -84,7 +71,7 @@ def to_geographic(rlat: np.ndarray, rlon: np.ndarray, plat: float, plon: float):
 
 def build_weights() -> None:
     src = xr.open_dataset(source("tas", 1970))
-    pole = src.rotated_pole.attrs
+    pole = src[src.tas.attrs["grid_mapping"]].attrs
     rlat, rlon = src.rlat.values, src.rlon.values
     grid = xr.open_dataset(GRID)
     lat, lon = grid.latitude.values, grid.longitude.values
@@ -150,7 +137,7 @@ def remap(name: str, year: int, w: sp.csr_matrix, keep: np.ndarray,
                               "latitude": grid.latitude, "longitude": grid.longitude})
     da.attrs = {k: v for k, v in src[name].attrs.items()
                 if k in ("standard_name", "long_name", "units", "cell_methods")}
-    da.attrs["remap"] = (f"area-weighted mean of CORDEX EUR-11 cells onto the ERA5 0.25 deg "
+    da.attrs["remap"] = (f"area-weighted mean of CORDEX {MODEL.domain} cells onto the ERA5 0.25 deg "
                          f"grid, cells covered < {MIN_COVER:.0%} left missing")
     return da
 
