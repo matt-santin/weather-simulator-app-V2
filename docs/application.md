@@ -14,7 +14,7 @@ Le site de la V1 (formulaire, page de résultats, documentation), branché sur l
 - Hors du domaine EUR-11 : « Lieu hors de la zone couverte (Europe) ».
 - Variables lues : `tasmax`, `tasmin`, `tas`, `pr`, `clt`, `hurs`, `sfcWind`. Règles d'affichage reprises de la V1 (classe de ciel, neige, bandes de température, chaleur humide) ; vent moyen à la place du vent maximal ; température humide calculée à partir de `tas` et `hurs`.
 - Comparaison aux normales de saison : voir section 5.
-- Changement de modèle décidé le 6/10/2026 : MPI-ESM1-2-HR / ICON-CLM (EUR-12, SSP3-7.0, `docs/choix_modele_cmip6.md`) remplacera RCA4 une fois corrigé. D'ici là, le site sert RCA4.
+- Changement de modèle décidé le 6/10/2026 : MPI-ESM1-2-HR / ICON-CLM (EUR-12, SSP3-7.0, `docs/choix_modele_cmip6.md`) remplacera RCA4. Corrigé les 7 et 8/10/2026 (`docs/correction.md`, section 10) ; restent quelques décisions de correction et la reconstruction du stockage de service. D'ici là, le site sert RCA4.
 
 ## 2. Deux grilles
 

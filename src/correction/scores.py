@@ -3,15 +3,16 @@
     python -m src.correction.scores tas
     python -m src.correction.scores tas 44 48 4 10      only the cells in that box (lat, lon)
 
-Both on the split sample of src.correction.check: the correction calibrated on
-1970-1987 and applied to 1988-2005, compared with ERA5 1988-2005 (derived
-variables: their final files, calibrated on 1970-2005).
+Both on the split sample of src.correction.check (qdm.HALVES; 1970-1987 and
+1988-2005 for RCA4): the correction calibrated on the first half and applied
+to the second, compared with ERA5 on the second (derived variables: their
+final files, calibrated on CAL).
 
 1. Distributions, per cell and calendar month. The Wasserstein distance
    W1 = mean over tau of |Q_A(tau) - Q_B(tau)|, the mean gap between quantiles
    of same rank, in the unit of the variable, for ERA5 against raw and
-   against corrected. Its floor is W1 between ERA5 1970-1987 and ERA5
-   1988-2005: what two 18-year samples of the real climate already differ
+   against corrected. Its floor is W1 between ERA5 on the two halves:
+   what two samples of the real climate already differ
    by (internal variability and trend). A correction cannot do better. For
    precipitation, the gap in wet-day frequency, then W1 on wet days only.
 2. Spatial coherence, per season. Daily anomalies (to the mean of each cell
@@ -36,10 +37,10 @@ from matplotlib.colors import LogNorm
 
 from src.config import ARCHIVE
 from src.correction.check import corrected, raw
-from src.correction.qdm import TABLES, VARS, calibrate, correct, quantiles, reference
+from src.correction.qdm import HALVES, LABELS, TABLES, VARS, calibrate, correct, quantiles, reference
 from src.correction.remap import load_weights
 
-CAL, VAL = range(1970, 1988), range(1988, 2006)
+CAL, VAL = HALVES
 LAGS = (1, 2, 4, 8)  # in 0.25 deg cells, about 28, 56, 110, 220 km north-south
 SEASONS = {"DJF": (12, 1, 2), "MAM": (3, 4, 5), "JJA": (6, 7, 8), "SON": (9, 10, 11)}
 MIN_WET = 30  # wet days in each sample, under which W1 on wet days is not computed
@@ -102,8 +103,8 @@ def distributions(name, data, reg):
         out[m] = res
 
     what = f"W1{' sur les jours de pluie' if v.wet is not None else ''}, en {unit}"
-    print(f"1. Distributions, 1988-2005 contre ERA5 1988-2005 (correction calibree sur 1970-1987)")
-    print(f"   {what}, mediane sur les mailles : plancher (ERA5 1970-1987) | brut | corrige ;"
+    print(f"1. Distributions, {LABELS[1]} contre ERA5 {LABELS[1]} (correction calibree sur {LABELS[0]})")
+    print(f"   {what}, mediane sur les mailles : plancher (ERA5 {LABELS[0]}) | brut | corrige ;"
           " part des mailles au plancher (W1 <= plancher) : brut | corrige")
     for r, mask in reg.items():
         print(f"\n   {r} ({mask.sum()} mailles)")
@@ -117,7 +118,7 @@ def distributions(name, data, reg):
                 m, np.median(f[ok]), np.median(b[ok]), np.median(c[ok]),
                 100 * np.mean(b[ok] <= f[ok]), 100 * np.mean(c[ok] <= f[ok])))
     if v.wet is not None:
-        print("\n   Frequence des jours de pluie (>= 1 mm), ecart a ERA5 1988-2005 en points, "
+        print(f"\n   Frequence des jours de pluie (>= 1 mm), ecart a ERA5 {LABELS[1]} en points, "
               "mediane des valeurs absolues : plancher | brut | corrige")
         for r, mask in reg.items():
             print(f"   {r:14s} " + " ".join(
@@ -164,7 +165,7 @@ def spatial(name, data, cells, shape, reg):
         kinds.append(("occurrence", lambda x, mo: anomalies((x >= v.wet).astype("float32"), mo)))
     out = {}
     for kind, f in kinds:
-        print(f"\n2. Coherence spatiale ({kind}), 1988-2005 : correlation avec les voisines a "
+        print(f"\n2. Coherence spatiale ({kind}), {LABELS[1]} : correlation avec les voisines a "
               f"{', '.join(str(k) for k in LAGS)} mailles, mediane sur les mailles, ERA5 / brut / corrige")
         for s, months in SEASONS.items():
             sel = np.isin(mv, months)
@@ -204,7 +205,7 @@ def draw(name, cells, keep, dist, spat):
             axes[i, j].set_title(f"{s}, correlation avec la voisine, {title}")
     fig.colorbar(im, ax=axes[:, :2], shrink=0.6, label="rapport au plancher (rouge : au-dessus)")
     fig.colorbar(im2, ax=axes[:, 2:], shrink=0.6, label="ecart de correlation")
-    fig.suptitle(f"{name} : distance aux distributions et coherence spatiale, 1988-2005")
+    fig.suptitle(f"{name} : distance aux distributions et coherence spatiale, {LABELS[1]}")
     TABLES.mkdir(parents=True, exist_ok=True)
     path = TABLES / f"{name}_scores.png"
     fig.savefig(path, dpi=80)

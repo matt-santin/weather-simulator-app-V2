@@ -1,4 +1,4 @@
-"""Dry spells of ERA5, raw and corrected CORDEX, 1970-2005, by season.
+"""Dry spells of ERA5, raw and corrected CORDEX, on CAL (1970-2005 for RCA4), by season.
 
     python -m src.correction.spells
 
@@ -24,10 +24,10 @@ from matplotlib.colors import LogNorm
 
 from src.config import ARCHIVE
 from src.correction.check import corrected, raw, run_max
-from src.correction.qdm import DAY, TABLES, reference
+from src.correction.qdm import CAL, DAY, TABLES, reference
 from src.correction.remap import load_weights
 
-YEARS = range(1970, 2006)
+YEARS = range(CAL[0], CAL[1] + 1)
 SEASONS = {"DJF": (12, 1, 2), "MAM": (3, 4, 5), "JJA": (6, 7, 8), "SON": (9, 10, 11)}
 MM = 1 / DAY
 

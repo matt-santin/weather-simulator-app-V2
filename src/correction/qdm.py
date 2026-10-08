@@ -76,6 +76,10 @@ ERA5_DAILY = ARCHIVE / "era5" / "daily"
 
 YEARS = range(1970, 2101)
 CAL = (1970, MODEL.hist_end)
+# Split sample of the checks: CAL cut in two halves (1970-1987 and 1988-2005 for RCA4).
+SPLIT = (CAL[0] + CAL[1] + 1) // 2
+HALVES = (range(CAL[0], SPLIT), range(SPLIT, CAL[1] + 1))
+LABELS = tuple(f"{h[0]}-{h[-1]}" for h in HALVES)
 WINDOW = 30
 NQ = 100
 LEVELS = (np.arange(NQ) + 0.5) / NQ

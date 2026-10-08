@@ -2,7 +2,7 @@
 
 Correction de biais des 14 variables CORDEX (EUR-11, ICHEC-EC-EARTH r12i1p1 / SMHI-RCA4, `historical` puis `rcp_4_5`) contre la réanalyse ERA5, pour 1970-2100. Code dans `src/correction/`.
 
-Ce document décrit la correction de EC-EARTH / RCA4, celle que sert le site. Ce couple sera remplacé par MPI-ESM1-2-HR / ICON-CLM (EUR-12, SSP3-7.0, `docs/choix_modele_cmip6.md`), téléchargé le 7/10/2026 ; la chaîne est à reprendre pour lui (remappage depuis la grille EUR-12, puis mêmes étapes).
+Ce document décrit la correction de EC-EARTH / RCA4, celle que sert le site. Ce couple sera remplacé par MPI-ESM1-2-HR / ICON-CLM (EUR-12, SSP3-7.0, `docs/choix_modele_cmip6.md`), téléchargé le 7/10/2026. La même chaîne lui a été appliquée les 7 et 8/10/2026, calibrée sur 1970-2014 : section 10. Les sections 1 à 9 décrivent RCA4, sauf mention contraire.
 
 Chaîne : remappage (`remap.py`), correction par quantiles (`qdm.py`), variables dérivées (`derive.py`), contrôles (`check.py`, `spells.py`, `violin.py`), scores de distribution et de cohérence spatiale (`scores.py`).
 
@@ -14,11 +14,13 @@ CORDEX (0,11°, grille en pôle tourné) est ramené sur la grille ERA5 (0,25°)
 
 `python -m src.correction.remap <variable> 1970-2100`
 
+La variable d'environnement `WSA_MODEL` choisit la simulation (`src/correction/models.py`) : `rca4` par défaut, `mpi` pour MPI / ICON. Elle vaut pour toute la chaîne (`remap`, `qdm`, `land`, `derive`, `check`, `scores`, `spells`, `land_check`, `diagnostic`). Les deux simulations ont la même grille en pôle tourné : les poids de remappage servent aux deux.
+
 ### Quantile delta mapping (QDM)
 
 Méthode de Cannon et al. (2015), appliquée séparément pour chaque maille et chaque mois calendaire.
 
-**Calibration, une fois pour toutes, sur 1970-2005.** Pour un mois donné (par exemple janvier), on prend tous les jours de ce mois sur 36 ans, soit environ 1 100 jours. On calcule 100 quantiles de la distribution ERA5 (Q_ERA5) et 100 quantiles de la distribution CORDEX (Q_CORDEX).
+**Calibration, une fois pour toutes, sur 1970 à la dernière année `historical` de la simulation** (1970-2005 pour RCA4, 1970-2014 pour MPI / ICON ; `CAL` dans `qdm.py`). Pour un mois donné (par exemple janvier), on prend tous les jours de ce mois sur 36 ans, soit environ 1 100 jours. On calcule 100 quantiles de la distribution ERA5 (Q_ERA5) et 100 quantiles de la distribution CORDEX (Q_CORDEX).
 
 Q(τ) est la valeur sous laquelle se trouvent une proportion τ des jours. On compare donc des valeurs de quantiles, pas des moyennes.
 
@@ -368,6 +370,10 @@ MBCn (Cannon 2018) corrige plusieurs variables ensemble : QDM univarié de chaqu
 
 Pas de décision prise. Scripts : `data/correction/tests_mbcn/` (non versionnés).
 
+### Nombre de quantiles de `pr` (MPI / ICON)
+
+Pour réduire le bruit de calibration de l'intensité de `pr` (section 10), la validation croisée a été refaite avec 20 et 50 quantiles au lieu de 100. W1 corrigé sur les jours de pluie, Europe terre, médiane : 0,676 (100), 0,674 (50), 0,670 (20) mm/j, plancher 0,450. Aucun gain : le bruit vient de l'échantillon de calibration lui-même, pas du nombre de quantiles. 100 quantiles gardés.
+
 ### Validation par tirage d'années au hasard
 
 18 ans de calibration, 18 de validation, tirage répété, en plus du découpage chronologique : proposée, non retenue pour le moment.
@@ -394,7 +400,11 @@ Classes proposées, seuils à fixer : vert au-dessus de 0,5, orange de 0 à 0,5,
 
 Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Au 29/09/2026 : 7 variables validées contre E-OBS sur 1970-2005 et 2006-2024. Au 02/10/2026 : `tas`, `tasmax` et `tasmin` corrigés et validés à 0,1° contre ERA5-Land (section 9). Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
 
-Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le Mac se met en veille profonde, ce qui suspend le calcul et peut provoquer un message de disque mal éjecté. Durées observées : remappage 8 min par variable, QDM 32 à 43 min, `check` 4 à 8 min, `scores` 2 à 5 min.
+MPI / ICON (section 10) : remappé le 7/10/2026 ; températures corrigées et validées à 0,1° le 8/10/2026 ; les 14 variables et `alb` corrigés à 0,25°, variables dérivées calculées, `check`, `scores` et `spells` faits le 8/10/2026. Restent les décisions de la section 10, la validation contre E-OBS à 0,25° et la bascule du site.
+
+Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le Mac se met en veille profonde, ce qui suspend le calcul et peut provoquer un message de disque mal éjecté. Durées observées : remappage 8 min par variable, QDM 32 à 43 min, `check` 4 à 8 min, `scores` 2 à 5 min. MPI / ICON (45 ans de calibration) : remappage 3,4 s par année à 0,25°, 9 s à 0,1° ; QDM 32 à 43 min à 0,25°, environ 1 h 40 par variable à 0,1° ; `check` 4 à 10 min, `scores` 3 à 8 min.
+
+Les fichiers temporaires du QDM (10 Go à 0,25°, 56 Go à 0,1°) sont effacés à la fin, mais les instantanés locaux de Time Machine les retiennent : `tmutil thinlocalsnapshots / 300000000000 4` rend la place.
 
 ## 9. Températures à 0,1° contre ERA5-Land
 
@@ -465,6 +475,157 @@ Exemples à la maille du lieu, moyenne 2006-2024 :
 
 **`hurs` à 0,1°, non retenu.** Validation croisée moins bonne qu'à 0,25° en été (biais corrigé +1,8 à +2,4 points de mai à août, contre +0,5 à +1) ; aucun gain mesurable contre E-OBS, dont l'humidité est peu fiable en altitude (10 à 20 points d'erreur pour toutes les sources). La température humide est donc calculée avec `tas` à 0,1° et `hurs` à 0,25°.
 
+## 10. MPI-ESM1-2-HR / ICON-CLM
+
+Simulation retenue le 6/10/2026 (`docs/choix_modele_cmip6.md`). Même chaîne que RCA4, avec `WSA_MODEL=mpi`.
+
+### Mise en œuvre
+
+| | RCA4 | MPI / ICON |
+|---|---|---|
+| Fin de `historical` | 2005 | 2014 |
+| Calibration (`CAL`) | 1970-2005 | 1970-2014 (45 ans) |
+| Validation croisée | 1970-1987, puis 1988-2005 | 1970-1991, puis 1992-2014 |
+| Contre E-OBS (années non vues) | 2006-2024 | 2015-2025 |
+| Fichiers remappés | `eur11_025/`, `eur11_010/` | `eur12_mpi_025/`, `eur12_mpi_010/` (gardés) |
+| Fichiers corrigés | `eur11_025_qdm/`, `eur11_010_qdm/` | `eur12_mpi_025_qdm/`, `eur12_mpi_010_qdm/` |
+| Tables et journaux | `data/correction/` | `data/correction/mpi/` |
+
+Les deux grilles sont identiques (412 × 424 mailles, pôle 39,25 N 162 W, coordonnées égales à 4e-15° près). Les fichiers ESGF, par blocs de 5 ans, sont lus année par année. Les fichiers remappés de MPI / ICON sont gardés : ils permettront de recalculer les quantiles de chaque fenêtre de 30 ans pour un éventuel ajustement sur la TRACC.
+
+### Diagnostic du brut
+
+`python -m src.correction.diagnostic bias <variable>` (contre ERA5 à 0,25°), `land <variable>` (contre ERA5-Land à 0,1°), `step` (marche au début du scénario). Sorties dans `data/correction/mpi/diagnostic/` : journal, statistiques par maille et par mois, cartes du biais de la moyenne en janvier, avril, juillet et octobre.
+
+Biais brut, modèle moins référence, 1970-2014, moyenne sur les mailles :
+
+| | Europe terre, janvier | Europe terre, juillet | France, janvier | France, juillet |
+|---|---|---|---|---|
+| Tx (0,1°) | −0,7 K | +0,9 K | +0,3 K | +0,6 K |
+| Tn (0,1°) | −0,8 K | −0,4 K | +0,7 K | 0,0 K |
+| `pr` | +3 % | −28 % | +18 % | −24 % |
+| jours de pluie ≥ 1 mm | −1 pt | −8 pts | +2 pts | −8 pts |
+| `hurs` | −3,6 pts | −3,4 pts | −4,7 pts | −0,6 pt |
+| `rsds` | −6 % | −2 % | −8 % | −3,5 % |
+| albédo | −0,06 | −0,02 | −0,06 | −0,03 |
+| `zg500` | −30 m | +7 m | −15 m | +13 m |
+
+Températures : hiver trop froid au nord-est (Russie, Finlande : Tx de janvier sous −4 K), Tx d'été trop chaud au sud-est (Balkans, Turquie, Afrique du Nord : au-delà de +4 K). Été trop sec. Albédo trop bas sur toutes les terres, même en été.
+
+**Queue froide** (critère de la section 5) : 2 000 à 2 300 mailles à 0,25° selon la température, presque toutes en mer au nord de 60 N (banquise), 55 à 110 sur terre. À 0,1° : 580 à 710 mailles de terre, toutes au nord de 60 N. Le défaut de la neige sur terre, le plus gênant pour RCA4, devient marginal.
+
+**Marche en 2015** (droite plus marche sur les moyennes annuelles 1995-2034) : seule `rsds` a une marche nette, −3,3 ± 1,9 W/m² sur l'Europe terre ; défaut des aérosols d'ICON, accepté (`docs/choix_modele_cmip6.md`, section 4).
+
+**Comparaison au brut de RCA4**, même diagnostic sur 1970-2005 (`data/correction/comparaison_1970-2005/`). Erreur typique = RMS du biais sur les mailles et les 12 mois.
+
+| France | RCA4 | MPI / ICON |
+|---|---|---|
+| `tas`, biais d'été | −2,6 K | −0,4 K |
+| `tas`, erreur typique | 2,3 K | 0,8 K |
+| Tx, erreur typique | 1,9 K | 0,8 K |
+| Tn d'été, biais | −3,2 K | −0,1 K |
+| `sfcWind`, biais d'hiver | +55 % | +8 % |
+| `rsds`, biais d'hiver | +21 % | −13 % |
+| `clt`, biais d'été | −12 pts | +3 pts |
+| `pr`, biais d'été | +6 % | −18 % |
+| `hurs`, biais d'hiver | +0,7 pt | −4,1 pts |
+
+MPI / ICON brut est plus proche d'ERA5 sur presque toutes les variables ; il est moins bon sur la pluie d'été et l'humidité relative. Queue froide sur terre (`tas`) : 4 164 mailles pour RCA4, 110 pour MPI / ICON.
+
+### Températures à 0,1° contre ERA5-Land
+
+`WSA_MODEL=mpi python -m src.correction.land qdm tasmax`, puis `swap`, puis `land_check`. Journaux dans `data/correction/mpi/land/`. Échange Tn/Tx : 8,4 millions de valeurs, 0,1 % des jours-mailles (RCA4 : 1,1 %).
+
+- **Validation croisée** (calibration 1970-1991, test 1992-2014) : biais moyen corrigé de −1,0 à +0,3 K selon le mois ; RMS entre mailles divisé par 1,5 à 4 (juillet : Tx 2,0 → 0,8 K, Tn 2,7 → 0,6 K) ; W1 au plancher ou dessous. Le corrigé reste trop froid de 0,4 à 0,55 K en été : ERA5-Land se réchauffe plus vite que le modèle entre les deux moitiés.
+- **Signal** 2071-2100 contre 1976-2005 conservé à 0,05 K près : Tx +3,8 K en hiver, +3,5 K en été ; Tn +4,3 K et +3,3 K (moyenne des mailles de terre du domaine).
+- **Contre E-OBS, 2015-2025**, plaine (< 500 m) : Tx −1,1 K en janvier, −1,3 K en juillet (ERA5-Land : −0,5 et −1,0 K) ; Tn 0,0 et +0,9 K (ERA5-Land : +0,3 et +1,2 K). L'écart du Tx d'été vient surtout d'ERA5-Land ; s'y ajoutent 0,3 à 0,6 K de retard du modèle sur le réchauffement récent. Paris, Tx moyen de juillet 2015-2025 : E-OBS 26,6 °C, ERA5-Land 25,1 °C, corrigé 23,8 °C.
+
+### Toutes les variables à 0,25° contre ERA5
+
+Journaux dans `data/correction/mpi/` (`qdm_*`, `derive_*`, `check_*`, `scores_*`, `pr_spells.log`). Échange Tn/Tx : 2,97 millions de valeurs.
+
+Validation croisée (calibration 1970-1991, test 1992-2014), moyennes sur les 12 mois : |biais| moyen du domaine, RMS entre mailles, W1 médian sur l'Europe terre et son plancher (W1 entre ERA5 1970-1991 et ERA5 1992-2014). RCA4 corrigé, testé sur 1988-2005, entre parenthèses.
+
+| | Unité | \|biais\| brut → corrigé | RMS brut → corrigé (RCA4) | W1 brut → corrigé (plancher) |
+|---|---|---|---|---|
+| `tasmax` | K | 0,54 → 0,43 | 1,47 → 0,87 (0,88) | 1,04 → 0,86 (0,86) |
+| `tasmin` | K | 0,41 → 0,40 | 1,83 → 0,83 (0,82) | 1,02 → 0,73 (0,77) |
+| `tas` | K | 0,67 → 0,46 | 1,44 → 0,85 (0,85) | 1,02 → 0,81 (0,86) |
+| `pr` | mm/j | 0,12 → 0,07 | 0,59 → 0,52 (0,60) | 0,61 → 0,68 (0,46) |
+| `hurs` | % | 1,47 → 0,53 | 4,30 → 1,85 (2,13) | 3,05 → 1,56 (1,50) |
+| `huss` | g/kg | 0,40 → 0,04 | 0,61 → 0,20 (0,20) | 0,40 → 0,18 (0,23) |
+| `clt` | % | 2,37 → 1,22 | 6,54 → 3,53 (4,11) | 4,62 → 3,26 (2,60) |
+| `sfcWind` | m/s | 0,20 → 0,06 | 0,67 → 0,31 (0,37) | 0,46 → 0,16 (0,11) |
+| `rsds` | W/m² | 6,0 → 1,1 | 10,2 → 5,2 (6,0) | 8,2 → 5,1 (5,0) |
+| `rlds` | W/m² | 2,6 → 1,2 | 9,3 → 4,3 (5,0) | 5,3 → 3,9 (3,4) |
+| `rsus` | W/m² | 1,9 → 0,4 | 6,4 → 1,3 (1,2) | 5,0 → 1,0 (1,1) |
+| `alb` | | 0,01 → 0,01 | 0,05 → 0,02 (0,02) | 0,04 → 0,01 (0,01) |
+| `ps` | hPa | 0,65 → 0,52 | 4,0 → 1,8 (2,5) | 2,2 → 1,6 (1,2) |
+| `evspsbl` | mm/j | 0,09 → 0,06 | 0,53 → 0,28 (0,28) | 0,17 → 0,08 (0,08) |
+| `zg500` | m | 13,7 → 7,9 | 27,2 → 24,7 (29,9) | 26,9 → 25,2 (19,6) |
+
+`huss` et `rsus` sont recalculés à partir de champs calibrés sur 1970-2014 : leur validation n'est pas indépendante.
+
+Signal 2071-2100 contre 1976-2005 conservé : 0,06 K au plus pour les températures, moins de 0,2 % pour `sfcWind`, `hurs`, `rlds`. Exceptions : `pr` (ci-dessous) ; `rsds` et `rsus` en décembre, dans la nuit polaire (section 5).
+
+### Précipitations
+
+**Fréquence.** Le modèle est trop sec en été : le seuil du modèle (section 2) descend sous 1 mm. Europe terre, seuil médian : 0,93 mm en janvier, 0,50 en juillet, 0,56 en août ; en France, 0,35 mm en août. Sous ce seuil, les jours passent à 0 ; au-dessus, des jours de bruine du modèle deviennent des jours de pluie. Aucune maille d'Europe terre n'a plus de jours à 0 exact qu'ERA5 n'a de jours secs. Jours secs de juillet en validation croisée : ERA5 69,9 %, brut 75,5 %, corrigé 69,6 %. Durée moyenne des séries sèches d'été, Europe terre : ERA5 3,1 j, brut 3,4 j, corrigé 3,1 j.
+
+**Cumul**, en mm par mois, écart à ERA5 :
+
+| | ERA5 | Brut | Corrigé |
+|---|---|---|---|
+| 1970-2014, Europe terre, été | 74,9 | −17 % | −4 % |
+| 1970-2014, Europe terre, année | 67,8 | −5 % | −5 % |
+| 1970-2014, France, hiver | 81,0 | +26 % | −4 % |
+| 1970-2014, France, été | 76,6 | −21 % | −4,5 % |
+| 2015-2025, Europe terre, été | 72,7 | −18 % | −6,5 % |
+| 2015-2025, France, hiver | 84,0 | +45 % | +12,5 % |
+| 2015-2025, France, année | 81,0 | +13 % | +1 % |
+
+Sur la calibration, le corrigé est trop bas de 4 à 6 % en toute saison : c'est la bruine supprimée (section 5). Sur 2015-2025 (11 ans), les écarts mêlent variabilité naturelle et évolution du modèle.
+
+**Intensité.** W1 sur les jours de pluie, Europe terre, 12 mois : plancher 0,45, brut 0,61, corrigé 0,68 mm/j. Mailles-mois classées selon W1 brut / plancher :
+
+| Classe | Part | Brut / plancher | Corrigé / plancher | Mailles améliorées |
+|---|---|---|---|---|
+| < 1 | 32 % | 0,73 | 1,18 | 10 % |
+| 1 à 1,5 | 25 % | 1,23 | 1,47 | 32 % |
+| 1,5 à 2 | 16 % | 1,72 | 1,65 | 54 % |
+| 2 à 3 | 16 % | 2,38 | 1,85 | 72 % |
+| > 3 | 12 % | 3,91 | 2,21 | 89 % |
+
+Même mécanisme que pour RCA4 : le corrigé se place vers 1,2 à 1,5 fois le plancher quel que soit le brut. Le brut de MPI / ICON étant déjà proche d'ERA5 dans 57 % des mailles-mois, le W1 moyen se dégrade. Réduire le nombre de quantiles n'y change rien (section 6). La calibration définitive, sur 45 ans, est moins bruitée que ce test sur 22 ans.
+
+**Cohérence pluie / nuages**, juillet-août 1970-2014, Europe terre, fichiers corrigés définitifs :
+
+| | Part des jours | Pluie (mm/j) | `clt` (%) | `rsds` (W/m²) |
+|---|---|---|---|---|
+| ERA5, jours secs (< 1 mm) | 62,4 % | 0,2 | 39,8 | 241 |
+| corrigé, jours secs | 62,5 % | 0 | 39,0 | 244 |
+| ERA5, jours de pluie | 37,6 % | 6,1 | 75,1 | 162 |
+| corrigé, jours de pluie | 37,5 % | 6,1 | 76,5 | 157 |
+| dont déjà pluvieux dans le brut (≥ 1 mm) | 30,3 % | 7,1 | 80,6 | 145 |
+| dont rendus pluvieux (brut < 1 mm) | 7,3 % | 2,1 | 59,5 | 209 |
+| dont rendus pluvieux, brut < 0,1 mm | 0,6 % | 1,5 | 50,1 | 231 |
+
+Les jours de pluie corrigés ont la nébulosité et le rayonnement de ceux d'ERA5. Les jours rendus pluvieux (un jour de pluie sur cinq en été) sont des jours de pluie faible, moins couverts ; ils n'ont pas été comparés aux jours de pluie faible d'ERA5. France : mêmes conclusions (jours de pluie corrigés 74,1 % de `clt` contre 72,0 % pour ERA5). Scripts d'essai non versionnés ; journal `data/correction/mpi/test/pr_nq_et_nuages.log`.
+
+### Défauts et décisions
+
+| Défaut | Mesure | Proposition, à décider |
+|---|---|---|
+| Bruine de `pr` supprimée | cumul −4 à −6 % sur la calibration | multiplier les jours de pluie par le rapport cumul total / cumul des jours ≥ 1 mm d'ERA5, par maille et par mois |
+| Assèchement d'été amplifié | août, moyenne : brut −4,2 %, corrigé −7,8 % ; P95 −7 % → −10 % | accepter (comme l'amplification en montagne de RCA4) |
+| `ps` et `zg500` en hiver | `zg500`, février, W1 Europe terre : brut 24,6 m, corrigé 43,7 m, plancher 23,4 m | ne corriger que la moyenne de décembre à mars |
+| `clt` à 100 % | novembre à février : 4,7 à 6,3 % des jours, ERA5 2,2 à 3,0 % | laisser en l'état |
+| Intensité de `pr` | W1 corrigé au-dessus du brut (0,68 contre 0,61) | accepter |
+| Retard sur le réchauffement | Tx corrigé 0,3 à 0,6 K sous ERA5-Land sur 2015-2025 | ajustement sur la TRACC, à décider (`docs/choix_modele_cmip6.md`) |
+| Marche de `rsds` en 2015 | −3,3 W/m², Europe terre | acceptée le 7/10/2026 |
+
+Restent : la validation contre E-OBS à 0,25° (`python -m src.correction.eobs`, à adapter aux périodes de MPI / ICON) et la bascule du site (`src/store/build.py`).
+
 ## Fichiers
 
 | Fichier | Contenu |
@@ -486,3 +647,11 @@ Exemples à la maille du lieu, moyenne 2006-2024 :
 | `LaCie/.../era5land/daily/` | ERA5-Land journalier 1970-2025 : `t2m`, `t2mmax`, `t2mmin`, `d2m`, `hurs` |
 | `LaCie/.../eobs/0.1deg/` | E-OBS v33.0e à 0,1° : `tx`, `tn`, `tg`, `hu`, dispersion de `tx` et `tn`, altitude |
 | `LaCie/.../cordex/eur11_010_qdm/` | CORDEX remappé à 0,1° et corrigé contre ERA5-Land : `tas`, `tasmax`, `tasmin` |
+| `src/correction/models.py` | simulations de la chaîne (`WSA_MODEL`), noms de fichiers, fin de `historical` |
+| `src/correction/diagnostic.py` | diagnostic du brut : biais, queue froide, marche au début du scénario |
+| `data/correction/mpi/` | MPI / ICON : tables `<variable>_quantiles_1970-2014.nc`, journaux `qdm_*`, `derive_*`, `check_*`, `scores_*`, figures |
+| `data/correction/mpi/land/` | MPI / ICON à 0,1° : tables, `land.log`, `check_<variable>.log` |
+| `data/correction/mpi/diagnostic/` | diagnostic du brut de MPI / ICON (1970-2014) |
+| `data/correction/comparaison_1970-2005/` | diagnostic du brut de RCA4 et de MPI / ICON sur la même période |
+| `LaCie/.../cordex/eur12_mpi_025/`, `eur12_mpi_010/` | MPI / ICON remappé à 0,25° (14 variables) et à 0,1° (températures), brut |
+| `LaCie/.../cordex/eur12_mpi_025_qdm/`, `eur12_mpi_010_qdm/` | MPI / ICON corrigé |

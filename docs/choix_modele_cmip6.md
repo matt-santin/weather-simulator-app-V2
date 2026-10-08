@@ -72,7 +72,7 @@ RCA4 : données journalières (`cmip6_test.csv`) ; ICON : moyennes mensuelles (m
 ## 5. Suite
 
 - **Téléchargement : fait le 7/10/2026.** Les 14 variables journalières, `sftlf` et `orog` : 394 fichiers, 1966-2100, environ 322 Go, version ESGF `v20260415`, sur le LaCie. Provenance, licence et attribution : `data/cordex/eur12_mpi-esm1-2-hr_icon-clm/PROVENANCE.md`.
-- **Correction** : reprise de la chaîne existante (remappage depuis EUR-12, QDM contre ERA5 et ERA5-Land, calibration 1970-2005).
+- **Correction : faite les 7 et 8/10/2026.** Chaîne existante avec `WSA_MODEL=mpi`, calibration sur 1970-2014 (fin de `historical`) : températures à 0,1° contre ERA5-Land, les 14 variables et l'albédo à 0,25° contre ERA5, variables dérivées, contrôles. Diagnostic du brut, comparaison au brut de RCA4, validations et décisions restantes : `docs/correction.md`, section 10. Restent la validation contre E-OBS à 0,25° et la bascule du site.
 - **Ajustement sur la TRACC, à décider** : multiplier le changement du modèle par un facteur k(t) dans la correction (niveau TRACC / niveau du modèle, moyenne France sur 20 ans), d'environ 1,5 vers 2050 et 1,25 en 2100 (ordres de grandeur à recalculer). Alternative : servir l'année du modèle qui atteint le niveau TRACC de l'année demandée, approche par niveaux de réchauffement régionaux de la TRACC (Corre et al. 2025), limitée par le plafond du modèle. Dans les deux cas, l'humidité relative devra suivre le surplus de température.
 - **Piste : classification de Köppen-Geiger** par maille et par période, calculée sur MPI / ICON corrigé (températures et précipitations mensuelles), validée contre les cartes de Beck et al. 2023 (1 km, 1901-2099, CMIP6 contraint, SSP3-7.0 compris).
 

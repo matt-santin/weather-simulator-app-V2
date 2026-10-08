@@ -2,14 +2,15 @@
 
     python -m src.correction.check tas
 
-1. Split sample: calibrate on 1970-1987, correct 1988-2005 (its own 18 years
-   as the model distribution), compare with ERA5 1988-2005. Scores per month,
+1. Split sample, CAL cut in two halves (qdm.HALVES; 1970-1987 and 1988-2005
+   for RCA4): calibrate on the first, correct the second (its own years
+   as the model distribution), compare with ERA5 on the second. Scores per month,
    over the cells, for the mean and the 5th and 95th percentiles, in the
    display unit of the variable. For precipitation, the dry-day frequency too;
    for bounded variables, the share of days at a bound. Derived variables
-   (huss, rsus) are rebuilt from fields calibrated on 1970-2005: their files
-   are compared as they are, so 1988-2005 is not independent there.
-   Then, on the same 1988-2005 series, indices of what the app will show
+   (huss, rsus) are rebuilt from fields calibrated on CAL: their files
+   are compared as they are, so the second half is not independent there.
+   Then, on the same series, indices of what the app will show
    (hot days, frost days, dry spells, 5-day rainfall, day-to-day persistence),
    each computed year by year and averaged over the years.
 2. Change signal: 2071-2100 against 1976-2005, raw against corrected, for the
@@ -26,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.correction.qdm import DAY, OUT, TABLES, VARS, calibrate, correct, model, reference
+from src.correction.qdm import CAL, DAY, HALVES, LABELS, OUT, TABLES, VARS, calibrate, correct, model, reference
 from src.correction.remap import load_weights, target as remapped
 
 FIG = TABLES
@@ -69,16 +70,16 @@ def at_bound(x, v):
 def split_sample(name, cells):
     v = VARS[name]
     scale, unit = v.display[0], v.display[2].replace("°C", "K")  # differences
-    cal, val = range(1970, 1988), range(1988, 2006)
+    cal, val = HALVES
     ref_c, mc = reference(name, cal, cells)
     ref_v, mv = reference(name, val, cells)
     hist_c, _ = raw(name, cal, cells)
     sim_v, _ = raw(name, val, cells)
     if v.derived:
         cor_v, _ = corrected(name, val, cells)
-        print(f"Variable derivee, fichiers corriges (calibres 1970-2005), 1988-2005, ecart au ERA5 en {unit}")
+        print(f"Variable derivee, fichiers corriges (calibres {CAL[0]}-{CAL[1]}), {LABELS[1]}, ecart au ERA5 en {unit}")
     else:
-        print(f"Validation croisee (calibre 1970-1987, teste 1988-2005), ecart au ERA5 en {unit}")
+        print(f"Validation croisee (calibre {LABELS[0]}, teste {LABELS[1]}), ecart au ERA5 en {unit}")
     print("mois | moyenne brut/corrige (biais moyen, RMS sur les mailles) | P5 | P95")
     maps, extra = [], []
     if not v.derived:
@@ -173,7 +174,7 @@ def indices(name, series, yv, mo):
         val = {k: np.mean([f(x[yv == y]) for y in np.unique(yv)], axis=0) for k, x in series.items()}
         rows.append((label, val))
     rows.append(("persistance jour a jour", {k: persistence(x, mo) for k, x in series.items()}))
-    print("\nIndices 1988-2005 (par an, moyennes sur les annees) : moyenne sur les mailles "
+    print(f"\nIndices {LABELS[1]} (par an, moyennes sur les annees) : moyenne sur les mailles "
           "ERA5 | brut | corrige, puis RMS sur les mailles brut/corrige - ERA5")
     for label, val in rows:
         e = val["ERA5"]
@@ -228,7 +229,7 @@ def main(argv):
         full[cells] = val
         im = ax.pcolormesh(grid.longitude, grid.latitude, full.reshape(keep.shape),
                            cmap="RdBu_r", vmin=-top, vmax=top)
-        ax.set_title(f"{title} ({VARS[name].display[2].replace('°C', 'K')}), 1988-2005")
+        ax.set_title(f"{title} ({VARS[name].display[2].replace('°C', 'K')}), {LABELS[1]}")
     fig.colorbar(im, ax=axes, shrink=0.8)
     path = FIG / f"{name}_validation.png"
     fig.savefig(path, dpi=90)
