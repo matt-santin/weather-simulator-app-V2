@@ -9,7 +9,8 @@ plugged in.
 Quantile delta mapping (Cannon et al. 2015, J. Climate), done for each ERA5
 cell and each calendar month:
 
-  - calibration, on CAL (1970-2005): NQ quantiles of ERA5 (Q_ref) and of
+  - calibration, on CAL (1970 to the last historical year of the run: 1970-2005
+    for RCA4, 1970-2014 for MPI / ICON): NQ quantiles of ERA5 (Q_ref) and of
     CORDEX (Q_hist), and the bias table, b(tau) = Q_ref(tau) - Q_hist(tau)
     (additive form), or the pair Q_ref, Q_hist themselves (multiplicative);
   - correction of a day x of year Y: tau is the rank of x among the quantiles
@@ -46,7 +47,7 @@ adaptation of Themessl et al. 2012, as in xclim/xsdba, then QDM on wet days):
 huss and rsus are not corrected here but rebuilt from corrected fields by
 src.correction.derive, which also puts right the days where tasmin > tasmax.
 
-Every year 1970-2100 is corrected; 1970-2005 serves for checks. With
+Every year 1970-2100 is corrected; CAL serves for checks. With
 WSA_QDM_TEST=1, files and tables go to test folders (eur11_025_qdm_test,
 data/correction/test), which src.correction.check, spells and violin then
 read. The whole series is first packed into a memmap on the Mac (about
@@ -74,7 +75,7 @@ TABLES = DATA / "correction" / MODEL.tables / ("test" if TEST else "")
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
 
 YEARS = range(1970, 2101)
-CAL = (1970, 2005)
+CAL = (1970, MODEL.hist_end)
 WINDOW = 30
 NQ = 100
 LEVELS = (np.arange(NQ) + 0.5) / NQ

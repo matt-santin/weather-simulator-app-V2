@@ -20,7 +20,7 @@ nothing after: they were deleted once checked, and remap rebuilds them in
 about 30 min per variable.
 
 qdm: the method of qdm.py, unchanged (same functions): calibration on
-1970-2005, per cell and calendar month, 100 quantiles, 30-year sliding window,
+CAL (1970 to the last historical year of the run), per cell and calendar month, 100 quantiles, 30-year sliding window,
 additive. References:
 
     tas     t2m     daily mean of hourly t2m

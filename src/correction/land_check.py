@@ -8,18 +8,21 @@ corrected the variable (and swapped Tn/Tx). Part 1 reads the remapped files:
 rebuild them first (land.py remap) if they were deleted. One land cell in STRIDE is used,
 about 43 000, as many as the 0.25 deg chain has.
 
-1. Split sample, against ERA5-Land: calibrated on 1970-1987, applied to
-   1988-2005 (its own 18 years as the model distribution, as check.py), and
-   compared with ERA5-Land 1988-2005. Per calendar month: bias of the mean,
+1. Split sample, against ERA5-Land: CAL cut in two halves (1970-1987 and
+   1988-2005 for RCA4, 1970-1991 and 1992-2014 for MPI / ICON), calibrated on
+   the first, applied to the second (its own years as the model
+   distribution, as check.py), and compared with ERA5-Land on the second. Per calendar month: bias of the mean,
    P5 and P95 (mean over cells, and RMS between cells), raw and corrected;
    then W1, the mean gap between quantiles of same rank, median over cells,
-   with its floor: ERA5-Land 1970-1987 against 1988-2005.
+   with its floor: ERA5-Land of the first half against the second.
 2. Change signal, 2071-2100 against 1976-2005, raw against corrected, mean and
    P95 of winter (DJF) and summer (JJA): QDM should keep it.
-3. Against E-OBS 0.1 deg on 2006-2024, years the correction never saw.
+3. Against E-OBS 0.1 deg on TEST (after CAL, to 2025), years the correction
+   never saw.
    Distributions only, per cell and calendar month (CORDEX does not follow the
    real weather): bias of the mean, P5 and P95, and W1, for CORDEX corrected at
-   0.1 deg and at 0.25 deg (the 0.25 cell that holds the 0.1 cell), and for
+   0.1 deg and at 0.25 deg (the 0.25 cell that holds the 0.1 cell, if
+   already corrected), and for
    their references, ERA5-Land and ERA5. By class of E-OBS altitude, January
    and July. Besides the means over a class, which mix biases of both signs,
    the RMS between cells of the bias of the mean: the error on the local
@@ -29,7 +32,7 @@ about 43 000, as many as the 0.25 deg chain has.
    ones: each cell takes the mean of the 4 E-OBS cells around it, all valid
    that day. Cells with E-OBS on fewer than MIN_VALID of the days are left out.
 4. A few places, at their own cell (nearest land cell of the full grid):
-   January and July means 2006-2024, from each source.
+   January and July means over TEST, from each source.
 """
 
 import sys
@@ -41,7 +44,7 @@ from src.config import ARCHIVE
 from src.correction.land import OUT, VARS, land_file, load_weights, remapped
 from src.correction.land import REFERENCE
 from src.correction.models import MODEL
-from src.correction.qdm import calibrate, correct
+from src.correction.qdm import CAL, calibrate, correct
 from src.correction.remap import yearly
 
 STRIDE = 4
@@ -58,7 +61,9 @@ PLACES = {"Paris": (48.86, 2.35, 35), "Toulouse": (43.60, 1.44, 146),
           "Pontarlier": (46.90, 6.35, 837), "Grenoble": (45.19, 5.72, 212),
           "Briancon": (44.90, 6.64, 1326), "Chamonix": (45.92, 6.87, 1035)}
 SPREAD = {"tasmax": ("tx",), "tasmin": ("tn",), "tas": ("tx", "tn")}
-TEST = range(2006, 2025)
+SPLIT = (CAL[0] + CAL[1] + 1) // 2  # first year of the second half
+TEST = range(CAL[1] + 1, 2026)  # E-OBS v33.0e ends 2025-12-31
+TEST_LABEL = f"{TEST[0]}-{TEST[-1]}"
 
 
 def celsius(name):
@@ -111,7 +116,7 @@ def stats(x):
 
 def split_sample(name, grid):
     v = VARS[name]
-    cal, val = range(1970, 1988), range(1988, 2006)
+    cal, val = range(CAL[0], SPLIT), range(SPLIT, CAL[1] + 1)
     ref = REFERENCE[name]
     ref_c = read([land_file(ref, y) for y in cal], ref, grid, v.convert)
     ref_v = read([land_file(ref, y) for y in val], ref, grid, v.convert)
@@ -120,7 +125,8 @@ def split_sample(name, grid):
     mc, mv = months(cal), months(val)
     yv = np.concatenate([np.full(365 + (y % 4 == 0), y) for y in val])
     to = celsius(name)
-    print(f"\n1. Validation croisee contre ERA5-Land : calibration 1970-1987, test 1988-2005, "
+    print(f"\n1. Validation croisee contre ERA5-Land : calibration {cal[0]}-{cal[-1]}, "
+          f"test {val[0]}-{val[-1]}, "
           f"{grid.cells.size} mailles")
     print("mois | biais moyen brut / corrige | P5 brut / corrige | P95 brut / corrige | "
           "RMS entre mailles (moyenne) brut / corrige | W1 brut / corrige / plancher")
@@ -210,14 +216,17 @@ def against_eobs(name, grid):
     to = celsius(name)
     i25 = np.rint((73.0 - grid.lat[grid.i]) / 0.25).astype(int)
     j25 = np.rint((grid.lon[grid.j] + 45.0) / 0.25).astype(int)
-    series = {k: [] for k in ("E-OBS", "CORDEX 0,1", "CORDEX 0,25", "ERA5-Land", "ERA5")}
+    with_025 = (OUT_025 / yearly(name, TEST[0])).exists()
+    series = {k: [] for k in ("E-OBS", "CORDEX 0,1", "CORDEX 0,25", "ERA5-Land", "ERA5")
+              if with_025 or k != "CORDEX 0,25"}
     spread = []
     for y in TEST:
         series["E-OBS"].append(obs.year(y))
         spread.append(obs.spread(y))
         series["CORDEX 0,1"].append(to(grid.flat(xr.open_dataset(OUT / yearly(name, y))[name].values)))
-        c25 = xr.open_dataset(OUT_025 / yearly(name, y))[name].values
-        series["CORDEX 0,25"].append(to(c25[:, i25, j25]))
+        if with_025:
+            c25 = xr.open_dataset(OUT_025 / yearly(name, y))[name].values
+            series["CORDEX 0,25"].append(to(c25[:, i25, j25]))
         series["ERA5-Land"].append(to(grid.flat(xr.open_dataset(land_file(REFERENCE[name], y))[REFERENCE[name]].values)))
         e = xr.open_dataset(ERA5_DAILY / f"{ERA5[name]}_ERA5_day_{y}0101-{y}1231.nc")[ERA5[name]].values
         series["ERA5"].append(to(e[:, i25, j25]))
@@ -226,9 +235,9 @@ def against_eobs(name, grid):
     mo = months(TEST)
     ok_obs = np.isfinite(series["E-OBS"])
     ok_obs[:, grid.n:] = False  # the places are read apart, in 4
-    print(f"\n3. Contre E-OBS 0,1 deg, 2006-2024, par classe d'altitude E-OBS "
+    print(f"\n3. Contre E-OBS 0,1 deg, {TEST_LABEL}, par classe d'altitude E-OBS "
           f"(mailles avec E-OBS >= {MIN_VALID:.0%} des jours)")
-    sources = ("CORDEX 0,1", "CORDEX 0,25", "ERA5-Land", "ERA5")
+    sources = tuple(k for k in series if k != "E-OBS")
     for m, label in ((1, "janvier"), (7, "juillet")):
         rows = mo == m
         valid = ok_obs[rows].mean(0) >= MIN_VALID
@@ -264,7 +273,7 @@ def against_eobs(name, grid):
                 parts = [f"{k} {np.sqrt(np.nanmean(bias[k][sel] ** 2)):4.2f}" for k in sources]
                 print(f"  {lo:>5}-{hi:<5} m | {sel.sum():6d} | " + " | ".join(parts))
 
-    print(f"\n4. Lieux, a leur maille : moyenne 2006-2024 de {name}, janvier puis juillet")
+    print(f"\n4. Lieux, a leur maille : moyenne {TEST_LABEL} de {name}, janvier puis juillet")
     for place, k in grid.places.items():
         alt = PLACES[place][2]
         for m in (1, 7):
