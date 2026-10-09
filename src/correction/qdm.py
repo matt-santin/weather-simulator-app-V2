@@ -34,8 +34,10 @@ adaptation of Themessl et al. 2012, as in xclim/xsdba, then QDM on wet days):
   - occurrence: for each cell and month, the model threshold is the value
     that leaves under it, on CAL, the share of days ERA5 has under its wet
     threshold (1 mm/day). The same threshold serves 1970-2100, so the change in the
-    number of wet days the model gives is kept. Days under it are set to 0:
-    the days that switch are chosen by their amount, not at random. Where
+    number of wet days the model gives is kept. Days under it are dry: the
+    days that switch are chosen by their amount, not at random. They get the
+    drizzle of ERA5 (its days under 1 mm/day) by quantile mapping on CAL,
+    without delta, so that the total keeps the rain ERA5 has on dry days. Where
     the model has more days at exactly 0 than ERA5 has dry days, the
     threshold is its smallest positive value: all its wet days are kept, and
     it stays too dry;
@@ -99,6 +101,7 @@ class Var:
     cordex: tuple[str, ...] | None = None  # remapped CORDEX fields, if not the variable itself
     from_cordex: Callable | None = None  # those fields, in that order, to the variable
     derived: bool = False  # rebuilt by src.correction.derive, not corrected here
+    mean_only: tuple[int, ...] = ()  # calendar months where only the mean is corrected
 
 
 def same(x):
@@ -112,6 +115,7 @@ def albedo(up, down):
 
 
 K = (1.0, -273.15, "°C")
+WINTER = (12, 1, 2, 3)
 VARS = {
     "tas": Var(("t2m",), same, "add", display=K),
     "tasmax": Var(("mx2t",), same, "add", display=K),
@@ -128,10 +132,13 @@ VARS = {
                 display=(1, 0, "W/m2"), derived=True),
     "alb": Var(("ssrd", "ssr"), lambda d, n: albedo((d - n) / DAY, d / DAY), "add", (0, 1),
                cordex=("rsus", "rsds"), from_cordex=albedo, display=(1, 0, "")),
-    "ps": Var(("sp",), same, "add", display=(0.01, 0, "hPa")),
+    # Winter circulation: the full QDM is worse than raw in split sample (docs/correction.md).
+    "ps": Var(("sp",), same, "add", display=(0.01, 0, "hPa"), mean_only=WINTER),
     # ERA5 counts evaporation as negative, CORDEX as positive.
     "evspsbl": Var(("e",), lambda e: -e * 1000 / DAY, "add", display=(DAY, 0, "mm/j")),
-    "zg500": Var(("zg500",), same, "add", display=(1, 0, "m")),
+    "zg500": Var(("zg500",), same, "add", display=(1, 0, "m"), mean_only=WINTER),
+    # Sea-level pressure, for the isobars of the maps: a shift of the mean keeps them smooth.
+    "psl": Var(("msl",), same, "add", display=(0.01, 0, "hPa"), mean_only=tuple(range(1, 13))),
 }
 
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO, datefmt="%H:%M:%S")
@@ -191,17 +198,31 @@ def threshold(ref: np.ndarray, hist: np.ndarray, wet: float) -> np.ndarray:
     return np.maximum(th, smallest).astype("float32")
 
 
-def calibrate(ref: np.ndarray, hist: np.ndarray, v: Var) -> dict[str, np.ndarray]:
+def calibrate(ref: np.ndarray, hist: np.ndarray, v: Var, month: int | None = None) -> dict[str, np.ndarray]:
     """Calibration of one month from ERA5 and CORDEX (days, points) on CAL:
-    quantiles of both, (NQ, points), and for precipitation the model threshold
-    and the number of wet days of each, (points,)."""
+    quantiles of both, (NQ, points), and for precipitation the model threshold,
+    and the number of wet days of each, (points,).
+
+    In the months of v.mean_only, the ERA5 quantiles are replaced by those of
+    CORDEX shifted by the gap between the means: the bias table b(tau) is then
+    the same for every tau, and only the mean is corrected.
+
+    Precipitation: the days under the model threshold get the drizzle of
+    ERA5 (its days under v.wet) by quantile mapping on CAL, without delta:
+    the quantiles of both, dry days only, (NQ, points).
+    """
     if v.wet is None:
-        return {"ref": quantiles(ref), "hist": quantiles(hist)}
+        hist_q = quantiles(hist)
+        if month in v.mean_only:
+            return {"ref": hist_q + (ref.mean(0) - hist.mean(0)), "hist": hist_q}
+        return {"ref": quantiles(ref), "hist": hist_q}
     th = threshold(ref, hist, v.wet)
     ref_wet, hist_wet = ref >= v.wet, hist >= th
     return {"ref": quantiles(np.where(ref_wet, ref, np.nan)),
             "hist": quantiles(np.where(hist_wet, hist, np.nan)),
-            "threshold": th, "n_ref": ref_wet.sum(0), "n_hist": hist_wet.sum(0)}
+            "threshold": th, "n_ref": ref_wet.sum(0), "n_hist": hist_wet.sum(0),
+            "dry_ref": quantiles(np.where(ref_wet, np.nan, ref)),
+            "dry_hist": quantiles(np.where(hist_wet, np.nan, hist))}
 
 
 def table(ref_q: np.ndarray, hist_q: np.ndarray, v: Var) -> np.ndarray:
@@ -266,12 +287,16 @@ def correct(x: np.ndarray, win: np.ndarray, cal: dict[str, np.ndarray], v: Var) 
     if v.wet is None:
         return apply(x, quantiles(win), tab, v)
     th = cal["threshold"]
-    y = np.where(x >= th, x, 0).astype("float32")
+    # Dry days: ERA5 drizzle at the rank of the raw value among the model dry days.
+    has_dry = ~np.isnan(cal["dry_hist"][0])
+    y = np.zeros_like(x)
+    y[:, has_dry] = lookup(cal["dry_ref"][:, has_dry], rank(x[:, has_dry], cal["dry_hist"][:, has_dry]))
+    y = np.where(x >= th, x, y).astype("float32")
     sim_q = quantiles(np.where(win >= th, win, np.nan))
     # Enough wet days on CAL, and at least one in the window (then x has some).
     ok = (cal["n_ref"] >= MIN_WET) & (cal["n_hist"] >= MIN_WET) & ~np.isnan(sim_q[0])
     fixed = apply(x[:, ok], sim_q[:, ok], tab[:, :, ok], v)
-    y[:, ok] = np.where(x[:, ok] >= th[ok], fixed, 0)
+    y[:, ok] = np.where(x[:, ok] >= th[ok], fixed, y[:, ok])
     return y
 
 
@@ -310,7 +335,7 @@ def main(argv: list[str]) -> int:
         t0 = time.time()
         rows = np.flatnonzero(month == m)
         raw = np.asarray(series[rows])  # windows are always read raw
-        cal.append(calibrate(era[era_month == m], raw[in_cal[rows]], v))
+        cal.append(calibrate(era[era_month == m], raw[in_cal[rows]], v, m))
         yr = year[rows]
         x = np.empty_like(raw)
         for y in YEARS:
@@ -335,7 +360,11 @@ def main(argv: list[str]) -> int:
                "latitude": lat.values, "longitude": lon.values}
         | ({"threshold": "model wet-day threshold", "n_ref": "ERA5 wet days on CAL",
             "n_hist": "model wet days on CAL", "wet": f"ERA5 wet day: >= {v.wet:g}",
-            "quantiles": "wet days only"} if v.wet else {}),
+            "quantiles": "wet days only",
+            "dry_ref": "ERA5 quantiles, dry days only", "dry_hist": "model quantiles, dry days only"}
+           if v.wet else {})
+        | ({"mean_only": f"months {v.mean_only}: ref = hist shifted by the gap between means"}
+           if v.mean_only else {}),
     ).to_netcdf(TABLES / f"{name}_quantiles_{CAL[0]}-{CAL[1]}.nc")
 
     form = "additive" if v.kind == "add" else f"multiplicative, model change capped at {MAX_RATIO:g}"
@@ -352,7 +381,8 @@ def main(argv: list[str]) -> int:
             f"{WINDOW}-year sliding window"
             + (f", occurrence first (model threshold matching ERA5 days under {v.wet:g} "
                f"{da.attrs.get('units', '')}), then wet days only, raw amounts under "
-               f"{MIN_WET} wet days" if v.wet else "")
+               f"{MIN_WET} wet days, dry days given the ERA5 drizzle by quantile mapping" if v.wet else "")
+            + (f", mean only in months {v.mean_only}" if v.mean_only else "")
             + (f", clipped to {v.bounds}" if v.bounds != (None, None) else ""))
         path = OUT / remapped(name, y).name
         part = path.with_suffix(".part")

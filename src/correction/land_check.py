@@ -131,7 +131,7 @@ def split_sample(name, grid):
     print("mois | biais moyen brut / corrige | P5 brut / corrige | P95 brut / corrige | "
           "RMS entre mailles (moyenne) brut / corrige | W1 brut / corrige / plancher")
     for m in range(1, 13):
-        c = calibrate(ref_c[mc == m], raw_c[mc == m], v)
+        c = calibrate(ref_c[mc == m], raw_c[mc == m], v, m)
         x = raw_v[mv == m]
         fixed = np.empty_like(x)
         for y in val:

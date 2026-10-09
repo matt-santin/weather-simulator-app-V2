@@ -89,7 +89,7 @@ def split_sample(name, cells):
             corr = cor_v[mv == m]
         else:
             x = sim_v[mv == m]
-            corr = correct(x, x, calibrate(ref_c[mc == m], hist_c[mc == m], v), v)
+            corr = correct(x, x, calibrate(ref_c[mc == m], hist_c[mc == m], v, m), v)
             cor_v[mv == m] = corr
         x = sim_v[mv == m]
         e = stats(ref_v[mv == m])

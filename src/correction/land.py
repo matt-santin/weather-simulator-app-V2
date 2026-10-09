@@ -224,7 +224,7 @@ def qdm(name: str) -> None:
         for m in range(1, 13):
             rows = np.flatnonzero(month == m)
             raw = np.asarray(series[b][rows])
-            cal = calibrate(np.asarray(refs[b][ref_month == m]), raw[in_cal[rows]], v)
+            cal = calibrate(np.asarray(refs[b][ref_month == m]), raw[in_cal[rows]], v, m)
             tables["ref"][m - 1, :, at] = cal["ref"]
             tables["hist"][m - 1, :, at] = cal["hist"]
             yr = year[rows]

@@ -53,7 +53,7 @@ LSM = ARCHIVE / "era5" / "fixed" / "lsm_ERA5.nc"
 MAP_MONTHS = (1, 4, 7, 10)
 SEASONS = {"annee": range(1, 13), "DJF": (12, 1, 2), "JJA": (6, 7, 8)}
 NAMES = ("tas", "tasmax", "tasmin", "pr", "hurs", "huss", "clt", "sfcWind", "rsds", "rlds",
-         "rsus", "alb", "ps", "evspsbl", "zg500")
+         "rsus", "alb", "ps", "evspsbl", "zg500", "psl")
 
 
 def regions(lat, lon, is_land):

@@ -60,7 +60,7 @@ def cross_validation(name, cells):
         cor_v = np.empty_like(sim_v)
         for m in range(1, 13):
             x = sim_v[mv == m]
-            cor_v[mv == m] = correct(x, x, calibrate(ref_c[mc == m], hist_c[mc == m], v), v)
+            cor_v[mv == m] = correct(x, x, calibrate(ref_c[mc == m], hist_c[mc == m], v, m), v)
         del hist_c
     return ref_c, mc, ref_v, mv, sim_v, cor_v
 

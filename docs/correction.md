@@ -31,7 +31,8 @@ Q(τ) est la valeur sous laquelle se trouvent une proportion τ des jours. On co
 3. on corrige x selon la forme de la variable :
    - additive : x + b(τ), avec b(τ) = Q_ERA5(τ) − Q_CORDEX(τ) ;
    - multiplicative : Q_ERA5(τ) × x / Q_CORDEX(τ), les deux quantiles interpolés séparément, le changement du modèle x / Q_CORDEX(τ) plafonné à 10. Là où Q_CORDEX(τ) = 0 (nuit polaire), x est gardé ;
-   - occurrence puis intensité (`pr`) : avant le calcul du rang, les jours sous un seuil propre au modèle, calé pour reproduire la fréquence des jours secs d'ERA5, sont mis à 0 ; les autres reçoivent la forme multiplicative, avec un rang et des quantiles calculés sur les seuls jours de pluie. Détail en section 2.
+   - occurrence puis intensité (`pr`) : avant le calcul du rang, les jours sous un seuil propre au modèle, calé pour reproduire la fréquence des jours secs d'ERA5, deviennent secs ; les autres reçoivent la forme multiplicative, avec un rang et des quantiles calculés sur les seuls jours de pluie. Détail en section 2.
+   - moyenne seule (`ps` et `zg500`, décembre à mars) : x + moyenne ERA5 − moyenne CORDEX sur la calibration, la même pour tous les rangs (section 5).
 
 ERA5 n'intervient que dans la calibration. La fenêtre glissante sert seulement à situer chaque jour dans le climat du modèle à son époque. Un jour de rang 20 % reçoit la même correction en 1987 et en 2080, même s'il est plus chaud en 2080 : l'évolution simulée par le modèle, quantile par quantile, est conservée, comme différence ou comme rapport.
 
@@ -54,9 +55,10 @@ Table `VARS` de `src/correction/qdm.py`.
 | `sfcWind` | `si10` | aucune | multiplicative | ≥ 0 |
 | `rsds` | `ssrd` (J/m², cumul du jour) | /86400 | multiplicative | ≥ 0 |
 | `rlds` | `strd` | /86400 | additive | ≥ 0 |
-| `ps` | `sp` | aucune | additive | |
+| `ps` | `sp` | aucune | additive ; moyenne seule de décembre à mars | |
 | `evspsbl` | `e` (m, négatif pour l'évaporation) | ×(−1000/86400) | additive | |
-| `zg500` | `zg500` | aucune | additive | |
+| `zg500` | `zg500` | aucune | additive ; moyenne seule de décembre à mars | |
+| `psl` | `msl` | aucune | moyenne seule toute l'année (isobares des cartes ; MPI / ICON seulement) | |
 | `alb` = `rsus`/`rsds` | (`ssrd` − `ssr`)/`ssrd` | division par max(`rsds`, 1 W/m²) des deux côtés | additive | 0 à 1 |
 
 Tx reste calé sur `mx2t`. Le maximum horaire de `t2m`, plus proche des stations, demanderait un nouveau téléchargement.
@@ -66,12 +68,12 @@ Tx reste calé sur `mx2t`. Le maximum horaire de `t2m`, plus proche des stations
 Adaptation de fréquence de Themeßl et al. (2012), reprise dans xclim/xsdba, puis QDM sur les jours de pluie. Fonctions `calibrate` et `correct` de `qdm.py`, reprises par `check.py` et `violin.py`. Aucun tirage au hasard.
 
 1. Occurrence. Pour chaque maille et chaque mois, sur 1970-2005 : seuil du modèle = valeur qui laisse sous elle la même proportion de jours que la proportion de jours secs (< 1 mm) d'ERA5. Le même seuil sert de 1970 à 2100 : l'évolution du nombre de jours de pluie du modèle est conservée.
-2. Sous le seuil, valeur 0. Les jours qui basculent sont choisis selon leur quantité.
+2. Sous le seuil, jour sec. Les jours qui basculent sont choisis selon leur quantité. Ils reçoivent la bruine d'ERA5 (ses jours sous 1 mm) par correspondance de quantiles sur la calibration, sans delta : un jour sec du modèle prend la valeur d'ERA5 de même rang parmi les jours secs. Ils restent sous 1 mm ; le cumul garde l'apport de la bruine (4 à 6 % du cumul d'ERA5 sur l'Europe terre). Décidé le 9/10/2026 ; les fichiers de RCA4, corrigés avant, ont des jours secs à 0 (section 5).
 3. Intensité : QDM multiplicatif entre les jours du modèle au-dessus du seuil (fenêtre de 30 ans pour le rang) et ceux d'ERA5 ≥ 1 mm, quantiles calculés sans les jours secs.
 4. Moins de 30 jours pluvieux sur 1970-2005 dans ERA5 ou dans le modèle, pour une maille et un mois : occurrence corrigée, quantités laissées brutes (juillet : 9 398 mailles, Sahara et Moyen-Orient).
 5. Modèle trop sec (plus de jours à 0 exact qu'ERA5 n'a de jours secs, environ 230 mailles désertiques en janvier et juillet) : seuil = plus petite valeur positive. Tous les jours de pluie du modèle sont gardés ; l'occurrence reste trop basse.
 
-La table `pr_quantiles_1970-2005.nc` contient en plus le seuil (`threshold`) et le nombre de jours pluvieux d'ERA5 et du modèle (`n_ref`, `n_hist`).
+La table `pr_quantiles_<CAL>.nc` contient en plus le seuil (`threshold`), le nombre de jours pluvieux d'ERA5 et du modèle (`n_ref`, `n_hist`) et, depuis le 9/10/2026, les quantiles des jours secs (`dry_ref`, `dry_hist`).
 
 ### Variables dérivées
 
@@ -291,11 +293,11 @@ En validation croisée, `rsds` corrigé reste trop sombre de 4 à 7 W/m² d'avri
 
 `hurs` : biais résiduel de +0,5 à +1 % d'avril à septembre, ERA5 s'asséchant sur terre entre les deux périodes, pas le modèle.
 
-### `ps` et `zg500` en hiver : à décider
+### `ps` et `zg500` en hiver : moyenne seule de décembre à mars
 
 En validation croisée, la correction dégrade `ps` et `zg500` en hiver. `zg500`, Europe terre, W1 : février brut 35 m, corrigé 45 m, plancher 39 m ; mars 29, 45, 29 ; décembre 18, 28, 16. `ps`, février : 2,9, 3,8, 4,0 hPa. Ce sont les mois au plancher le plus haut : la circulation d'hiver d'ERA5 change entre 1970-1987 et 1988-2005 (probablement la phase positive de l'oscillation nord-atlantique de la fin des années 1980 et du début des années 1990, non vérifié). Le brut y est déjà au niveau du plancher ; la correction prend l'état de la circulation d'ERA5 en 1970-1987 pour un biais du modèle. Sur 1970-2005, la calibration définitive porte sur 36 ans et le défaut est probablement plus faible, mais de même nature.
 
-Options, non décidées : garder la correction toute l'année ; la limiter aux mois où le biais brut dépasse nettement le plancher ; corriger seulement la moyenne. Ces variables servent peu à l'affichage.
+Décision du 9/10/2026 : de décembre à mars, seule la moyenne est corrigée (`Var.mean_only` dans `qdm.py`) ; le reste de l'année, QDM complet. Effet pour MPI / ICON en section 10. Appliqué à MPI / ICON seulement : les fichiers de RCA4 n'ont pas été recalculés.
 
 ### Intensité de `pr` : pas de gain en moyenne, bruit de calibration
 
@@ -312,7 +314,7 @@ Le corrigé se place vers 1,3 à 1,6 fois le plancher quel que soit le brut : il
 
 La calibration définitive porte sur 36 ans, deux fois plus de jours : le bruit y est plus faible que dans ce test. Pistes, non décidées : calibrer chaque mois avec les mois voisins (fenêtre de 3 mois, trois fois plus de jours), réduire le nombre de quantiles, ne corriger l'intensité que là où le biais dépasse le bruit. Les autres variables sont probablement concernées dans une moindre mesure (`hurs`, `clt` : corrigé à 1,3 fois le plancher). Cartes : `pr_scores.png`.
 
-### Bruine de `pr` supprimée : moyenne trop basse, à décider
+### Bruine de `pr` supprimée : corrigée pour MPI / ICON
 
 Les jours sous le seuil sont mis à 0 ; la bruine d'ERA5 (jours de 0 à 1 mm) n'est pas compensée. Europe terre, 1970-1987 (période de calibration de la table de test) :
 
@@ -325,7 +327,9 @@ Les jours sous le seuil sont mis à 0 ; la bruine d'ERA5 (jours de 0 à 1 mm) n'
 
 Moyenne corrigée trop basse de 6,5 % en janvier, 4,5 % en juillet. Sur 1988-2005, le corrigé est au contraire trop pluvieux (janvier +13 %, juillet +4 %) : il garde l'évolution du modèle, qui gagne des jours de pluie quand ERA5 en perd.
 
-Options : (1) multiplier les jours de pluie par le rapport cumul total / cumul des jours ≥ 1 mm d'ERA5, par maille et par mois ; (2) seuil à 0,1 mm, au risque de reproduire la bruine excessive des réanalyses (51 % des jours de janvier dans ERA5) ; (3) accepter. Script : `data/correction/pr_signe.py` (non versionné).
+Options étudiées : (1) multiplier les jours de pluie par le rapport cumul total / cumul des jours ≥ 1 mm d'ERA5, par maille et par mois ; (2) seuil à 0,1 mm, au risque de reproduire la bruine excessive des réanalyses (51 % des jours de janvier dans ERA5) ; (3) accepter ; (4) donner aux jours secs la bruine d'ERA5 par quantiles. Script : `data/correction/pr_signe.py` (non versionné).
+
+Décision du 9/10/2026 : option 4 (section 2), appliquée à MPI / ICON ; l'option 1 a été essayée (section 6). Les fichiers de RCA4 gardent la bruine à 0.
 
 ### Persistance de `alb`
 
@@ -374,6 +378,10 @@ Pas de décision prise. Scripts : `data/correction/tests_mbcn/` (non versionnés
 
 Pour réduire le bruit de calibration de l'intensité de `pr` (section 10), la validation croisée a été refaite avec 20 et 50 quantiles au lieu de 100. W1 corrigé sur les jours de pluie, Europe terre, médiane : 0,676 (100), 0,674 (50), 0,670 (20) mm/j, plancher 0,450. Aucun gain : le bruit vient de l'échantillon de calibration lui-même, pas du nombre de quantiles. 100 quantiles gardés.
 
+### Facteur de bruine de `pr` (MPI / ICON)
+
+Jours de pluie corrigés multipliés par le rapport cumul total / cumul des jours ≥ 1 mm d'ERA5, par maille et par mois (option 1 de la section 5). Validation croisée, Europe terre, 1992-2014 : cumul annuel 763 → 807 mm (ERA5 783), pluie maximale en 1 jour 32,2 → 34,2 mm (ERA5 28,5), W1 des jours de pluie en janvier 0,51 → 0,65 mm/j. Le défaut de cumul devient un défaut d'intensité. Remplacé par la bruine par quantiles (section 2), qui ne touche pas aux jours de pluie.
+
 ### Validation par tirage d'années au hasard
 
 18 ans de calibration, 18 de validation, tirage répété, en plus du découpage chronologique : proposée, non retenue pour le moment.
@@ -400,7 +408,7 @@ Classes proposées, seuils à fixer : vert au-dessus de 0,5, orange de 0 à 0,5,
 
 Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Au 29/09/2026 : 7 variables validées contre E-OBS sur 1970-2005 et 2006-2024. Au 02/10/2026 : `tas`, `tasmax` et `tasmin` corrigés et validés à 0,1° contre ERA5-Land (section 9). Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
 
-MPI / ICON (section 10) : remappé le 7/10/2026 ; températures corrigées et validées à 0,1° le 8/10/2026 ; les 14 variables et `alb` corrigés à 0,25°, variables dérivées calculées, `check`, `scores` et `spells` faits le 8/10/2026. Restent les décisions de la section 10, la validation contre E-OBS à 0,25° et la bascule du site.
+MPI / ICON (section 10) : remappé le 7/10/2026 ; températures corrigées et validées à 0,1° le 8/10/2026 ; les 14 variables et `alb` corrigés à 0,25°, variables dérivées calculées, `check`, `scores` et `spells` faits le 8/10/2026. Décisions prises le 9/10/2026 (section 10) : `pr`, `ps`, `zg500` recorrigés, `huss` recalculé, contrôles refaits. `psl` remappé à 0,25° et corrigé (moyenne seule) pour les isobares. Restent la validation contre E-OBS à 0,25° et la bascule du site.
 
 Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le Mac se met en veille profonde, ce qui suspend le calcul et peut provoquer un message de disque mal éjecté. Durées observées : remappage 8 min par variable, QDM 32 à 43 min, `check` 4 à 8 min, `scores` 2 à 5 min. MPI / ICON (45 ans de calibration) : remappage 3,4 s par année à 0,25°, 9 s à 0,1° ; QDM 32 à 43 min à 0,25°, environ 1 h 40 par variable à 0,1° ; `check` 4 à 10 min, `scores` 3 à 8 min.
 
@@ -551,7 +559,7 @@ Validation croisée (calibration 1970-1991, test 1992-2014), moyennes sur les 12
 | `tasmax` | K | 0,54 → 0,43 | 1,47 → 0,87 (0,88) | 1,04 → 0,86 (0,86) |
 | `tasmin` | K | 0,41 → 0,40 | 1,83 → 0,83 (0,82) | 1,02 → 0,73 (0,77) |
 | `tas` | K | 0,67 → 0,46 | 1,44 → 0,85 (0,85) | 1,02 → 0,81 (0,86) |
-| `pr` | mm/j | 0,12 → 0,07 | 0,59 → 0,52 (0,60) | 0,61 → 0,68 (0,46) |
+| `pr` | mm/j | 0,12 → 0,07 | 0,59 → 0,51 (0,60) | 0,61 → 0,68 (0,46) |
 | `hurs` | % | 1,47 → 0,53 | 4,30 → 1,85 (2,13) | 3,05 → 1,56 (1,50) |
 | `huss` | g/kg | 0,40 → 0,04 | 0,61 → 0,20 (0,20) | 0,40 → 0,18 (0,23) |
 | `clt` | % | 2,37 → 1,22 | 6,54 → 3,53 (4,11) | 4,62 → 3,26 (2,60) |
@@ -562,29 +570,29 @@ Validation croisée (calibration 1970-1991, test 1992-2014), moyennes sur les 12
 | `alb` | | 0,01 → 0,01 | 0,05 → 0,02 (0,02) | 0,04 → 0,01 (0,01) |
 | `ps` | hPa | 0,65 → 0,52 | 4,0 → 1,8 (2,5) | 2,2 → 1,6 (1,2) |
 | `evspsbl` | mm/j | 0,09 → 0,06 | 0,53 → 0,28 (0,28) | 0,17 → 0,08 (0,08) |
-| `zg500` | m | 13,7 → 7,9 | 27,2 → 24,7 (29,9) | 26,9 → 25,2 (19,6) |
+| `zg500` | m | 13,7 → 7,9 | 27,2 → 24,7 (29,9) | 26,9 → 24,3 (19,6) |
 
-`huss` et `rsus` sont recalculés à partir de champs calibrés sur 1970-2014 : leur validation n'est pas indépendante.
+`huss` et `rsus` sont recalculés à partir de champs calibrés sur 1970-2014 : leur validation n'est pas indépendante. `pr`, `ps` et `zg500` avec les décisions du 9/10/2026 (bruine par quantiles, moyenne seule de décembre à mars).
 
 Signal 2071-2100 contre 1976-2005 conservé : 0,06 K au plus pour les températures, moins de 0,2 % pour `sfcWind`, `hurs`, `rlds`. Exceptions : `pr` (ci-dessous) ; `rsds` et `rsus` en décembre, dans la nuit polaire (section 5).
 
 ### Précipitations
 
-**Fréquence.** Le modèle est trop sec en été : le seuil du modèle (section 2) descend sous 1 mm. Europe terre, seuil médian : 0,93 mm en janvier, 0,50 en juillet, 0,56 en août ; en France, 0,35 mm en août. Sous ce seuil, les jours passent à 0 ; au-dessus, des jours de bruine du modèle deviennent des jours de pluie. Aucune maille d'Europe terre n'a plus de jours à 0 exact qu'ERA5 n'a de jours secs. Jours secs de juillet en validation croisée : ERA5 69,9 %, brut 75,5 %, corrigé 69,6 %. Durée moyenne des séries sèches d'été, Europe terre : ERA5 3,1 j, brut 3,4 j, corrigé 3,1 j.
+**Fréquence.** Le modèle est trop sec en été : le seuil du modèle (section 2) descend sous 1 mm. Europe terre, seuil médian : 0,93 mm en janvier, 0,50 en juillet, 0,56 en août ; en France, 0,35 mm en août. Sous ce seuil, les jours deviennent secs et reçoivent la bruine d'ERA5 ; au-dessus, des jours de bruine du modèle deviennent des jours de pluie. Aucune maille d'Europe terre n'a plus de jours à 0 exact qu'ERA5 n'a de jours secs. Jours secs de juillet en validation croisée : ERA5 69,9 %, brut 75,5 %, corrigé 69,6 %. Durée moyenne des séries sèches d'été, Europe terre : ERA5 3,1 j, brut 3,4 j, corrigé 3,1 j.
 
 **Cumul**, en mm par mois, écart à ERA5 :
 
 | | ERA5 | Brut | Corrigé |
 |---|---|---|---|
-| 1970-2014, Europe terre, été | 74,9 | −17 % | −4 % |
-| 1970-2014, Europe terre, année | 67,8 | −5 % | −5 % |
-| 1970-2014, France, hiver | 81,0 | +26 % | −4 % |
-| 1970-2014, France, été | 76,6 | −21 % | −4,5 % |
-| 2015-2025, Europe terre, été | 72,7 | −18 % | −6,5 % |
-| 2015-2025, France, hiver | 84,0 | +45 % | +12,5 % |
-| 2015-2025, France, année | 81,0 | +13 % | +1 % |
+| 1970-2014, Europe terre, été | 74,9 | −17 % | +0,1 % |
+| 1970-2014, Europe terre, année | 67,8 | −5 % | +0,1 % |
+| 1970-2014, France, hiver | 81,0 | +26 % | 0 % |
+| 1970-2014, France, été | 76,6 | −21 % | +0,2 % |
+| 2015-2025, Europe terre, été | 72,7 | −18 % | −1,7 % |
+| 2015-2025, France, hiver | 84,0 | +45 % | +16 % |
+| 2015-2025, France, année | 81,0 | +13 % | +5 % |
 
-Sur la calibration, le corrigé est trop bas de 4 à 6 % en toute saison : c'est la bruine supprimée (section 5). Sur 2015-2025 (11 ans), les écarts mêlent variabilité naturelle et évolution du modèle.
+Sur la calibration, le corrigé reproduit le cumul d'ERA5 en toute saison. La bruine (jours sous 1 mm) y pèse 4,6 à 6,4 % du cumul sur l'Europe terre, 3,5 à 4,7 % en France, autant dans le corrigé que dans ERA5. Avant la décision du 9/10/2026, la bruine était mise à 0 et le corrigé trop bas de 4 à 6 %. En validation croisée (calibration 1970-1991), le cumul corrigé de 1992-2014 dépasse ERA5 de 3 % (806 contre 783 mm) : différence entre les deux moitiés, puisque le corrigé est juste sur la calibration. Sur 2015-2025 (11 ans), les écarts mêlent variabilité naturelle et évolution du modèle. Journal : `data/correction/mpi/pr_cumul.log`.
 
 **Intensité.** W1 sur les jours de pluie, Europe terre, 12 mois : plancher 0,45, brut 0,61, corrigé 0,68 mm/j. Mailles-mois classées selon W1 brut / plancher :
 
@@ -610,19 +618,25 @@ Même mécanisme que pour RCA4 : le corrigé se place vers 1,2 à 1,5 fois le pl
 | dont rendus pluvieux (brut < 1 mm) | 7,3 % | 2,1 | 59,5 | 209 |
 | dont rendus pluvieux, brut < 0,1 mm | 0,6 % | 1,5 | 50,1 | 231 |
 
-Les jours de pluie corrigés ont la nébulosité et le rayonnement de ceux d'ERA5. Les jours rendus pluvieux (un jour de pluie sur cinq en été) sont des jours de pluie faible, moins couverts ; ils n'ont pas été comparés aux jours de pluie faible d'ERA5. France : mêmes conclusions (jours de pluie corrigés 74,1 % de `clt` contre 72,0 % pour ERA5). Scripts d'essai non versionnés ; journal `data/correction/mpi/test/pr_nq_et_nuages.log`.
+Calcul fait avant la bruine par quantiles, qui ne change ni les jours de pluie ni la part des jours secs. Les jours de pluie corrigés ont la nébulosité et le rayonnement de ceux d'ERA5. Les jours rendus pluvieux (un jour de pluie sur cinq en été) sont des jours de pluie faible, moins couverts ; ils n'ont pas été comparés aux jours de pluie faible d'ERA5. France : mêmes conclusions (jours de pluie corrigés 74,1 % de `clt` contre 72,0 % pour ERA5). Scripts d'essai non versionnés ; journal `data/correction/mpi/test/pr_nq_et_nuages.log`.
 
 ### Défauts et décisions
 
-| Défaut | Mesure | Proposition, à décider |
+| Défaut | Mesure | Décision |
 |---|---|---|
-| Bruine de `pr` supprimée | cumul −4 à −6 % sur la calibration | multiplier les jours de pluie par le rapport cumul total / cumul des jours ≥ 1 mm d'ERA5, par maille et par mois |
-| Assèchement d'été amplifié | août, moyenne : brut −4,2 %, corrigé −7,8 % ; P95 −7 % → −10 % | accepter (comme l'amplification en montagne de RCA4) |
-| `ps` et `zg500` en hiver | `zg500`, février, W1 Europe terre : brut 24,6 m, corrigé 43,7 m, plancher 23,4 m | ne corriger que la moyenne de décembre à mars |
-| `clt` à 100 % | novembre à février : 4,7 à 6,3 % des jours, ERA5 2,2 à 3,0 % | laisser en l'état |
-| Intensité de `pr` | W1 corrigé au-dessus du brut (0,68 contre 0,61) | accepter |
+| Bruine de `pr` supprimée | cumul −4 à −6 % sur la calibration | bruine d'ERA5 donnée aux jours secs par quantiles (section 2), 9/10/2026 : cumul juste sur la calibration ; facteur sur les jours de pluie essayé, non retenu (section 6) |
+| Assèchement d'été amplifié | août, moyenne : brut −4,2 %, corrigé −7,8 % ; P95 −7,2 % → −8,6 % | accepté, 9/10/2026 (comme l'amplification en montagne de RCA4) |
+| `ps` et `zg500` en hiver | `zg500`, février, W1 Europe terre : brut 24,6 m, corrigé 43,7 m, plancher 23,4 m | moyenne seule de décembre à mars, 9/10/2026 (ci-dessous) |
+| `clt` à 100 % | novembre à février : 4,7 à 6,3 % des jours, ERA5 2,2 à 3,0 % | laissé en l'état, 9/10/2026 |
+| Intensité de `pr` | W1 corrigé au-dessus du brut (0,68 contre 0,61) | accepté |
 | Retard sur le réchauffement | Tx corrigé 0,3 à 0,6 K sous ERA5-Land sur 2015-2025 | ajustement sur la TRACC, à décider (`docs/choix_modele_cmip6.md`) |
 | Marche de `rsds` en 2015 | −3,3 W/m², Europe terre | acceptée le 7/10/2026 |
+
+**Moyenne seule de `ps` et `zg500`.** W1 Europe terre, validation croisée, corrigé complet → moyenne seule (brut ; plancher) : `zg500` décembre 20,7 → 16,4 m (30,8 ; 21,0), janvier 33,1 → 29,2 (55,2 ; 16,4), février 43,7 → 41,7 (24,6 ; 23,4), mars 38,3 → 37,4 (15,9 ; 29,0) ; `ps` février 3,50 → 3,46 hPa (2,04 ; 2,37). Février et mars restent moins bons que le brut : la circulation d'hiver d'ERA5 change entre les deux moitiés (section 5), ce que la correction de la moyenne prend aussi pour un biais, en moins fort. Le signal du modèle est conservé sur ces mois, à 0,03 m près pour `zg500` sur la maille la plus touchée (2,5 m avec le QDM complet).
+
+**`psl`, pression au niveau de la mer** (isobares des cartes ; `ps` suit le relief). Remappée à 0,25° le 9/10/2026, comparée à `msl` d'ERA5 sur 1970-2014 (`data/correction/mpi/diagnostic/psl_025*`). Biais de la moyenne, Europe terre : −0,9 à −1,5 hPa de novembre à mars, +0,3 à +1,7 hPa d'avril à octobre ; RMS entre mailles 0,5 à 2,2 hPa. Champ de biais lisse, à grande échelle (janvier : trop bas vers 50 N, trop haut au sud de 35 N, jusqu'à +2,6 hPa ; avril : −4 hPa sur l'Atlantique vers 50 N, 20 W).
+
+Décision du 9/10/2026 : moyenne seule, par maille et par mois, toute l'année ; un décalage garde les isobares lisses. Validation croisée, Europe terre, moyenne des 12 mois : |biais| moyen 0,63 → 0,53 hPa, RMS entre mailles 1,72 → 1,85 hPa, W1 1,49 → 1,60 hPa (plancher 1,18). Gain de juin à novembre (W1 de juillet 1,11 → 0,63, plancher 0,58), perte de décembre à avril (février 1,04 → 3,54, plancher 2,46) : comme pour `ps`, la circulation d'hiver d'ERA5 change entre les deux moitiés, et un biais mesuré sur 22 ans en est pollué. La calibration définitive porte sur 45 ans. Signal du modèle conservé exactement. Journaux `qdm_psl.log`, `check_psl.log`, `scores_psl.log`.
 
 Restent : la validation contre E-OBS à 0,25° (`python -m src.correction.eobs`, à adapter aux périodes de MPI / ICON) et la bascule du site (`src/store/build.py`).
 
@@ -649,6 +663,7 @@ Restent : la validation contre E-OBS à 0,25° (`python -m src.correction.eobs`,
 | `LaCie/.../cordex/eur11_010_qdm/` | CORDEX remappé à 0,1° et corrigé contre ERA5-Land : `tas`, `tasmax`, `tasmin` |
 | `src/correction/models.py` | simulations de la chaîne (`WSA_MODEL`), noms de fichiers, fin de `historical` |
 | `src/correction/diagnostic.py` | diagnostic du brut : biais, queue froide, marche au début du scénario |
+| `data/correction/mpi/lot3.sh`, `lot4.sh`, `lot5.sh` | lots du 9/10/2026 : décisions sur `pr`, `ps`, `zg500` ; remappage, diagnostic et correction de `psl` |
 | `data/correction/mpi/` | MPI / ICON : tables `<variable>_quantiles_1970-2014.nc`, journaux `qdm_*`, `derive_*`, `check_*`, `scores_*`, figures |
 | `data/correction/mpi/land/` | MPI / ICON à 0,1° : tables, `land.log`, `check_<variable>.log` |
 | `data/correction/mpi/diagnostic/` | diagnostic du brut de MPI / ICON (1970-2014) |

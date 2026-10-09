@@ -58,6 +58,8 @@ DAILY = {
     "strd": (["strd"], "sum"),
     "ssr": (["ssr"], "sum"),
     "sp": (["sp"], "mean"),
+    # Mean sea-level pressure, for the isobars of the maps.
+    "msl": (["msl"], "mean"),
     "e": (["e"], "sum"),
     "si10": (["u10", "v10"], "mean"),
     "hurs": (["t2m", "d2m"], "mean"),
