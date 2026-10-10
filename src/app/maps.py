@@ -6,7 +6,10 @@ browser receives it once (`cells`), then each map as the values of those
 cells, day after day, in the store's integers.
 
 The store is optional: without data/serve/map.zarr the site runs and the map
-page says it has no data. An unfinished array (no `built`) counts as absent.
+page says it has no data. An unfinished array (no `built`), or a CORDEX one
+that does not say which simulation it holds, counts as absent. The CORDEX
+arrays must all hold the same simulation, the one of the point store
+(checked at start-up, src.app.api.app).
 """
 
 from __future__ import annotations
@@ -18,6 +21,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 
+from src.app.store import Simulation
 from src.config import DATA
 from src.store.maps import SOURCES
 
@@ -42,11 +46,17 @@ class MapStore:
         self.variables = []
         for name in VARIABLES:
             found = {s: root[s][name] for s in SOURCES if s in root and name in root[s]}
-            if len(found) == len(SOURCES) and all("built" in a.attrs for a in found.values()):
+            if (len(found) == len(SOURCES) and all("built" in a.attrs for a in found.values())
+                    and "simulation" in found["cordex"].attrs):
                 self.variables.append(name)
                 self.arrays.update({(s, name): a for s, a in found.items()})
         if not self.variables:
             raise RuntimeError(f"{path}: aucune variable complete")
+        runs = {name: dict(self.arrays["cordex", name].attrs["simulation"]) for name in self.variables}
+        first = runs[self.variables[0]]
+        if any(run != first for run in runs.values()):
+            raise ValueError(f"{path}: les grandeurs ne viennent pas toutes de la meme simulation")
+        self.simulation = Simulation.read(first)
 
     def cells(self) -> dict:
         """The cells of every map: their rows and columns on the grid, and the grid."""

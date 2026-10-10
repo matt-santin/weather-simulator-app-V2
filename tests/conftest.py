@@ -38,6 +38,13 @@ LATITUDE010 = np.round(np.arange(46.0, 44.95, -0.1), 2)
 LONGITUDE010 = np.round(np.arange(5.0, 6.05, 0.1), 2)
 FINE_OFFSET = 500
 FINE = {"era5": "era5land", "cordex": "cordex010"}
+# What src.store.build writes on every CORDEX array (src.correction.models, rca4).
+SIMULATION = {
+    "driving": "EC-EARTH", "driving_id": "ICHEC-EC-EARTH", "member": "r12i1p1",
+    "regional": "RCA4", "regional_id": "SMHI-RCA4", "institute": "SMHI", "domain": "EUR-11",
+    "scenario": "RCP 4.5", "provider": "Copernicus Climate Data Store",
+    "calibration_start": "1970-01-01", "calibration_end": "2005-12-31",
+}
 
 
 def fill(dtype: str) -> int:
@@ -73,6 +80,8 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
                 data[(GAP - start).days] = fill(dtype)
             arr = group.create_array(name, data=data, chunks=(n, 5, 5))
             arr.attrs.update({"scale_factor": step, "_FillValue": fill(dtype), "built": "2026-09-30 22:00"})
+            if source == "cordex":
+                arr.attrs["simulation"] = SIMULATION
 
     root.create_array("latitude010", data=LATITUDE010)
     root.create_array("longitude010", data=LONGITUDE010)
@@ -91,6 +100,8 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
             data = np.where(domain010[None].astype(bool), index, fill("int16")).astype("int16")
             arr = group.create_array(name, data=data, chunks=(n, *shape))
             arr.attrs.update({"scale_factor": 0.01, "_FillValue": fill("int16"), "built": "2026-10-02 12:00"})
+            if source == "cordex":
+                arr.attrs["simulation"] = SIMULATION
     return path
 
 
@@ -118,10 +129,14 @@ def map_store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
         arr = root.require_group(source).create_array("tasmax", data=data, chunks=(32, 5, 5))
         arr.attrs.update({"scale_factor": 0.01, "_FillValue": -32768, "start": first.isoformat(),
                           "built": "2026-10-04 21:42"})
+        if source == "cordex":
+            arr.attrs["simulation"] = SIMULATION
         # Rain as the store keeps it: uint16 in tenths of a mm, 65535 for no value.
         rain = ((np.arange(n) % 3000)[:, None, None] + np.zeros((1, 5, 5), dtype="int64")).astype("uint16")
         rain[0] = 65535
         arr = root[source].create_array("pr", data=rain, chunks=(32, 5, 5))
         arr.attrs.update({"scale_factor": 0.1, "_FillValue": 65535, "start": first.isoformat(),
                           "built": "2026-10-04 21:42"})
+        if source == "cordex":
+            arr.attrs["simulation"] = SIMULATION
     return path

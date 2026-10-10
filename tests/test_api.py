@@ -358,3 +358,69 @@ def test_rain_maps_are_tenths_of_a_mm_and_unbuilt_variables_are_absent(map_clien
     assert (values[0] == -32768).all()  # no value on the first day
     assert (values[1] == 1).all()  # day index 1, 0.1 mm
     assert map_client.get("/api/map/clt", params={"start": "2044-07-01", "end": "2044-07-02"}).status_code == 404
+
+
+# --- the simulation is named by the store --------------------------------------
+
+def test_config_names_the_simulation_of_the_store(client: TestClient) -> None:
+    sim = client.get("/api/config").json()["simulation"]
+    assert sim["model"] == "EC-EARTH (r12i1p1) / SMHI-RCA4, CORDEX EUR-11, scénario RCP 4.5"
+    assert sim["source"] == "CORDEX EUR-11 corrigé"
+    assert (sim["driving"], sim["regional"], sim["scenario"]) == ("EC-EARTH", "RCA4", "RCP 4.5")
+    assert (sim["calibration_start"], sim["calibration_end"]) == ("1970-01-01", "2005-12-31")
+
+
+def test_the_provenance_of_simulated_days_is_the_store_s(client: TestClient) -> None:
+    grid = days(client, "2044-07-01", "2044-07-03").json()["grid"]
+    assert grid["model"] == "EC-EARTH (r12i1p1) / SMHI-RCA4, CORDEX EUR-11, scénario RCP 4.5"
+    assert (grid["calibration_start"], grid["calibration_end"]) == ("1970-01-01", "2005-12-31")
+
+
+def copied(path, tmp_path, name: str):
+    import shutil
+    target = tmp_path / name
+    shutil.copytree(path, target)
+    return target
+
+
+def test_a_store_that_does_not_name_its_simulation_is_refused(store_path, tmp_path) -> None:
+    import zarr
+    path = copied(store_path, tmp_path, "point.zarr")
+    arr = zarr.open_array(path / "cordex010" / "tas", mode="r+")
+    attrs = dict(arr.attrs)
+    del attrs["simulation"]
+    arr.attrs.clear()
+    arr.attrs.update(attrs)
+    with pytest.raises(RuntimeError, match="simulation"):
+        Store(path)
+
+
+def test_a_store_mixing_two_simulations_is_refused(store_path, tmp_path) -> None:
+    import zarr
+    from conftest import SIMULATION
+    path = copied(store_path, tmp_path, "point.zarr")
+    zarr.open_array(path / "cordex010" / "tasmax", mode="r+").attrs["simulation"] = (
+        SIMULATION | {"driving": "MPI-ESM1-2-HR"})
+    with pytest.raises(RuntimeError, match="simulations differentes"):
+        Store(path)
+
+
+def test_maps_of_another_simulation_stop_the_start(store_path, map_store_path, tmp_path,
+                                                   monkeypatch) -> None:
+    import zarr
+    from src.app import maps
+    from src.app.api import app as api
+    from conftest import SIMULATION
+    path = copied(map_store_path, tmp_path, "map.zarr")
+    other = SIMULATION | {"regional": "ICON-CLM"}
+    for name in ("tasmax", "pr"):
+        zarr.open_array(path / "cordex" / name, mode="r+").attrs["simulation"] = other
+    store = Store(store_path)
+    monkeypatch.setattr(api, "get_store", lambda: store)
+    monkeypatch.setattr(maps, "open_store", lambda: maps.MapStore(path))
+    api.get_map_store.cache_clear()
+    try:
+        with pytest.raises(RuntimeError, match="le site sert"):
+            api.get_map_store()
+    finally:
+        api.get_map_store.cache_clear()

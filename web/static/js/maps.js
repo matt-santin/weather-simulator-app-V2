@@ -1,7 +1,8 @@
 /**
  * The map page: one variable over Europe, a season day after day.
  *
- * Four things are fetched: the config (periods, band edges), the land cells and
+ * Four things are fetched: the config (periods, band edges, the simulation
+ * served, which names itself in the warning and the source), the land cells and
  * the variables served (once), the country outlines (a static file), and the
  * season itself, as integers. How each variable is drawn is in mapview.js
  * (VARIABLES). Everything drawn is read from those; the arithmetic is in
@@ -42,6 +43,7 @@ const variableField = document.getElementById("maps-variable");
 const seasonField = document.getElementById("maps-season");
 const yearField = document.getElementById("maps-year");
 const warning = document.getElementById("maps-warning");
+const sourceNote = document.getElementById("maps-source");
 const status = document.getElementById("maps-status");
 const failure = document.getElementById("maps-failure");
 const stage = document.getElementById("maps-stage");
@@ -105,6 +107,8 @@ async function boot() {
   try {
     const [config, cells, shapes] = await Promise.all([loadConfig(), mapCells(), outlines()]);
     state.config = config;
+    warning.textContent = texts.maps.simulated(config.simulation);
+    sourceNote.textContent = texts.maps.source(config.simulation);
     state.cells = cells;
     state.geometry = grid(cells);
     state.rings = shapes.rings;

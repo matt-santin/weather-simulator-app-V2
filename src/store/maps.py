@@ -11,6 +11,9 @@ It is copied from point.zarr, raw integers to raw integers (same step, same
 fill value): no rounding is added, and the verification checks equality.
 Groups and periods are the site's: era5 1970-2025, cordex 2027-2100, 0.25 deg.
 
+The CORDEX arrays keep the description of their run (attribute `simulation`,
+src.store.build).
+
 At the root: latitude, longitude, and land (1 where the ERA5 land-sea mask is
 at least 0.5 and CORDEX covers the cell). The mask is read once from the
 external drive; the store then serves without it.
@@ -82,6 +85,8 @@ def build(point: zarr.Group, source: str, name: str, ny: int, nx: int) -> None:
         "units": src.attrs.get("units", "degC"),
         "start": first.isoformat(),
     })
+    if "simulation" in src.attrs:
+        arr.attrs["simulation"] = src.attrs["simulation"]
     for i0 in range(0, ny, qy):
         for j0 in range(0, nx, qx):
             i1, j1 = min(i0 + qy, ny), min(j0 + qx, nx)

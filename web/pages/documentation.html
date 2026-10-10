@@ -30,6 +30,12 @@
     rule 1 and will never see this file. `tests/test_pages.py` reads it directly
     instead.
 
+    **The names of the simulation are filled by the server**, not written here:
+    {{driving}}, {{regional}}, {{scenario}} and the others are replaced from the
+    store's description of the run it serves (src.app.api.app, documentation),
+    so that the page and the data cannot disagree. The prose around them is
+    still this file's, and a change of model means reading it again.
+
     **This page is on white, and no other is.** It inverts the site's two inks
     rather than importing a palette — the near-black that is paper everywhere
     else becomes the ink here. The two other pages are an instrument, a dark room
@@ -93,10 +99,10 @@
 
         <p>
           <strong>De 2027 à 2100, la météo simulée</strong> vient d'un couple
-          de modèles du programme CORDEX&nbsp;: le modèle global EC-EARTH fixe
-          l'état de l'atmosphère à grande échelle, le modèle régional RCA4
-          (SMHI) le détaille sur l'Europe à 12&nbsp;km. Le scénario d'émissions
-          est le RCP&nbsp;4.5, une trajectoire intermédiaire. Ces journées ne
+          de modèles du programme CORDEX&nbsp;: le modèle global {{driving}} fixe
+          l'état de l'atmosphère à grande échelle, le modèle régional {{regional}}
+          ({{institute}}) le détaille sur l'Europe à 12&nbsp;km. Le scénario d'émissions
+          est le {{scenario}}, une trajectoire intermédiaire. Ces journées ne
           sont pas des prévisions&nbsp;: ce sont des journées plausibles dans le
           climat de leur époque.
         </p>
@@ -115,7 +121,7 @@
         <p>
           Un modèle climatique a ses biais&nbsp;: un peu trop froid ici, trop
           pluvieux là. Chaque grandeur simulée est donc corrigée, maille par
-          maille et mois par mois, en comparant sur 1970-2005 la distribution
+          maille et mois par mois, en comparant sur {{calibration}} la distribution
           des journées du modèle à celle d'ERA5. La correction porte sur chaque
           niveau de la distribution (les journées froides, moyennes,
           chaudes), et non sur la seule moyenne. Elle conserve l'évolution que
@@ -209,9 +215,9 @@
 
           <dt>Simulation climatique</dt>
           <dd>
-            CORDEX EUR-11&nbsp;: <span class="mono">ICHEC-EC-EARTH</span>
-            (r12i1p1) et <span class="mono">SMHI-RCA4</span>, historique puis
-            RCP&nbsp;4.5, via le Copernicus Climate Data Store
+            CORDEX {{domain}}&nbsp;: <span class="mono">{{driving_id}}</span>
+            ({{member}}) et <span class="mono">{{regional_id}}</span>, historique puis
+            {{scenario}}, via {{provider}}
           </dd>
 
           <dt>Recherche de lieux</dt>

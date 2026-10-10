@@ -1,7 +1,8 @@
 """The two pages and their files, served by the same application as the API.
 
-``TestClient(app)`` without a context manager runs no lifespan, so the store
-is never opened here.
+``TestClient(app)`` without a context manager runs no lifespan; the config and
+the documentation page read the small store of conftest.py, which describes
+the EC-EARTH / RCA4 run.
 
 The last test is the one worth having: docs/application.md plans for a static
 frontend served by a CDN, so the API must start with no ``web/`` beside it. A
@@ -18,14 +19,18 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.app.api.app import app, mount_web
+from src.app.api.app import app, get_store, mount_web
+from src.app.store import Store
 
 WEB = Path(__file__).resolve().parents[1] / "web"
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
+def client(store_path) -> TestClient:
+    store = Store(store_path)
+    app.dependency_overrides[get_store] = lambda: store
+    yield TestClient(app)
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.parametrize("path", ["/", "/resultats", "/documentation"])
@@ -214,11 +219,22 @@ def test_the_documentation_page_never_promises_the_day() -> None:
         assert promise not in prose, f'"{promise}" in documentation.html'
 
 
-def test_the_documentation_page_states_the_model_and_the_scenario() -> None:
-    """The reader must know which simulation the future days come from."""
+def test_the_documentation_page_states_the_model_and_the_scenario(client: TestClient) -> None:
+    """The reader must know which simulation the future days come from, and the
+    names are the store's: the small store describes EC-EARTH / RCA4."""
+    page = " ".join(client.get("/documentation").text.split()).replace("&nbsp;", " ")
+    for name in ("ERA5", "CORDEX EUR-11", "EC-EARTH", "RCA4 (SMHI)", "RCP 4.5", "intermédiaire",
+                 "ICHEC-EC-EARTH", "r12i1p1", "SMHI-RCA4", "sur 1970-2005",
+                 "Copernicus Climate Data Store"):
+        assert name in page, f"{name} absent de la page de documentation"
+    assert "{{" not in page
+
+
+def test_the_documentation_file_names_no_model() -> None:
+    """The names come from the store; written in the file, they would outlive a change of model."""
     prose = documentation_prose().replace("&nbsp;", " ")
-    for name in ("ERA5", "CORDEX", "EC-EARTH", "RCA4", "RCP 4.5", "intermédiaire"):
-        assert name in prose, f"{name} absent de documentation.html"
+    for name in ("EC-EARTH", "RCA4", "RCP 4.5", "MPI-ESM", "ICON", "SSP"):
+        assert name not in prose, f"{name} écrit dans documentation.html"
 
 
 def test_the_documentation_page_loads_no_script() -> None:

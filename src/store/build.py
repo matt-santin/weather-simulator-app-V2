@@ -1,12 +1,13 @@
 """Serving store: corrected CORDEX rewritten as long series per point, in Zarr.
 
-    python -m src.store.build cordex tasmax [tasmin ...]
+    WSA_MODEL=mpi python -m src.store.build cordex tasmax [tasmin ...]
     python -m src.store.build era5 tasmax [tasmin ...]
-    python -m src.store.build cordex010 tasmax tasmin tas
+    WSA_MODEL=mpi python -m src.store.build cordex010 tasmax tasmin tas
     python -m src.store.build era5land tasmax tasmin tas
 
-Run from the repo root, with the external drive plugged in. The yearly files
-stay the reference, on two grids:
+Run from the repo root, with the external drive plugged in. WSA_MODEL picks the
+CORDEX run (src.correction.models). The yearly files stay the reference, on
+two grids:
 
     cordex     corrected CORDEX 1970-2100, 0.25 deg (src.correction.qdm)
     era5       daily ERA5 1970-2025, 0.25 deg (src.download.era5)
@@ -35,6 +36,11 @@ step / 2.
 The store is built one band of BAND latitudes (two rows of shards) at a time,
 converted to integers year by year: about 2 GB of memory at 0.1 deg. The
 attribute `built` is written last: an array without it is incomplete.
+
+Every array built from CORDEX carries the description of its run in the
+attribute `simulation` (Model.simulation): the site reads the name of the
+model, the scenario and the calibration period there, and refuses to start if
+the CORDEX arrays do not all describe the same run.
 """
 
 import logging
@@ -55,6 +61,7 @@ from zarr.codecs.numcodecs import Delta
 
 from src.config import DATA
 from src.correction import land
+from src.correction.models import MODEL
 from src.correction.qdm import ERA5_DAILY
 from src.correction.qdm import OUT as CORRECTED
 from src.correction.qdm import YEARS
@@ -115,16 +122,17 @@ class Source:
     field: Callable[[str], str]  # variable to its name in the file
     convert: Callable[[str], Callable]  # variable to its conversion
     fine: bool = False  # 0.1 deg grid, temperatures only
+    simulated: bool = False  # CORDEX: the run's description goes with the data
 
 
 SOURCES = {
     "cordex": Source(YEARS, lambda n, y: CORRECTED / yearly(n, y),
-                     lambda n: n, lambda n: VARS[n].convert),
+                     lambda n: n, lambda n: VARS[n].convert, simulated=True),
     "era5": Source(range(1970, 2026),
                    lambda n, y: ERA5_DAILY / f"{VARS[n].era5}_ERA5_day_{y}0101-{y}1231.nc",
                    lambda n: VARS[n].era5, lambda n: VARS[n].from_era5),
     "cordex010": Source(YEARS, lambda n, y: land.OUT / yearly(n, y),
-                        lambda n: n, lambda n: kelvin, fine=True),
+                        lambda n: n, lambda n: kelvin, fine=True, simulated=True),
     "era5land": Source(range(1970, 2026), lambda n, y: land.land_file(LAND_FIELD[n], y),
                        lambda n: LAND_FIELD[n], lambda n: kelvin, fine=True),
 }
@@ -264,7 +272,8 @@ def build(src: str, name: str) -> None:
     days, lat, lon = grid(src, name)
     inside = domain(SOURCES[src].fine)
     arr = create(src, name, days, lat, lon)
-    log.info("%s %s : %d jours, %d x %d mailles", src, name, len(days), len(lat), len(lon))
+    log.info("%s %s : %d jours, %d x %d mailles%s", src, name, len(days), len(lat), len(lon),
+             f", {MODEL.driving} / {MODEL.regional}" if SOURCES[src].simulated else "")
     for i0 in range(0, len(lat), BAND):
         i1 = min(i0 + BAND, len(lat))
         arr[:, i0:i1, :] = band(src, name, i0, i1, inside)
@@ -274,6 +283,8 @@ def build(src: str, name: str) -> None:
     # Half a step, plus the float32 rounding of the source files (3e-5 K at 300 K).
     if worst > step / 2 + 1e-4:
         raise ValueError(f"{src} {name} : ecart maximal {worst:.4f}, au-dela de {step / 2}")
+    if SOURCES[src].simulated:
+        arr.attrs["simulation"] = MODEL.simulation()
     arr.attrs["built"] = time.strftime("%Y-%m-%d %H:%M")
     log.info("%s %s : %.2f Go, ecart maximal au fichier source %.4f %s, %.0f min",
              src, name, size / 1e9, worst, VARS[name].units, (time.time() - t0) / 60)

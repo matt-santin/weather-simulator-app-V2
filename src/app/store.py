@@ -16,6 +16,10 @@ cells that are mostly land have one; small islands and the sea do not), and
 from its 0.25 deg cell otherwise. Without the 0.1 deg arrays, the store serves
 0.25 deg everywhere.
 
+The simulation is named by the store, not by this code: every cordex and
+cordex010 array carries the description of its run (attribute `simulation`,
+written by src.store.build), and they must all carry the same one.
+
 zarr is read directly rather than through xarray: the server needs integer
 chunks and three attributes, and importing xarray and pandas would double its
 start-up time. A series costs one chunk per variable, whatever its length.
@@ -69,6 +73,42 @@ PERIODS = (
 
 
 @dataclass(frozen=True)
+class Simulation:
+    """The CORDEX run the store serves, as src.correction.models.Model.simulation
+    describes it."""
+
+    driving: str
+    driving_id: str
+    member: str
+    regional: str
+    regional_id: str
+    institute: str
+    domain: str
+    scenario: str
+    provider: str
+    calibration_start: date
+    calibration_end: date
+
+    @classmethod
+    def read(cls, attrs: dict) -> Simulation:
+        return cls(**{
+            k: date.fromisoformat(v) if k.startswith("calibration") else v
+            for k, v in attrs.items()
+        })
+
+    @property
+    def model(self) -> str:
+        """"EC-EARTH (r12i1p1) / SMHI-RCA4, CORDEX EUR-11, scénario RCP 4.5"."""
+        return (f"{self.driving} ({self.member}) / {self.regional_id}, "
+                f"CORDEX {self.domain}, scénario {self.scenario}")
+
+    @property
+    def source(self) -> str:
+        """"CORDEX EUR-11 corrigé"."""
+        return f"CORDEX {self.domain} corrigé"
+
+
+@dataclass(frozen=True)
 class Cell:
     """Where a place is read: its 0.25 deg cell, and its 0.1 deg one, if any."""
 
@@ -96,6 +136,7 @@ class Store:
             for period in PERIODS:
                 self._open(root, path, FINE[period.source], TEMPERATURES, period)
         self.built = max(a.attrs["built"] for g in self.arrays.values() for a in g.values())
+        self.simulation = self._simulation(path)
 
     def _open(self, root, path, source, names, period: Period) -> None:
         group = root[source]
@@ -116,6 +157,21 @@ class Store:
         if self.first[source] > period.start or last < period.end:
             raise RuntimeError(f"{path}: {source} couvre {self.first[source]}..{last}, "
                                f"la periode servie est {period.start}..{period.end}")
+
+    def _simulation(self, path) -> Simulation:
+        """The run every CORDEX array describes: one, the same for all."""
+        found = {}
+        for source in ("cordex", FINE["cordex"]):
+            for name, arr in self.arrays.get(source, {}).items():
+                if "simulation" not in arr.attrs:
+                    raise RuntimeError(f"{path}: {source}/{name} ne dit pas quelle simulation il contient")
+                found[f"{source}/{name}"] = dict(arr.attrs["simulation"])
+        first = next(iter(found.values()))
+        differ = [k for k, v in found.items() if v != first]
+        if differ:
+            raise RuntimeError(f"{path}: simulations differentes ({', '.join(differ)} contre "
+                               f"{next(iter(found))})")
+        return Simulation.read(first)
 
     def cell(self, latitude: float, longitude: float) -> Cell | None:
         """Where to read a place, or None outside the domain."""

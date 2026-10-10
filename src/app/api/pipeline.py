@@ -19,15 +19,14 @@ from src.app.store import FIELDS, PERIODS, Cell, Period, Store
 from src.app.transform import block
 
 KMH = 3.6
-# Which dataset served a day, without and with the 0.1 deg temperatures.
-SOURCES = {
-    ("era5", False): "ERA5",
-    ("era5", True): "ERA5-Land (températures), ERA5",
-    ("cordex", False): "CORDEX EUR-11 corrigé",
-    ("cordex", True): "CORDEX EUR-11 corrigé, températures à 0,1°",
-}
-MODEL = "EC-EARTH (r12i1p1) / SMHI-RCA4, CORDEX EUR-11, scénario RCP 4.5"
-CALIBRATION = (date(1970, 1, 1), date(2005, 12, 31))
+
+
+def source(store: Store, period: Period, fine: bool) -> str:
+    """Which dataset served a day, without and with the 0.1 deg temperatures."""
+    if period.source == "cordex":
+        name = store.simulation.source
+        return f"{name}, températures à 0,1°" if fine else name
+    return "ERA5-Land (températures), ERA5" if fine else "ERA5"
 
 
 def records(store: Store, period: Period, cell: Cell, start: date, end: date):
@@ -40,7 +39,7 @@ def records(store: Store, period: Period, cell: Cell, start: date, end: date):
         DailyRecord(
             date=start + timedelta(days=k),
             origin=origin,
-            source=SOURCES[period.source, cell.fine is not None],
+            source=source(store, period, cell.fine is not None),
             **{field: values[name][k] for name, field in FIELDS.items()},
         )
         for k in range(n)
@@ -51,12 +50,12 @@ def grid(store: Store, cell: Cell) -> Grid:
     cordex = next(p for p in PERIODS if p.source == "cordex")
     fine = cell.fine is not None
     return Grid(
-        model=MODEL,
+        model=store.simulation.model,
         reference="ERA5-Land (températures), ERA5" if fine else "ERA5",
         temperature_step=round(float(abs(store.latitude010[1] - store.latitude010[0])), 2)
         if fine else None,
-        calibration_start=CALIBRATION[0],
-        calibration_end=CALIBRATION[1],
+        calibration_start=store.simulation.calibration_start,
+        calibration_end=store.simulation.calibration_end,
         projection_start=cordex.start,
         projection_end=cordex.end,
         step=float(abs(store.latitude[1] - store.latitude[0])),

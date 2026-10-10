@@ -30,7 +30,10 @@ NAMES = {
     "tasmax": "temperature_max",
     "pr": "precipitation",
 }
-SOURCES = {"era5": "ERA5", "cordex": "CORDEX EUR-11 corrigé"}
+
+
+def source(store: Store, name: str) -> str:
+    return store.simulation.source if name == "cordex" else "ERA5"
 
 
 def window(year: int) -> tuple[Period, int, int] | None:
@@ -75,14 +78,14 @@ def run(store: Store, cell: Cell, year: int, reference: int) -> Climate:
             start_year=first,
             end_year=last,
             origin="simulated" if period.source == "cordex" else "observed",
-            source=SOURCES[period.source],
+            source=source(store, period.source),
         ),
         months=months(store, period.source, cell, first, last),
         reference=ClimateWindow(
             start_year=ref_start.year,
             end_year=ref_end.year,
             origin="observed",
-            source=SOURCES[normals.SOURCE],
+            source=source(store, normals.SOURCE),
         ),
         reference_months=months(store, normals.SOURCE, cell, ref_start.year, ref_end.year),
     )

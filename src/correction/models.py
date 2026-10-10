@@ -15,6 +15,10 @@ Each run writes to its own folders: remapped and corrected files on the drive
 (cordex/<out>_025, <out>_025_qdm, <out>_010, <out>_010_qdm), tables and logs
 under data/correction/<tables>. The files of the derived chain are always one
 per year, named after the run.
+
+The serving store (src.store.build) copies the run's description (Model.
+simulation) onto every array it builds from it: the site names the simulation
+it serves from the store, never from its own code.
 """
 
 import os
@@ -34,6 +38,15 @@ class Model:
     scenario: str
     out: str  # prefix of the remapped and corrected folders on the drive
     tables: str  # sub-folder of data/correction, "" for the first run
+    # As the site names them.
+    driving: str  # global model, short name
+    driving_id: str  # global model, as in CORDEX
+    member: str  # ensemble member of the global model
+    regional: str  # regional model, short name
+    regional_id: str  # regional model, as in CORDEX
+    institute: str  # of the regional model
+    scenario_label: str
+    provider: str  # where the files were downloaded from
 
     def yearly(self, name: str, year: int) -> str:
         exp = "historical" if year <= self.hist_end else self.scenario
@@ -53,13 +66,36 @@ class Model:
                 return p
         raise FileNotFoundError(f"{name} {year} absent de {self.src}")
 
+    def simulation(self) -> dict[str, str]:
+        """What the site shows of the run. The correction is calibrated on
+        1970 to the end of the historical experiment (src.correction.qdm.CAL)."""
+        return {
+            "driving": self.driving,
+            "driving_id": self.driving_id,
+            "member": self.member,
+            "regional": self.regional,
+            "regional_id": self.regional_id,
+            "institute": self.institute,
+            "domain": self.domain,
+            "scenario": self.scenario_label,
+            "provider": self.provider,
+            "calibration_start": "1970-01-01",
+            "calibration_end": f"{self.hist_end}-12-31",
+        }
+
 
 MODELS = {
     "rca4": Model("rca4", "EUR-11", ARCHIVE / "cordex" / "eur11",
-                  "ICHEC-EC-EARTH_{exp}_r12i1p1_SMHI-RCA4_v1", 2005, "rcp45", "eur11", ""),
+                  "ICHEC-EC-EARTH_{exp}_r12i1p1_SMHI-RCA4_v1", 2005, "rcp45", "eur11", "",
+                  driving="EC-EARTH", driving_id="ICHEC-EC-EARTH", member="r12i1p1",
+                  regional="RCA4", regional_id="SMHI-RCA4", institute="SMHI",
+                  scenario_label="RCP 4.5", provider="Copernicus Climate Data Store"),
     "mpi": Model("mpi", "EUR-12", ARCHIVE / "cordex" / "eur12_mpi-esm1-2-hr_icon-clm",
                  "MPI-ESM1-2-HR_{exp}_r1i1p1f1_CLMcom-DWD_ICON-CLM-202407-1-1_v1-r1",
-                 2014, "ssp370", "eur12_mpi", "mpi"),
+                 2014, "ssp370", "eur12_mpi", "mpi",
+                 driving="MPI-ESM1-2-HR", driving_id="MPI-ESM1-2-HR", member="r1i1p1f1",
+                 regional="ICON-CLM", regional_id="ICON-CLM-202407-1-1", institute="CLMcom-DWD",
+                 scenario_label="SSP3-7.0", provider="ESGF (DKRZ)"),
 }
 
 MODEL = MODELS[os.environ.get("WSA_MODEL", "rca4")]

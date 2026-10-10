@@ -18,6 +18,8 @@ stays in the browser (Open-Meteo, limited per visitor's address).
 
 from __future__ import annotations
 
+import html
+import re
 from contextlib import asynccontextmanager
 from datetime import date
 from functools import lru_cache
@@ -28,7 +30,7 @@ from fastapi import Depends, FastAPI, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
@@ -38,7 +40,7 @@ from src.app.api import climate, errors, normals, pipeline, validation, years
 from src.app.api.contract import Climate, Normals, Series, Years
 from src.app.domain import thresholds
 from src.app.maps import MapStore
-from src.app.store import PERIODS, Store
+from src.app.store import PERIODS, Simulation, Store
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 WEB = Path(__file__).resolve().parents[3] / "web"
@@ -83,6 +85,20 @@ class Reference(BaseModel):
     label: str
 
 
+class SimulationInfo(BaseModel):
+    """The CORDEX run served from 2027, as the store describes it."""
+
+    model: str
+    source: str
+    driving: str
+    regional: str
+    institute: str
+    domain: str
+    scenario: str
+    calibration_start: str
+    calibration_end: str
+
+
 class Config(BaseModel):
     geocoding_url: str
     coverage_start: str
@@ -93,10 +109,12 @@ class Config(BaseModel):
     normals_default: int
     temperature_band_edges: list[float]
     temperature_band_step: float
+    simulation: SimulationInfo
 
 
 @app.get("/api/config", response_model=Config)
-def config() -> Config:
+def config(store: StoreDep) -> Config:
+    sim = store.simulation
     return Config(
         geocoding_url=GEOCODING_URL,
         coverage_start=PERIODS[0].start.isoformat(),
@@ -114,6 +132,17 @@ def config() -> Config:
         normals_default=normals.DEFAULT,
         temperature_band_edges=list(thresholds.TEMPERATURE_BAND_EDGES),
         temperature_band_step=thresholds.TEMPERATURE_BAND_STEP_C,
+        simulation=SimulationInfo(
+            model=sim.model,
+            source=sim.source,
+            driving=sim.driving,
+            regional=sim.regional,
+            institute=sim.institute,
+            domain=sim.domain,
+            scenario=sim.scenario,
+            calibration_start=sim.calibration_start.isoformat(),
+            calibration_end=sim.calibration_end.isoformat(),
+        ),
     )
 
 
@@ -202,7 +231,11 @@ def every_year(
 
 @lru_cache(maxsize=1)
 def get_map_store() -> MapStore | None:
-    return maps.open_store()
+    found = maps.open_store()
+    if found is not None and found.simulation != get_store().simulation:
+        raise RuntimeError(f"{maps.STORE}: simulation {found.simulation.model}, "
+                           f"le site sert {get_store().simulation.model}")
+    return found
 
 
 MapStoreDep = Annotated[MapStore | None, Depends(get_map_store)]
@@ -263,6 +296,25 @@ class RevalidatedStatic(StaticFiles):
         return response
 
 
+def fill_simulation(page: str, sim: Simulation) -> str:
+    """The page with {{driving}}, {{scenario}}... replaced by the simulation the
+    store serves, escaped, spaces made non-breaking. An unknown name is an error."""
+    values = {
+        "driving": sim.driving,
+        "driving_id": sim.driving_id,
+        "member": sim.member,
+        "regional": sim.regional,
+        "regional_id": sim.regional_id,
+        "institute": sim.institute,
+        "domain": sim.domain,
+        "scenario": sim.scenario,
+        "provider": sim.provider,
+        "calibration": f"{sim.calibration_start.year}-{sim.calibration_end.year}",
+    }
+    return re.sub(r"\{\{(\w+)\}\}",
+                  lambda m: html.escape(values[m.group(1)]).replace(" ", "&nbsp;"), page)
+
+
 def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
     """Serve the pages, when web/ sits next to the package. Says whether it did."""
     if not directory.is_dir():
@@ -283,8 +335,9 @@ def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
         return FileResponse(directory / "pages" / "maps.html", headers=REVALIDATE)
 
     @target.get("/documentation", include_in_schema=False)
-    def documentation() -> FileResponse:
-        return FileResponse(directory / "pages" / "documentation.html", headers=REVALIDATE)
+    def documentation(store: StoreDep) -> HTMLResponse:
+        page = (directory / "pages" / "documentation.html").read_text()
+        return HTMLResponse(fill_simulation(page, store.simulation), headers=REVALIDATE)
 
     return True
 

@@ -279,9 +279,10 @@ export const texts = {
     eyebrow: "Cartographie, Europe",
     season: "Saison",
     year: "Année",
-    simulated:
+    // The simulation is the one /api/config names (the store's), never written here.
+    simulated: (simulation) =>
       "Simulation : la météo de ces journées n'est pas une prévision, mais une météo " +
-      "plausible sous le scénario RCP 4.5.",
+      `plausible sous le scénario ${simulation.scenario}.`,
     play: "Lecture",
     pause: "Pause",
     previous: "Jour précédent",
@@ -297,10 +298,11 @@ export const texts = {
     distribution: "Répartition des mailles",
     loading: "Chargement de la carte…",
     mapLabel: "Carte d'Europe de la grandeur choisie, pour la journée affichée",
-    source:
+    source: (simulation) =>
       "Valeurs journalières sur les mailles terrestres de 0,25° (environ 28 km) : " +
       "températures maximale et minimale, cumul de précipitations, nébulosité moyenne. " +
-      "1970-2025 : réanalyse ERA5. 2027-2100 : CORDEX EUR-11 (EC-EARTH / RCA4) corrigé " +
+      `1970-2025 : réanalyse ERA5. 2027-2100 : CORDEX ${simulation.domain} ` +
+      `(${simulation.driving} / ${simulation.regional}) corrigé ` +
       "contre ERA5. Un jour de pluie compte au moins 1 mm (DRIAS, Météo-France). " +
       "Contours : Natural Earth.",
     north: "N",
