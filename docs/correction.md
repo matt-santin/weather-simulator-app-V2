@@ -432,6 +432,8 @@ Téléchargé par `src/download/era5land.py` (Earth Data Hub, `reanalysis-era5-l
 
 Le Tx d'ERA5 (`mx2t`) est le maximum sur le pas de temps du modèle ; celui d'ERA5-Land, le maximum des valeurs horaires, un peu plus bas. Le Tx corrigé à 0,1° est donc un peu plus bas qu'à 0,25°, mais cohérent avec le passé affiché. Earth Data Hub arrondit les valeurs au pas de 0,25 K, comme pour ERA5.
 
+**Référence retenue le 10/10/2026 : ERA5-Land, et non E-OBS.** ERA5-Land est plus froid que les stations pour Tx : contre E-OBS sur 2015-2025, en plaine (< 500 m), −0,5 K en janvier, −1,0 K en juillet ; Paris, Tx moyen de juillet, ERA5-Land 25,1 °C, E-OBS 26,6 °C (section 10). Le futur corrigé hérite de cet écart. Il est accepté : le passé affiché par le site vient d'ERA5-Land, et la cohérence entre passé et futur prime sur l'écart absolu aux stations. Caler sur E-OBS rendrait le futur plus chaud que le passé affiché pour une raison technique, sauf à servir aussi E-OBS pour le passé, moins complet (stations rares hors d'Europe et en montagne, pas de nébulosité).
+
 Lecture par blocs natifs du serveur (120 jours × 64 × 64 mailles, alignés sur le 1er janvier 1950), pour que chaque bloc ne soit compté qu'une fois dans le quota : environ 58 000 lectures pour 1970-2024.
 
 ### Méthode
@@ -641,7 +643,7 @@ Europe terre, biais de la moyenne contre E-OBS (RCA4 corrigé sur 2006-2024 entr
 | `psl` juin | +0,1 | +2,2 | +0,5 |
 | `psl` septembre | −0,1 | +0,1 | −1,3 |
 
-- Températures. ERA5 est sous les stations de 0,6 à 1,2 K pour Tx toute l'année ; le corrigé en hérite. En été, une fois retiré cet écart, le retard propre au modèle est faible (0 à 0,2 K en juillet-août) : MPI / ICON fait mieux que RCA4. En hiver, il est en retard (février −2,4 K, dont −0,7 dû à ERA5), comme le brut ; sur 11 ans seulement. Sur A, le brut est plus proche des stations qu'ERA5 pour les Tx d'été (juillet −0,4 contre −1,2 K) : la correction vers ERA5 refroidit les Tx d'été (choix de la référence à décider ; les températures servies sont calées sur ERA5-Land, section 9).
+- Températures. ERA5 est sous les stations de 0,6 à 1,2 K pour Tx toute l'année ; le corrigé en hérite. En été, une fois retiré cet écart, le retard propre au modèle est faible (0 à 0,2 K en juillet-août) : MPI / ICON fait mieux que RCA4. En hiver, il est en retard (février −2,4 K, dont −0,7 dû à ERA5), comme le brut ; sur 11 ans seulement. Sur A, le brut est plus proche des stations qu'ERA5 pour les Tx d'été (juillet −0,4 contre −1,2 K) : la correction vers ERA5 refroidit les Tx d'été (les températures servies sont calées sur ERA5-Land, référence gardée le 10/10/2026, section 9).
 - `hurs` : corrigé dans ±2 points d'E-OBS sur B. `sfcWind` : corrigé à +0,3 à +0,7 m/s des stations, comme ERA5 ; le brut est déjà proche (RCA4 brut : +2 m/s en hiver).
 - `rsds` : ERA5 trop lumineux au printemps sur A (+12 à +14 W/m² en mars-avril), le brut juste ; le corrigé hérite de l'excès. Sur B, corrigé −5 à +7 W/m².
 - `pr` : ERA5 a 3 à 9 points de jours de pluie de trop et un cumul de +14 à +37 % sur A ; bruine (0,1 à 1 mm) 24 à 31 % des jours dans ERA5 et le corrigé, 4 à 7 % dans E-OBS. Le corrigé reproduit ERA5 ; RCA4, bruine mise à 0, en était plus proche des stations par accident. Sur B, corrigé +17 à +48 %.
@@ -667,7 +669,7 @@ Bilan : sur les années non vues, le corrigé reste dans l'écart ERA5 / station
 
 Décision du 9/10/2026 : moyenne seule, par maille et par mois, toute l'année ; un décalage garde les isobares lisses. Validation croisée, Europe terre, moyenne des 12 mois : |biais| moyen 0,63 → 0,53 hPa, RMS entre mailles 1,72 → 1,85 hPa, W1 1,49 → 1,60 hPa (plancher 1,18). Gain de juin à novembre (W1 de juillet 1,11 → 0,63, plancher 0,58), perte de décembre à avril (février 1,04 → 3,54, plancher 2,46) : comme pour `ps`, la circulation d'hiver d'ERA5 change entre les deux moitiés, et un biais mesuré sur 22 ans en est pollué. La calibration définitive porte sur 45 ans. Signal du modèle conservé exactement. Journaux `qdm_psl.log`, `check_psl.log`, `scores_psl.log`.
 
-Restent : la bascule du site (`src/store/build.py`), le choix de la référence des températures et l'ajustement sur la TRACC.
+Restent : la bascule du site (`src/store/build.py`) et l'ajustement sur la TRACC. Référence des températures : ERA5-Land, gardée le 10/10/2026 malgré son écart froid aux stations (section 9).
 
 ## Fichiers
 

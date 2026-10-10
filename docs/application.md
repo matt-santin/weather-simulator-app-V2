@@ -23,6 +23,8 @@ Le site de la V1 (formulaire, page de résultats, documentation), branché sur l
 | `tas`, `tasmax`, `tasmin` | 0,1°, terres | ERA5-Land | CORDEX corrigé contre ERA5-Land |
 | les autres | 0,25° | ERA5 | CORDEX corrigé contre ERA5 |
 
+Les températures passées et futures sont donc calées sur ERA5-Land, plus froid que les stations pour Tx (Paris, Tx moyen de juillet 2015-2025 : 25,1 °C contre 26,6 °C pour E-OBS). Choix gardé le 10/10/2026 pour la cohérence entre passé et futur (`docs/correction.md`, section 9).
+
 Un lieu prend ses températures dans la maille 0,1° la plus proche si elle est à 0,1° au plus (en latitude et en longitude), sinon dans sa maille 0,25° ; le reste vient toujours de la maille 0,25°. 99,9 % des mailles 0,25° majoritairement terrestres ont une maille 0,1° ; les petites îles (île d'Yeu, Belle-Île, Lampedusa) restent à 0,25°. La source de chaque journée le dit : « ERA5-Land (températures), ERA5 » ou « ERA5 ».
 
 Limite connue : en vallée étroite, la maille 0,1° la plus proche peut couvrir surtout les versants (Chamonix : Tx de juillet 2019 de 15,5 °C à la maille 45,9 N 6,9 E). Piste : choisir, parmi les mailles voisines, celle dont l'altitude est la plus proche de celle de la commune.
