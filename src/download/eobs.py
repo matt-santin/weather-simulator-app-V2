@@ -5,10 +5,9 @@
 Run from the repo root. E-OBS is served by KNMI as one file per variable
 covering 1950 to the last full year, straight over HTTP: no queue, no key.
 Retained: version 33.0e (May 2026, 1950-2025), regular 0.25 deg grid,
-ensemble mean for the seven variables that match a CORDEX one, ensemble spread
-for tx, tn and rr (where E-OBS itself is unsure: few stations, mountains), and
-the grid elevation. pp is left out: it is reduced to sea level, not comparable
-with ps.
+ensemble mean for the eight variables that match a CORDEX one (pp, reduced to
+sea level, with psl, not ps), ensemble spread for tx, tn and rr (where E-OBS
+itself is unsure: few stations, mountains), and the grid elevation.
 
 Files land flat in config.EOBS under their KNMI names. A download goes to a
 .part file, resumed if cut (curl -C -), checked against the size the server
@@ -32,6 +31,7 @@ MEAN = {
     "hu": "hurs",
     "fg": "sfcWind",
     "qq": "rsds",
+    "pp": "psl",
 }
 SPREAD = ["tx", "tn", "rr"]
 

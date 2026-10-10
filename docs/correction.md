@@ -223,7 +223,7 @@ Sorties : `check_pr.log`, `pr_spells.log`, `pr_analyse.log` (signal en montagne,
 
 `python -m src.correction.eobs <variable>`, sorties dans `data/correction/<variable>_eobs.log` et `<variable>_eobs.png` (cartes du biais de la moyenne, janvier et juillet). 2 min 30 s par variable.
 
-E-OBS v33.0e (KNMI, ECA&D) : analyse sur grille des stations européennes, 0,25°, 1950-2025, téléchargée par `python -m src.download.eobs`. Sept variables comparables : `tas`, `tasmax`, `tasmin`, `pr`, `hurs`, `sfcWind` (à partir de 1980), `rsds`. Les autres n'existent pas dans E-OBS (`pp` est réduite au niveau de la mer, non comparable à `ps`).
+E-OBS v33.0e (KNMI, ECA&D) : analyse sur grille des stations européennes, 0,25°, 1950-2025, téléchargée par `python -m src.download.eobs`. Sept variables comparables : `tas`, `tasmax`, `tasmin`, `pr`, `hurs`, `sfcWind` (à partir de 1980), `rsds`. Les autres n'existent pas dans E-OBS ; `pp`, réduite au niveau de la mer, n'est pas comparable à `ps` mais l'est à `psl` (MPI / ICON, section 10). Les périodes suivent `qdm.CAL` : relancé pour RCA4, B irait désormais jusqu'en 2025 (dernière année d'E-OBS), et non plus 2024. E-OBS est lu sur le disque externe.
 
 Méthode :
 - chaque maille ERA5 reçoit la moyenne des 4 mailles E-OBS qui l'entourent (grilles décalées d'une demi-maille), si au moins 3 sont valides ce jour-là ;
@@ -408,7 +408,7 @@ Classes proposées, seuils à fixer : vert au-dessus de 0,5, orange de 0 à 0,5,
 
 Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Au 29/09/2026 : 7 variables validées contre E-OBS sur 1970-2005 et 2006-2024. Au 02/10/2026 : `tas`, `tasmax` et `tasmin` corrigés et validés à 0,1° contre ERA5-Land (section 9). Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
 
-MPI / ICON (section 10) : remappé le 7/10/2026 ; températures corrigées et validées à 0,1° le 8/10/2026 ; les 14 variables et `alb` corrigés à 0,25°, variables dérivées calculées, `check`, `scores` et `spells` faits le 8/10/2026. Décisions prises le 9/10/2026 (section 10) : `pr`, `ps`, `zg500` recorrigés, `huss` recalculé, contrôles refaits. `psl` remappé à 0,25° et corrigé (moyenne seule) pour les isobares. Restent la validation contre E-OBS à 0,25° et la bascule du site.
+MPI / ICON (section 10) : remappé le 7/10/2026 ; températures corrigées et validées à 0,1° le 8/10/2026 ; les 14 variables et `alb` corrigés à 0,25°, variables dérivées calculées, `check`, `scores` et `spells` faits le 8/10/2026. Décisions prises le 9/10/2026 (section 10) : `pr`, `ps`, `zg500` recorrigés, `huss` recalculé, contrôles refaits. `psl` remappé à 0,25° et corrigé (moyenne seule) pour les isobares. Validé contre E-OBS à 0,25° le 9/10/2026 (8 variables, dont `psl`). Reste la bascule du site.
 
 Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le Mac se met en veille profonde, ce qui suspend le calcul et peut provoquer un message de disque mal éjecté. Durées observées : remappage 8 min par variable, QDM 32 à 43 min, `check` 4 à 8 min, `scores` 2 à 5 min. MPI / ICON (45 ans de calibration) : remappage 3,4 s par année à 0,25°, 9 s à 0,1° ; QDM 32 à 43 min à 0,25°, environ 1 h 40 par variable à 0,1° ; `check` 4 à 10 min, `scores` 3 à 8 min.
 
@@ -620,6 +620,35 @@ Même mécanisme que pour RCA4 : le corrigé se place vers 1,2 à 1,5 fois le pl
 
 Calcul fait avant la bruine par quantiles, qui ne change ni les jours de pluie ni la part des jours secs. Les jours de pluie corrigés ont la nébulosité et le rayonnement de ceux d'ERA5. Les jours rendus pluvieux (un jour de pluie sur cinq en été) sont des jours de pluie faible, moins couverts ; ils n'ont pas été comparés aux jours de pluie faible d'ERA5. France : mêmes conclusions (jours de pluie corrigés 74,1 % de `clt` contre 72,0 % pour ERA5). Scripts d'essai non versionnés ; journal `data/correction/mpi/test/pr_nq_et_nuages.log`.
 
+### Validation contre E-OBS à 0,25°
+
+`WSA_MODEL=mpi python -m src.correction.eobs <variable>`, 9/10/2026. A = 1970-2014 (`sfcWind` à partir de 1980) : ERA5, brut et corrigé ; le corrigé égale ERA5 par construction, A mesure l'écart d'ERA5 aux stations. B = 2015-2025 : brut et corrigé, années jamais vues. Huit variables : les sept de la section 4 et `psl`, comparée à `pp` d'E-OBS (pression réduite au niveau de la mer). Journaux `data/correction/mpi/<variable>_eobs.log`, cartes `<variable>_eobs.png`.
+
+Europe terre, biais de la moyenne contre E-OBS (RCA4 corrigé sur 2006-2024 entre parenthèses) :
+
+| | A, ERA5 | B, brut | B, corrigé |
+|---|---|---|---|
+| Tx janvier (K) | −0,6 | −2,0 | −1,1 (0,0) |
+| Tx février | −0,7 | −2,7 | −2,4 |
+| Tx juillet | −1,2 | −0,6 | −1,4 (−1,9) |
+| Tx août | −1,2 | −0,6 | −1,0 (−2,2) |
+| Tmoy juillet | +0,3 | +0,2 | +0,1 (−0,3) |
+| Tn août | +0,9 | +0,6 | +1,2 (+0,3) |
+| `rsds` avril (W/m²) | +14,2 | −10,4 | +2,9 |
+| `rsds` juillet | −1,7 | −8,3 | −2,1 (−7,8) |
+| `pr` juillet, cumul (%) | +22 | −3 | +18 (+18) |
+| `psl` janvier (hPa) | −0,1 | −1,2 | −0,5 |
+| `psl` juin | +0,1 | +2,2 | +0,5 |
+| `psl` septembre | −0,1 | +0,1 | −1,3 |
+
+- Températures. ERA5 est sous les stations de 0,6 à 1,2 K pour Tx toute l'année ; le corrigé en hérite. En été, une fois retiré cet écart, le retard propre au modèle est faible (0 à 0,2 K en juillet-août) : MPI / ICON fait mieux que RCA4. En hiver, il est en retard (février −2,4 K, dont −0,7 dû à ERA5), comme le brut ; sur 11 ans seulement. Sur A, le brut est plus proche des stations qu'ERA5 pour les Tx d'été (juillet −0,4 contre −1,2 K) : la correction vers ERA5 refroidit les Tx d'été (choix de la référence à décider ; les températures servies sont calées sur ERA5-Land, section 9).
+- `hurs` : corrigé dans ±2 points d'E-OBS sur B. `sfcWind` : corrigé à +0,3 à +0,7 m/s des stations, comme ERA5 ; le brut est déjà proche (RCA4 brut : +2 m/s en hiver).
+- `rsds` : ERA5 trop lumineux au printemps sur A (+12 à +14 W/m² en mars-avril), le brut juste ; le corrigé hérite de l'excès. Sur B, corrigé −5 à +7 W/m².
+- `pr` : ERA5 a 3 à 9 points de jours de pluie de trop et un cumul de +14 à +37 % sur A ; bruine (0,1 à 1 mm) 24 à 31 % des jours dans ERA5 et le corrigé, 4 à 7 % dans E-OBS. Le corrigé reproduit ERA5 ; RCA4, bruine mise à 0, en était plus proche des stations par accident. Sur B, corrigé +17 à +48 %.
+- `psl` : ERA5 à ±0,2 hPa des stations, bonne référence. La moyenne seule améliore le biais sur B en hiver et en été, le dégrade en septembre-octobre ; W1 corrigé inférieur ou égal au brut 10 mois sur 12. Sur A, W1 corrigé 0,5 à 1,2 hPa contre 0,3 à 0,4 pour ERA5 : la distribution n'est pas corrigée, seulement la moyenne.
+
+Bilan : sur les années non vues, le corrigé reste dans l'écart ERA5 / stations, sauf en hiver (retard du modèle). Les écarts restants viennent surtout d'ERA5 : Tx trop froides, bruine, `rsds` de printemps.
+
 ### Défauts et décisions
 
 | Défaut | Mesure | Décision |
@@ -629,7 +658,7 @@ Calcul fait avant la bruine par quantiles, qui ne change ni les jours de pluie n
 | `ps` et `zg500` en hiver | `zg500`, février, W1 Europe terre : brut 24,6 m, corrigé 43,7 m, plancher 23,4 m | moyenne seule de décembre à mars, 9/10/2026 (ci-dessous) |
 | `clt` à 100 % | novembre à février : 4,7 à 6,3 % des jours, ERA5 2,2 à 3,0 % | laissé en l'état, 9/10/2026 |
 | Intensité de `pr` | W1 corrigé au-dessus du brut (0,68 contre 0,61) | accepté |
-| Retard sur le réchauffement | Tx corrigé 0,3 à 0,6 K sous ERA5-Land sur 2015-2025 | ajustement sur la TRACC, à décider (`docs/choix_modele_cmip6.md`) |
+| Retard sur le réchauffement | Tx corrigé 0,3 à 0,6 K sous ERA5-Land sur 2015-2025 ; contre E-OBS, surtout en hiver (février −2,4 K, dont −0,7 dû à ERA5) | ajustement sur la TRACC, à décider (`docs/choix_modele_cmip6.md`) |
 | Marche de `rsds` en 2015 | −3,3 W/m², Europe terre | acceptée le 7/10/2026 |
 
 **Moyenne seule de `ps` et `zg500`.** W1 Europe terre, validation croisée, corrigé complet → moyenne seule (brut ; plancher) : `zg500` décembre 20,7 → 16,4 m (30,8 ; 21,0), janvier 33,1 → 29,2 (55,2 ; 16,4), février 43,7 → 41,7 (24,6 ; 23,4), mars 38,3 → 37,4 (15,9 ; 29,0) ; `ps` février 3,50 → 3,46 hPa (2,04 ; 2,37). Février et mars restent moins bons que le brut : la circulation d'hiver d'ERA5 change entre les deux moitiés (section 5), ce que la correction de la moyenne prend aussi pour un biais, en moins fort. Le signal du modèle est conservé sur ces mois, à 0,03 m près pour `zg500` sur la maille la plus touchée (2,5 m avec le QDM complet).
@@ -638,7 +667,7 @@ Calcul fait avant la bruine par quantiles, qui ne change ni les jours de pluie n
 
 Décision du 9/10/2026 : moyenne seule, par maille et par mois, toute l'année ; un décalage garde les isobares lisses. Validation croisée, Europe terre, moyenne des 12 mois : |biais| moyen 0,63 → 0,53 hPa, RMS entre mailles 1,72 → 1,85 hPa, W1 1,49 → 1,60 hPa (plancher 1,18). Gain de juin à novembre (W1 de juillet 1,11 → 0,63, plancher 0,58), perte de décembre à avril (février 1,04 → 3,54, plancher 2,46) : comme pour `ps`, la circulation d'hiver d'ERA5 change entre les deux moitiés, et un biais mesuré sur 22 ans en est pollué. La calibration définitive porte sur 45 ans. Signal du modèle conservé exactement. Journaux `qdm_psl.log`, `check_psl.log`, `scores_psl.log`.
 
-Restent : la validation contre E-OBS à 0,25° (`python -m src.correction.eobs`, à adapter aux périodes de MPI / ICON) et la bascule du site (`src/store/build.py`).
+Restent : la bascule du site (`src/store/build.py`), le choix de la référence des températures et l'ajustement sur la TRACC.
 
 ## Fichiers
 

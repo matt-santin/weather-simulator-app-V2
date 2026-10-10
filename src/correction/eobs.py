@@ -5,16 +5,17 @@
 Only distributions are compared, per ERA5 cell and calendar month: CORDEX does
 not follow the real weather day by day.
 
-A. 1970-2005 (sfcWind: 1980-2005, fg starts in 1980): ERA5, raw and corrected
-   against E-OBS. Corrected files are the production ones, calibrated on these
-   years, so corrected is close to ERA5 by construction: A says how far ERA5,
+A. qdm.CAL, 1970-2005 for RCA4, 1970-2014 for MPI / ICON (sfcWind from 1980,
+   fg starts in 1980): ERA5, raw and corrected against E-OBS. Corrected files
+   are the production ones, calibrated on these years, so corrected is close
+   to ERA5 by construction: A says how far ERA5,
    the target of the correction, is from the stations. Floor: E-OBS first half
    of A against the other, what two samples of the real climate differ by
    (see below).
-B. 2006-2024: raw and corrected against E-OBS, years the correction never saw.
-   No ERA5 there, and no clean floor. A gap in B mixes the error of the
-   correction, the error of the model trend, the ERA5 to E-OBS gap (read in A)
-   and 19 years of internal variability.
+B. the years after CAL up to 2025, the last year of E-OBS: raw and corrected
+   against E-OBS, years the correction never saw. No ERA5 there, and no clean
+   floor. A gap in B mixes the error of the correction, the error of the model
+   trend, the ERA5 to E-OBS gap (read in A) and internal variability.
 Floor: the years of A drawn at random into two halves (fixed seed, so the same
 draw each run), E-OBS of one half against the other. Drawn rather than split
 in time, so that the warming within A does not count as a gap.
@@ -36,8 +37,10 @@ of the cells with the lowest). Left out: sea (a few coastal cells, estimated
 from land stations) and south of 35 N (few stations, a network that changes
 between A and B: tasmax of July cools by 3.5 K on the cells common to both).
 
-Printed; maps of the bias of the mean, January and July, in
-data/correction/<variable>_eobs.png.
+psl is compared with pp, the E-OBS pressure reduced to sea level.
+
+E-OBS and the ERA5 grid are read on the external drive. Printed; maps of the
+bias of the mean, January and July, in qdm.TABLES/<variable>_eobs.png.
 """
 
 import sys
@@ -49,15 +52,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.config import EOBS, ERA5
-from src.correction.qdm import ERA5_DAILY, OUT, TABLES, VARS, quantiles
+from src.config import ARCHIVE
+from src.correction.qdm import CAL, ERA5_DAILY, OUT, TABLES, VARS, quantiles
 from src.correction.remap import load_weights, target as remapped
 from src.correction.scores import regions
 from src.download.eobs import MEAN, VERSION
 
 NAMES = {cordex: e for e, cordex in MEAN.items()}  # CORDEX name: E-OBS name
 SPREAD = {"tasmax", "tasmin", "pr"}
-B = range(2006, 2025)
+EOBS = ARCHIVE / "eobs"
+ERA5 = ARCHIVE / "era5"
+B = range(CAL[1] + 1, 2026)
 MIN_NEIGH = 3  # valid E-OBS cells out of the 4 around an ERA5 cell
 MIN_VALID = 0.8  # share of the days of a month E-OBS must hold in a cell
 WET, DRIZZLE = 1.0, 0.1  # mm/day
@@ -67,7 +72,7 @@ SEED = 0
 
 
 def period_a(name):
-    return range(1980 if name == "sfcWind" else 1970, 2006)
+    return range(1980 if name == "sfcWind" else CAL[0], CAL[1] + 1)
 
 
 def eobs_path(e, kind="mean"):
@@ -315,7 +320,7 @@ def table(name, A, Bres, mask, title):
         print("  %4d | %+5.2f %+5.2f | %+5.2f %+5.2f || %+5.2f %+5.2f | %+5.2f %+5.2f" % (m, *row))
 
 
-def draw(name, lat, lon, cells, A, Bres):
+def draw(name, lat, lon, cells, A, Bres, a):
     unit = VARS[name].display[2].replace("°C", "K")
     pr = VARS[name].wet is not None
     lim = 50 if pr else 3
@@ -335,7 +340,7 @@ def draw(name, lat, lon, cells, A, Bres):
             axes[i, j].set_xlim(-25, 45)
             axes[i, j].set_ylim(30, 72)
     fig.colorbar(im, ax=axes, shrink=0.6, label=f"biais de la moyenne ({'%' if pr else unit})")
-    fig.suptitle(f"{name} contre E-OBS {VERSION} : A = 1970-2005, B = 2006-2024")
+    fig.suptitle(f"{name} contre E-OBS {VERSION} : A = {a[0]}-{a[-1]}, B = {B[0]}-{B[-1]}")
     path = TABLES / f"{name}_eobs.png"
     fig.savefig(path, dpi=80)
     print("\ncartes :", path)
@@ -357,7 +362,7 @@ def main(argv):
         table(name, A, Bres, reg[r], r)
     for s, mask in reliability(name, a, J, I).items():
         table(name, A, Bres, reg["Europe terre"] & mask, f"Europe terre, {s}")
-    draw(name, lat, lon, cells, A, Bres)
+    draw(name, lat, lon, cells, A, Bres, a)
     return 0
 
 
