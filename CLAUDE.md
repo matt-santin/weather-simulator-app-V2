@@ -64,7 +64,7 @@ scénario  `ssp370`, `historical` avant 2015
 
 Justification (modèles plus récents, aérosols variables, biais brut quasi nul sur la France, modèles globaux retenus par EURO-CORDEX et bien évalués, pas de palier des Tx d'été dans les années 2030-2040 contrairement à CNRM-ESM2-1) : `docs/choix_modele_cmip6.md`. CORDEX-CMIP6 n'est pas sur le CDS : les données viennent d'ESGF. Noms de fichiers, version, licence et attribution : `data/cordex/eur12_mpi-esm1-2-hr_icon-clm/PROVENANCE.md`. Ce modèle reste lui aussi en retard sur le réchauffement récent, comme toutes les simulations CMIP6 testées : un ajustement sur la TRACC est à décider.
 
-Le site sert RCA4 corrigé tant que MPI-ESM1-2-HR / ICON-CLM n'est pas corrigé.
+MPI-ESM1-2-HR / ICON-CLM est corrigé et validé (10/10/2026, `docs/correction.md` section 10). Le site sert encore RCA4 corrigé, jusqu'à la reconstruction du stockage de service.
 
 Les variables téléchargées sont les suivantes : 
 | Nom | Unité | Grandeur |
@@ -83,6 +83,7 @@ Les variables téléchargées sont les suivantes :
 | `ps` | Pa | pression à la surface |
 | `evspsbl` | kg m⁻² s⁻¹ | évaporation |
 | `zg500` | m | hauteur géopotentielle à 500 hPa |
+| `psl` | Pa | pression au niveau de la mer (MPI / ICON seulement, isobares des cartes ; `msl` côté ERA5) |
 
 ### Météo passée : ERA5
 
@@ -151,10 +152,10 @@ Téléchargé depuis Earth Data Hub (`reanalysis-era5-land-no-antartica-v0`), 0,
 
 Au 02/10/2026, tout est sur le LaCie, vérifié (MD5) et listé dans `data/archive.txt` :
 - CORDEX : 1970-2100, 14 variables, 1834 fichiers, 168,9 Go ;
-- ERA5 : 1970-2025, 17 champs journaliers, 952 fichiers, 51,0 Go ; l'horaire n'est pas conservé ;
-- CORDEX-CMIP6 MPI-ESM1-2-HR / ICON-CLM (au 07/10/2026) : 1966-2100, 14 variables plus `sftlf` et `orog`, 394 fichiers, environ 322 Go, sur le LaCie seulement ; pas encore corrigé ;
+- ERA5 : 1970-2025, 18 champs journaliers (dont `msl`, pression au niveau de la mer, ajouté le 9/10/2026), 1008 fichiers, 53,2 Go ; l'horaire n'est pas conservé ;
+- CORDEX-CMIP6 MPI-ESM1-2-HR / ICON-CLM (au 09/10/2026) : 1966-2100, 14 variables plus `psl`, `sftlf` et `orog`, 422 fichiers, environ 339 Go, sur le LaCie seulement ; corrigé (remappé brut et corrigé à 0,25° et 0,1° sur le LaCie) ;
 - ERA5-Land : 1970-2025, 5 champs journaliers, 280 fichiers, 41,2 Go ;
-- E-OBS v33.0e : 0,25° (sur le Mac et le LaCie) et 0,1° (sur le LaCie seulement) ;
+- E-OBS v33.0e : 0,25° (dont `pp`, pression au niveau de la mer) et 0,1°, sur le LaCie seulement ;
 - stockage de service : 71 Go, aussi sur le Mac, lu par le site local.
 
 Restent seulement sur le Mac : `data/era5/_test` (janvier 1970, tests) et `data/cordex/mensuel` (9,7 Go : `tas` et `tasmax` mensuels des simulations CORDEX-CMIP6 comparées pour le choix du modèle, `figures/climat/cmip6_tri.py`).
