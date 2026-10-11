@@ -28,7 +28,7 @@ point, 3 months or 131 years, costs one chunk per variable. Chunks are packed
 in shards of 20 x 20 cells, to keep the file count low (exFAT, object storage).
 
 Values are stored as 16-bit integers, value = integer x step (0.01 in the
-stored unit, 0.1 mm for precipitation: corrected pr reaches 1309 mm/day in
+stored unit, 0.1 hPa for sea-level pressure, 0.1 mm for precipitation: corrected pr reaches 1309 mm/day in
 one cell, beyond 655.35), with a time delta filter and zstd. xarray decodes
 them on reading (scale_factor, _FillValue). The rounding error is at most
 step / 2.
@@ -104,6 +104,10 @@ def percent(x):
     return x * 100
 
 
+def hectopascals(x):
+    return x / 100
+
+
 VARS = {
     "tasmax": Var("degC", kelvin, "int16", 0.01, "mx2t", kelvin),
     "tasmin": Var("degC", kelvin, "int16", 0.01, "mn2t", kelvin),
@@ -112,6 +116,8 @@ VARS = {
     "clt": Var("%", same, "uint16", 0.01, "tcc", percent),
     "hurs": Var("%", same, "uint16", 0.01, "hurs", same),
     "sfcWind": Var("m/s", same, "uint16", 0.01, "si10", same),
+    # Sea-level pressure, for the isobars of the maps (ERA5 msl, CORDEX psl).
+    "psl": Var("hPa", hectopascals, "uint16", 0.1, "msl", hectopascals),
 }
 
 
