@@ -12,8 +12,12 @@ import {
   FILL,
   MAX_ZOOM,
   WHOLE,
+  ISOBAR_STEP,
   band,
   boxFrame,
+  contour,
+  labelSpots,
+  levels,
   grid,
   pan,
   projection,
@@ -137,5 +141,42 @@ describe("the coldest cell", () => {
     const s = summary(Int16Array.from([-153, 405, FILL, 12]), EDGES);
     assert.equal(s.coldest, -15.3);
     assert.equal(s.coldAt, 0);
+  });
+});
+
+describe("the isobars", () => {
+  it("cross the field at every multiple of the step between its extremes", () => {
+    assert.equal(ISOBAR_STEP, 5);
+    assert.deepEqual(levels(Int16Array.from([10032, 10101, FILL, 10149])), [1005, 1010]);
+    assert.deepEqual(levels(Int16Array.from([FILL, FILL])), []);
+  });
+
+  it("run through each square where the level is crossed, interpolated on its edges", () => {
+    // Pressure rising from west to east: 1000, 1010, 1020 hPa on each row.
+    const field = Int16Array.from([10000, 10100, 10200, 10000, 10100, 10200]);
+    const segments = contour(field, 2, 3, 10050);
+    assert.deepEqual(segments, [[0, 0.5, 1, 0.5]]);
+    assert.deepEqual(contour(field, 2, 3, 10150), [[0, 1.5, 1, 1.5]]);
+    assert.deepEqual(contour(field, 2, 3, 10300), []);
+  });
+
+  it("skip a square with a missing corner", () => {
+    const field = Int16Array.from([10000, 10100, FILL, 10100]);
+    assert.deepEqual(contour(field, 2, 2, 10050), []);
+  });
+
+  it("settle a saddle by the mean of the square", () => {
+    // North-west and south-east high: joined when the mean is above the level.
+    const high = Int16Array.from([10100, 10000, 10000, 10100]);
+    const joined = contour(high, 2, 2, 10040);
+    assert.equal(joined.length, 2);
+    assert.deepEqual(joined[0], [0, 0.6, 0.4, 1]); // top to right: around the low north-east corner
+    const parted = contour(high, 2, 2, 10060);
+    assert.deepEqual(parted[0], [0, 0.4, 0.4, 0]); // top to left: around the high north-west corner
+  });
+
+  it("keep labels apart, from each other and from those already placed", () => {
+    const spots = labelSpots([[0, 0], [10, 0], [50, 0], [55, 5], [100, 0]], 40, [[100, 10]]);
+    assert.deepEqual(spots, [[0, 0], [50, 0]]);
   });
 });

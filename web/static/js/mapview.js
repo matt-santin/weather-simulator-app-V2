@@ -13,6 +13,10 @@
  *
  * **The projection is Lambert azimuthal equal-area centred on Europe**, with its
  * inverse, which the tooltip needs.
+ *
+ * **The isobars are drawn over any variable**: lines of equal sea-level
+ * pressure every ISOBAR_STEP hPa, traced by marching squares on the 0.5 deg
+ * field /api/map/isobars serves, and labelled where there is room.
  */
 
 /** One colour per band of temperature, from below the first edge to above the last. */
@@ -291,4 +295,83 @@ export function pan(zoom, dx, dy, width, height) {
 /** The point of the map drawn whole that is under (x, y) of the frame. */
 export function unzoom(zoom, x, y, width, height) {
   return [(x - zoom.x * width) / zoom.scale, (y - zoom.y * height) / zoom.scale];
+}
+
+// --- the isobars ----------------------------------------------------------------
+
+/** One line every 5 hPa. */
+export const ISOBAR_STEP = 5;
+
+/** The levels, in hPa, that cross a day of the field (tenths of a hPa): multiples of `step`. */
+export function levels(field, step = ISOBAR_STEP) {
+  let low = Infinity;
+  let high = -Infinity;
+  for (const value of field) {
+    if (value === FILL) continue;
+    low = Math.min(low, value);
+    high = Math.max(high, value);
+  }
+  if (low > high) return [];
+  const out = [];
+  for (let level = Math.ceil(low / 10 / step) * step; level * 10 <= high; level += step) out.push(level);
+  return out;
+}
+
+/**
+ * Where a field of `rows` x `cols` values (row by row, FILL for none) crosses
+ * `level`, as segments [row, col, row, col] in fractional grid coordinates:
+ * marching squares, the crossing placed on each edge by linear interpolation.
+ * A square with a missing corner is skipped. A saddle (two opposite corners
+ * above) is settled by the mean of the four: above, the two high corners are
+ * joined.
+ */
+export function contour(field, rows, cols, level) {
+  const segments = [];
+  for (let r = 0; r + 1 < rows; r += 1) {
+    for (let c = 0; c + 1 < cols; c += 1) {
+      const a = field[r * cols + c]; // north-west
+      const b = field[r * cols + c + 1]; // north-east
+      const d = field[(r + 1) * cols + c]; // south-west
+      const e = field[(r + 1) * cols + c + 1]; // south-east
+      if (a === FILL || b === FILL || d === FILL || e === FILL) continue;
+      const index = (a >= level) * 8 + (b >= level) * 4 + (e >= level) * 2 + (d >= level);
+      if (index === 0 || index === 15) continue;
+      const cross = (v0, v1) => (level - v0) / (v1 - v0);
+      const top = () => [r, c + cross(a, b)];
+      const right = () => [r + cross(b, e), c + 1];
+      const bottom = () => [r + 1, c + cross(d, e)];
+      const left = () => [r + cross(a, d), c];
+      const add = (p, q) => segments.push([...p(), ...q()]);
+      const centre = (a + b + d + e) / 4 >= level;
+      switch (index) {
+        case 1: case 14: add(left, bottom); break;
+        case 2: case 13: add(bottom, right); break;
+        case 3: case 12: add(left, right); break;
+        case 4: case 11: add(top, right); break;
+        case 6: case 9: add(top, bottom); break;
+        case 7: case 8: add(top, left); break;
+        case 5: // north-east and south-west above
+          if (centre) { add(top, left); add(bottom, right); } else { add(top, right); add(left, bottom); }
+          break;
+        case 10: // north-west and south-east above
+          if (centre) { add(top, right); add(left, bottom); } else { add(top, left); add(bottom, right); }
+          break;
+      }
+    }
+  }
+  return segments;
+}
+
+/**
+ * Where to write the labels: among candidate points [x, y, ...] on screen,
+ * taken in order, those at least `spacing` pixels from every point kept
+ * before, `taken` included (the labels of the levels already placed).
+ */
+export function labelSpots(candidates, spacing, taken = []) {
+  const kept = [];
+  for (const point of candidates) {
+    const far = (other) => Math.hypot(point[0] - other[0], point[1] - other[1]) >= spacing;
+    if (taken.every(far) && kept.every(far)) kept.push(point);
+  }
+  return kept;
 }

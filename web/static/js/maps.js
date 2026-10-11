@@ -4,7 +4,8 @@
  * Four things are fetched: the config (periods, band edges, the simulation
  * served, which names itself in the warning and the source), the land cells and
  * the variables served (once), the country outlines (a static file), and the
- * season itself, as integers. How each variable is drawn is in mapview.js
+ * season itself, as integers; with the isobars ticked, the sea-level pressure
+ * of the same days too. How each variable is drawn is in mapview.js
  * (VARIABLES). Everything drawn is read from those; the arithmetic is in
  * mapview.js, this file is the wiring: the period chosen, the map, the panel,
  * the timeline and the player.
@@ -12,16 +13,19 @@
 
 import { DAY, at, iso } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
-import { loadConfig, mapCells, mapDays, outlines, SearchError } from "./fetch.js";
+import { loadConfig, mapCells, mapDays, mapIsobars, outlines, SearchError } from "./fetch.js";
 import { texts } from "./i18n.js";
 import {
   FILL,
   MAX_ZOOM,
   WHOLE,
   band,
+  contour,
   day,
   frame,
   grid,
+  labelSpots,
+  levels,
   pan,
   projection,
   summary,
@@ -42,6 +46,8 @@ const title = document.getElementById("maps-title");
 const variableField = document.getElementById("maps-variable");
 const seasonField = document.getElementById("maps-season");
 const yearField = document.getElementById("maps-year");
+const isobarsField = document.getElementById("maps-isobars");
+const isobarsBox = document.getElementById("maps-isobars-field");
 const warning = document.getElementById("maps-warning");
 const sourceNote = document.getElementById("maps-source");
 const status = document.getElementById("maps-status");
@@ -92,6 +98,8 @@ const state = {
   rings: [],
   box: null,
   season: null, // { values, days, cells, start, origin }
+  pressure: null, // { values, days, rows, cols, north, west, step, start }, the same days
+  lines: null, // the isobars of the day on screen, as drawn
   summaries: [],
   current: 0,
   playing: null,
@@ -108,7 +116,7 @@ async function boot() {
     const [config, cells, shapes] = await Promise.all([loadConfig(), mapCells(), outlines()]);
     state.config = config;
     warning.textContent = texts.maps.simulated(config.simulation);
-    sourceNote.textContent = texts.maps.source(config.simulation);
+    sourceNote.textContent = texts.maps.source(config.simulation, cells.isobars);
     state.cells = cells;
     state.geometry = grid(cells);
     state.rings = shapes.rings;
@@ -136,6 +144,9 @@ async function boot() {
     load();
   });
   yearField.addEventListener("change", load);
+  isobarsBox.hidden = !state.cells.isobars;
+  isobarsField.checked = state.cells.isobars && asked.isobars;
+  isobarsField.addEventListener("change", load);
   wirePlayer();
   wireMap();
   // The column, not the map: maps.js sets the map's width, the layout sets the column's.
@@ -151,7 +162,7 @@ function fromUrl() {
   const variable = offered.includes(query.get("grandeur")) ? query.get("grandeur") : DEFAULT.variable;
   const season = SEASONS.includes(query.get("saison")) ? query.get("saison") : DEFAULT.season;
   const year = Number(query.get("annee")) || DEFAULT.year;
-  return { variable, season, year };
+  return { variable, season, year, isobars: query.get("isobares") === "1" };
 }
 
 /** The variables the server has, in the order of VARIABLES. */
@@ -227,20 +238,27 @@ async function load() {
   const turn = (state.asking += 1);
   play(false);
   const variable = state.variable;
-  history.replaceState(
-    null,
-    "",
-    `?${new URLSearchParams({ grandeur: variable, saison: season, annee: String(year) })}`,
-  );
+  const isobars = isobarsField.checked;
+  const query = { grandeur: variable, saison: season, annee: String(year) };
+  if (isobars) query.isobares = "1";
+  history.replaceState(null, "", `?${new URLSearchParams(query)}`);
   title.textContent = texts.maps.title(texts.maps.variables[variable], texts.season[season], year);
   document.title = `${title.textContent} · ${texts.maps.pageTitle}`;
   failure.hidden = true;
   status.textContent = texts.maps.loading;
 
   try {
-    const answer = await mapDays(variable, range.start, range.end);
+    // The pressure of the same days is kept while the season does not change.
+    const kept = state.pressure;
+    const same = kept && kept.start === range.start && kept.days === state.season?.days;
+    const [answer, pressure] = await Promise.all([
+      mapDays(variable, range.start, range.end),
+      isobars && !same ? mapIsobars(range.start, range.end) : kept,
+    ]);
     if (turn !== state.asking) return;
     state.season = answer;
+    state.pressure = pressure;
+    state.lines = null;
     state.summaries = Array.from({ length: answer.days }, (_, k) =>
       summary(day(answer.values, answer.cells, k), state.edges),
     );
@@ -433,12 +451,75 @@ function draw() {
   }
   context.stroke();
 
+  if (isobarsField.checked && state.pressure) drawIsobars(context, view, z);
+
   state.view = view;
   zoomOut.disabled = z.scale <= 1;
   zoomWhole.disabled = z.scale <= 1;
   zoomIn.disabled = z.scale >= MAX_ZOOM;
   mapCanvas.classList.toggle("zoomed", z.scale > 1);
   if (state.hover) tooltip(state.hover);
+}
+
+/**
+ * The isobars of the current day: for each level, its segments in the
+ * coordinates of the map drawn whole, and the middle of every segment as a
+ * candidate for its label. Kept until the day or the width changes.
+ */
+function isobarLines(view) {
+  const kept = state.lines;
+  if (kept && kept.current === state.current && kept.width === view.width) return kept;
+  const p = state.pressure;
+  const field = p.values.subarray(state.current * p.rows * p.cols, (state.current + 1) * p.rows * p.cols);
+  const at = (r, c) => view.project(p.west + c * p.step, p.north - r * p.step);
+  const lines = levels(field).map((level) => {
+    const path = new Path2D();
+    const middles = [];
+    for (const [r0, c0, r1, c1] of contour(field, p.rows, p.cols, level * 10)) {
+      const a = at(r0, c0);
+      const b = at(r1, c1);
+      path.moveTo(...a);
+      path.lineTo(...b);
+      middles.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]);
+    }
+    return { level, path, middles };
+  });
+  state.lines = { current: state.current, width: view.width, lines };
+  return state.lines;
+}
+
+/**
+ * The isobars over the cells: a light line on a dark one, legible over the
+ * bright colours and over the sea alike; their values written where there is
+ * room, kept 140 pixels apart on screen.
+ */
+function drawIsobars(context, view, z) {
+  const { lines } = isobarLines(view);
+  context.save();
+  context.lineJoin = "round";
+  context.lineCap = "round";
+  for (const [width, colour] of [[2.4, "rgba(11, 28, 48, 0.55)"], [1, "rgba(250, 247, 240, 0.9)"]]) {
+    context.lineWidth = width / z.scale;
+    context.strokeStyle = colour;
+    for (const { path } of lines) context.stroke(path);
+  }
+  const size = 11 / z.scale;
+  context.font = `500 ${size}px system-ui, sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.lineWidth = 3 / z.scale;
+  context.strokeStyle = "rgba(11, 28, 48, 0.8)";
+  context.fillStyle = "#faf7f0";
+  const taken = [];
+  for (const { level, middles } of lines) {
+    const candidates = middles.filter((_, k) => k % 4 === 0);
+    for (const [x, y] of labelSpots(candidates, 140 / z.scale, taken)) {
+      taken.push([x, y]);
+      context.strokeText(String(level), x, y);
+      context.fillText(String(level), x, y);
+    }
+  }
+  context.restore();
 }
 
 /** Zoom by `factor` about (cx, cy) of the frame, the centre by default. */

@@ -2897,6 +2897,25 @@ body.maps {
   font-size: 1rem;
 }
 
+/* The isobars: a box and its word, on one line. */
+.maps-check {
+  margin: 0;
+}
+
+.maps-check label {
+  display: inline-flex;
+  gap: calc(var(--space) * 1.5);
+  align-items: center;
+  cursor: pointer;
+}
+
+.maps-check input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
 /* In the panel, over the date. */
 .maps-warning {
   margin: 0;

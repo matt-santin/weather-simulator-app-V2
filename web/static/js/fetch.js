@@ -178,6 +178,38 @@ export function mapCells() {
   return getJson("/api/map/cells", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
 }
 
+/**
+ * Sea-level pressure over a range, for the isobars: days x rows x columns of a
+ * 0.5 deg grid, 16-bit integers in tenths of a hPa, the grid in the headers.
+ */
+export async function mapIsobars(start, end) {
+  const query = new URLSearchParams({ start, end });
+  let response;
+  try {
+    response = await fetch(`/api/map/isobars?${query}`, {
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
+  } catch (cause) {
+    throw new SearchError(reasonFor(cause, texts.transport.serviceFailed), 0, { cause });
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new SearchError(payload?.message ?? texts.transport.serviceFailed, response.status);
+  }
+  const buffer = await response.arrayBuffer();
+  const header = (name) => Number(response.headers.get(name));
+  return {
+    values: new Int16Array(buffer),
+    days: header("X-Days"),
+    rows: header("X-Rows"),
+    cols: header("X-Cols"),
+    north: header("X-North"),
+    west: header("X-West"),
+    step: header("X-Step"),
+    start: response.headers.get("X-Start"),
+  };
+}
+
 /** The country outlines, a static file. */
 export function outlines() {
   return getJson("/static/geo/europe.json", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });

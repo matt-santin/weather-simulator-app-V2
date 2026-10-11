@@ -413,7 +413,7 @@ def test_maps_of_another_simulation_stop_the_start(store_path, map_store_path, t
     from conftest import SIMULATION
     path = copied(map_store_path, tmp_path, "map.zarr")
     other = SIMULATION | {"regional": "ICON-CLM"}
-    for name in ("tasmax", "pr"):
+    for name in ("tasmax", "pr", "psl"):
         zarr.open_array(path / "cordex" / name, mode="r+").attrs["simulation"] = other
     store = Store(store_path)
     monkeypatch.setattr(api, "get_store", lambda: store)
@@ -424,3 +424,47 @@ def test_maps_of_another_simulation_stop_the_start(store_path, map_store_path, t
             api.get_map_store()
     finally:
         api.get_map_store.cache_clear()
+
+
+def test_isobars_are_the_pressure_of_the_box_at_half_a_degree(map_client: TestClient, monkeypatch) -> None:
+    import numpy as np
+    from src.app import maps
+    monkeypatch.setattr(maps, "SMOOTH", 1)  # one pass, for arithmetic that can be read
+    assert map_client.get("/api/map/cells").json()["isobars"] is True
+    response = map_client.get("/api/map/isobars", params={"start": "2044-07-14", "end": "2044-07-15"})
+    assert response.status_code == 200
+    h = response.headers
+    # 5 x 5 cells of 0.25 deg: two whole blocks of 2 x 2 each way.
+    assert (h["x-days"], h["x-rows"], h["x-cols"]) == ("2", "2", "2")
+    assert (float(h["x-north"]), float(h["x-west"]), float(h["x-step"])) == (45.875, 5.125, 0.5)
+    assert h["x-origin"] == "simulated"
+    values = np.frombuffer(response.content, dtype="<i2").reshape(2, 2, 2)
+    k = (date(2044, 7, 14) - date(2027, 1, 1)).days % 100
+    assert values[0, 0, 0] == -32768  # the north-west block holds a cell without value
+    # Tenths of a hPa, 1000 hPa + day + the column: blocks of 0.5 and 2.5 hPa,
+    # then 1-2-1 smoothed, a missing neighbour left out. The rows are equal, so
+    # only the columns move: (0.5 + 2 x 2.5) / 3 = 1.83 in the south-east block.
+    assert values[0, 1, 1] == 10000 + 10 * k + 18
+    assert values[0, 1, 0] == 10000 + 10 * k + 12  # (2 x 0.5 + 2.5) / 3
+    assert values[0, 0, 1] == 10000 + 10 * k + 25  # its western neighbour is missing
+    assert map_client.get("/api/map/isobars", params={"start": "2026-07-01", "end": "2026-07-02"}).status_code == 400
+
+
+def test_isobars_are_not_a_variable_of_the_menu(map_client: TestClient) -> None:
+    assert "psl" not in map_client.get("/api/map/cells").json()["variables"]
+
+
+def test_the_smoothing_keeps_a_flat_or_sloping_field_and_its_gaps() -> None:
+    import numpy as np
+    from src.app.maps import smooth
+    flat = np.full((4, 5), 1013.0)
+    assert np.allclose(smooth(flat, 2), flat)
+    slope = np.add.outer(np.arange(4.0), np.arange(5.0))
+    assert np.allclose(smooth(slope)[1:-1, 1:-1], slope[1:-1, 1:-1])  # inside, a plane is kept
+    peak = np.zeros((3, 3))
+    peak[1, 1] = 16
+    assert smooth(peak)[1, 1] == 4  # (2 x 2) x 16 / (4 x 4)
+    gap = flat.copy()
+    gap[0, 0] = np.nan
+    out = smooth(gap)
+    assert np.isnan(out[0, 0]) and np.allclose(out[~np.isnan(out)], 1013.0)

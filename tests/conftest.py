@@ -114,7 +114,9 @@ def map_store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """The layout of src.store.maps on the 5 x 5 grid above: tasmax holds the day
     index since the source's first day (modulo 3000) plus 10 x the cell's row,
     in hundredths. The north-west cell is sea. pr holds the day index in tenths
-    of a mm, none on the first day; clt is not built."""
+    of a mm, none on the first day; clt is not built. psl, for the isobars, is
+    1000 hPa plus the day index modulo 100, plus 1 hPa per column, in tenths;
+    nothing in the north-west cell."""
     path = tmp_path_factory.mktemp("maps") / "map.zarr"
     root = zarr.open_group(path, mode="w", zarr_format=3)
     root.create_array("latitude", data=LATITUDE)
@@ -137,6 +139,14 @@ def map_store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
         arr = root[source].create_array("pr", data=rain, chunks=(32, 5, 5))
         arr.attrs.update({"scale_factor": 0.1, "_FillValue": 65535, "start": first.isoformat(),
                           "built": "2026-10-04 21:42"})
+        if source == "cordex":
+            arr.attrs["simulation"] = SIMULATION
+        pressure = (10000 + 10 * (np.arange(n) % 100)[:, None, None]
+                    + 10 * np.arange(5)[None, None, :] + np.zeros((1, 5, 1), dtype="int64")).astype("uint16")
+        pressure[:, 0, 0] = 65535
+        arr = root[source].create_array("psl", data=pressure, chunks=(32, 5, 5))
+        arr.attrs.update({"scale_factor": 0.1, "_FillValue": 65535, "start": first.isoformat(),
+                          "built": "2026-10-10 23:12"})
         if source == "cordex":
             arr.attrs["simulation"] = SIMULATION
     return path

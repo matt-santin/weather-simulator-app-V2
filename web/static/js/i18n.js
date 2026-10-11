@@ -255,6 +255,7 @@ export const texts = {
     back: "Weather Simulator",
     title: (variable, season, year) => `${variable}, ${season.toLowerCase()} ${year}`,
     variable: "Grandeur",
+    isobars: "Isobares",
     variables: {
       tasmax: "Températures maximales",
       tasmin: "Températures minimales",
@@ -298,12 +299,16 @@ export const texts = {
     distribution: "Répartition des mailles",
     loading: "Chargement de la carte…",
     mapLabel: "Carte d'Europe de la grandeur choisie, pour la journée affichée",
-    source: (simulation) =>
+    source: (simulation, isobars) =>
       "Valeurs journalières sur les mailles terrestres de 0,25° (environ 28 km) : " +
       "températures maximale et minimale, cumul de précipitations, nébulosité moyenne. " +
       `1970-2025 : réanalyse ERA5. 2027-2100 : CORDEX ${simulation.domain} ` +
       `(${simulation.driving} / ${simulation.regional}) corrigé ` +
       "contre ERA5. Un jour de pluie compte au moins 1 mm (DRIAS, Météo-France). " +
+      (isobars
+        ? "Isobares : pression au niveau de la mer, une ligne tous les 5 hPa, sur une " +
+          "grille de 0,5°, lissée. "
+        : "") +
       "Contours : Natural Earth.",
     north: "N",
     south: "S",

@@ -249,6 +249,42 @@ def map_cells(store: MapStoreDep) -> dict:
     return store.cells()
 
 
+@app.get("/api/map/isobars")
+def map_isobars(
+    store: MapStoreDep,
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+) -> Response:
+    """Sea-level pressure over the map's box at 0.5 deg, days x rows x columns,
+    little-endian 16-bit integers in tenths of a hPa (-32768: no value), for the
+    isobars the browser draws. The grid travels in headers."""
+    if store is None:
+        raise errors.MapsUnavailable()
+    if not store.isobars:
+        raise errors.UnknownMapVariable("isobars")
+    try:
+        dates = validation.Range(start=start, end=end)
+    except ValidationError as error:
+        raise RequestValidationError(error.errors()) from error
+    source = dates.period.source
+    values, grid = store.pressure(source, dates.start, dates.end)
+    return Response(
+        content=values.tobytes(),
+        media_type="application/octet-stream",
+        headers={
+            "X-Days": str(values.shape[0]),
+            "X-Rows": str(values.shape[1]),
+            "X-Cols": str(values.shape[2]),
+            "X-North": str(grid["north"]),
+            "X-West": str(grid["west"]),
+            "X-Step": str(grid["step"]),
+            "X-Start": dates.start.isoformat(),
+            "X-Origin": "simulated" if source == "cordex" else "observed",
+            "Cache-Control": "public, max-age=86400",
+        },
+    )
+
+
 @app.get("/api/map/{name}")
 def map_days(
     store: MapStoreDep,
