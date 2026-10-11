@@ -35,7 +35,7 @@ Niveaux de réchauffement de la TRACC (France, par rapport à 1976-2005), même 
 - En 2090-2099, la France n'est que 0,6 K plus chaude que ce qu'ERA5-Land donne déjà pour 2016-2025.
 - Fin de siècle face à la page grand public de Météo-France (trajectoire intermédiaire à forte) [4] : +2,2 K au lieu de +3 °C, 46,6 °C au plus au lieu de 50 °C.
 
-![Tx maximal de l'année à Paris et Lyon](../figures/climat/txx_paris_lyon.png)
+![Tx maximal de l'année à Paris et Lyon](../figures/climat/txx_paris_lyon_RCA4.png)
 
 ## 3. Extrêmes
 
