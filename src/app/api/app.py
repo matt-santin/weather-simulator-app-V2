@@ -332,6 +332,15 @@ class RevalidatedStatic(StaticFiles):
         return response
 
 
+# What the scenario means for emissions, in the GIEC's words: RCP4.5 one of
+# the two intermediate scenarios of AR5 (SYR, SPM 2.1), SSP3-7.0 the high one of
+# AR6 (WGI, SPM, B.1.2). A scenario missing here gets no qualifier.
+SCENARIO_LEVELS = {
+    "RCP 4.5": ", une trajectoire intermédiaire",
+    "SSP3-7.0": ", une trajectoire d'émissions élevées",
+}
+
+
 def fill_simulation(page: str, sim: Simulation) -> str:
     """The page with {{driving}}, {{scenario}}... replaced by the simulation the
     store serves, escaped, spaces made non-breaking. An unknown name is an error."""
@@ -346,6 +355,7 @@ def fill_simulation(page: str, sim: Simulation) -> str:
         "scenario": sim.scenario,
         "provider": sim.provider,
         "calibration": f"{sim.calibration_start.year}-{sim.calibration_end.year}",
+        "scenario_level": SCENARIO_LEVELS.get(sim.scenario, ""),
     }
     return re.sub(r"\{\{(\w+)\}\}",
                   lambda m: html.escape(values[m.group(1)]).replace(" ", "&nbsp;"), page)

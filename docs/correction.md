@@ -408,13 +408,15 @@ Classes proposées, seuils à fixer : vert au-dessus de 0,5, orange de 0 à 0,5,
 
 Au 28/09/2026 : les 14 variables et `alb` sont corrigées et contrôlées (`check` et `scores`). Au 29/09/2026 : 7 variables validées contre E-OBS sur 1970-2005 et 2006-2024. Au 02/10/2026 : `tas`, `tasmax` et `tasmin` corrigés et validés à 0,1° contre ERA5-Land (section 9). Restent les décisions de la section 5 (`ps` et `zg500` en hiver, intensité de `pr`, neige et glace).
 
-MPI / ICON (section 10) : remappé le 7/10/2026 ; températures corrigées et validées à 0,1° le 8/10/2026 ; les 14 variables et `alb` corrigés à 0,25°, variables dérivées calculées, `check`, `scores` et `spells` faits le 8/10/2026. Décisions prises le 9/10/2026 (section 10) : `pr`, `ps`, `zg500` recorrigés, `huss` recalculé, contrôles refaits. `psl` remappé à 0,25° et corrigé (moyenne seule) pour les isobares. Validé contre E-OBS à 0,25° le 9/10/2026 (8 variables, dont `psl`). Reste la bascule du site.
+MPI / ICON (section 10) : remappé le 7/10/2026 ; températures corrigées et validées à 0,1° le 8/10/2026 ; les 14 variables et `alb` corrigés à 0,25°, variables dérivées calculées, `check`, `scores` et `spells` faits le 8/10/2026. Décisions prises le 9/10/2026 (section 10) : `pr`, `ps`, `zg500` recorrigés, `huss` recalculé, contrôles refaits. `psl` remappé à 0,25° et corrigé (moyenne seule) pour les isobares. Validé contre E-OBS à 0,25° le 9/10/2026 (8 variables, dont `psl`). Températures recorrigées contre E-OBS le 12/10/2026 (section 11) ; site basculé sur MPI / ICON le 10/10/2026, sur E-OBS le 13/10/2026.
 
 Longs calculs à lancer sous `caffeinate`, chargeur branché : sur batterie, le Mac se met en veille profonde, ce qui suspend le calcul et peut provoquer un message de disque mal éjecté. Durées observées : remappage 8 min par variable, QDM 32 à 43 min, `check` 4 à 8 min, `scores` 2 à 5 min. MPI / ICON (45 ans de calibration) : remappage 3,4 s par année à 0,25°, 9 s à 0,1° ; QDM 32 à 43 min à 0,25°, environ 1 h 40 par variable à 0,1° ; `check` 4 à 10 min, `scores` 3 à 8 min.
 
 Les fichiers temporaires du QDM (10 Go à 0,25°, 56 Go à 0,1°) sont effacés à la fin, mais les instantanés locaux de Time Machine les retiennent : `tmutil thinlocalsnapshots / 300000000000 4` rend la place.
 
 ## 9. Températures à 0,1° contre ERA5-Land
+
+Pour MPI / ICON, la référence des températures est E-OBS depuis le 11/10/2026 (section 11). Cette section décrit la chaîne à 0,1°, commune aux deux références, et le choix d'ERA5-Land qui a précédé.
 
 `tas`, `tasmax` et `tasmin` sont aussi corrigés à 0,1°, contre ERA5-Land, pour garder le détail du relief que la grille à 0,25° lisse. Ce sont ces versions que sert l'application. Les autres variables, dont `hurs`, restent à 0,25° contre ERA5. Code dans `src/correction/land.py` et `land_check.py` ; la chaîne à 0,25° n'est pas modifiée.
 
@@ -643,7 +645,7 @@ Europe terre, biais de la moyenne contre E-OBS (RCA4 corrigé sur 2006-2024 entr
 | `psl` juin | +0,1 | +2,2 | +0,5 |
 | `psl` septembre | −0,1 | +0,1 | −1,3 |
 
-- Températures. ERA5 est sous les stations de 0,6 à 1,2 K pour Tx toute l'année ; le corrigé en hérite. En été, une fois retiré cet écart, le retard propre au modèle est faible (0 à 0,2 K en juillet-août) : MPI / ICON fait mieux que RCA4. En hiver, il est en retard (février −2,4 K, dont −0,7 dû à ERA5), comme le brut ; sur 11 ans seulement. Sur A, le brut est plus proche des stations qu'ERA5 pour les Tx d'été (juillet −0,4 contre −1,2 K) : la correction vers ERA5 refroidit les Tx d'été (les températures servies sont calées sur ERA5-Land, référence gardée le 10/10/2026, section 9).
+- Températures. ERA5 est sous les stations de 0,6 à 1,2 K pour Tx toute l'année ; le corrigé en hérite. En été, une fois retiré cet écart, le retard propre au modèle est faible (0 à 0,2 K en juillet-août) : MPI / ICON fait mieux que RCA4. En hiver, il est en retard (février −2,4 K, dont −0,7 dû à ERA5), comme le brut ; sur 11 ans seulement. Sur A, le brut est plus proche des stations qu'ERA5 pour les Tx d'été (juillet −0,4 contre −1,2 K) : la correction vers ERA5 refroidit les Tx d'été (les températures servies ont été calées sur ERA5-Land, référence gardée le 10/10/2026, section 9, puis sur E-OBS à partir du 13/10/2026, section 11).
 - `hurs` : corrigé dans ±2 points d'E-OBS sur B. `sfcWind` : corrigé à +0,3 à +0,7 m/s des stations, comme ERA5 ; le brut est déjà proche (RCA4 brut : +2 m/s en hiver).
 - `rsds` : ERA5 trop lumineux au printemps sur A (+12 à +14 W/m² en mars-avril), le brut juste ; le corrigé hérite de l'excès. Sur B, corrigé −5 à +7 W/m².
 - `pr` : ERA5 a 3 à 9 points de jours de pluie de trop et un cumul de +14 à +37 % sur A ; bruine (0,1 à 1 mm) 24 à 31 % des jours dans ERA5 et le corrigé, 4 à 7 % dans E-OBS. Le corrigé reproduit ERA5 ; RCA4, bruine mise à 0, en était plus proche des stations par accident. Sur B, corrigé +17 à +48 %.
@@ -669,7 +671,70 @@ Bilan : sur les années non vues, le corrigé reste dans l'écart ERA5 / station
 
 Décision du 9/10/2026 : moyenne seule, par maille et par mois, toute l'année ; un décalage garde les isobares lisses. Validation croisée, Europe terre, moyenne des 12 mois : |biais| moyen 0,63 → 0,53 hPa, RMS entre mailles 1,72 → 1,85 hPa, W1 1,49 → 1,60 hPa (plancher 1,18). Gain de juin à novembre (W1 de juillet 1,11 → 0,63, plancher 0,58), perte de décembre à avril (février 1,04 → 3,54, plancher 2,46) : comme pour `ps`, la circulation d'hiver d'ERA5 change entre les deux moitiés, et un biais mesuré sur 22 ans en est pollué. La calibration définitive porte sur 45 ans. Signal du modèle conservé exactement. Journaux `qdm_psl.log`, `check_psl.log`, `scores_psl.log`.
 
-Restent : la bascule du site (`src/store/build.py`) et l'ajustement sur la TRACC. Référence des températures : ERA5-Land, gardée le 10/10/2026 malgré son écart froid aux stations (section 9).
+Reste : l'ajustement sur la TRACC. Référence des températures : ERA5-Land, gardée le 10/10/2026 malgré son écart froid aux stations (section 9), puis remplacée par E-OBS le 11/10/2026 (section 11).
+
+## 11. Températures contre E-OBS
+
+Décision du 11/10/2026 : `tas`, `tasmax` et `tasmin` de MPI / ICON sont corrigés contre E-OBS v33.0e (moyenne d'ensemble), à 0,1° et à 0,25°, et non plus contre ERA5-Land et ERA5. Elle remplace, pour les températures, le choix de la section 9 (ERA5-Land, gardé le 10/10/2026). Les autres variables restent corrigées contre ERA5, `hurs` compris. Le site sert E-OBS pour les températures passées : la cohérence entre passé et futur, motif du choix d'ERA5-Land, est conservée.
+
+### Raisons
+
+- **Paris-Montsouris** (`figures/climat/montsouris.py`, `montsouris_MPI_eobs.log`), 1970-2019, écart à la station : Tx annuel E-OBS +0,12 K, ERA5-Land −1,06 K ; Tn −0,34 et −1,56 K. Tx jour par jour : écart quadratique 0,45 K (E-OBS), 1,67 K (ERA5-Land). Tx maximal de l'année, moyenne : station 34,5 °C, E-OBS 34,6, ERA5-Land 32,2 ; 2019 : 42,6, 42,6, 39,6. L'écart d'ERA5-Land grandit avec la chaleur : −2,2 K sur les 5 % de journées d'été les plus chaudes.
+- **Pontarlier**, 1970-2025 : Tn minimal de l'année ERA5-Land − E-OBS +4,0 K en moyenne, jusqu'à +10,8 K (1987 : −31,0 °C contre −20,7 °C pour ERA5-Land).
+- **Stations de montagne** (`src/correction/eobs_sommets.py`, 344 stations à 800 m et plus) : dans les Alpes, maille à 200 m au plus de la station (58 stations), ERA5-Land − station : Tn d'hiver −2,1 K, Tn minimal −3,4 K, Tx d'été −1,2 K, Tx maximal −1,8 K ; E-OBS proche de 0. L'écart E-OBS / ERA5-Land des Alpes (jusqu'à +4 K sur les Tn d'hiver au-dessus de 1 000 m) vient surtout d'ERA5-Land. Les crêtes loin au-dessus des stations restent invérifiables.
+
+Montsouris, Pontarlier et Grenoble-Saint-Geoirs entrent dans E-OBS : l'accord avec la station y est en partie construit. Les stations d'E-OBS en France passent de 231 (1970) à 1 066 (2019) pour Tx (listes ECA&D, `data/stations/ecad/`).
+
+### Diagnostics avant décision
+
+`src/correction/eobs_land.py`, sorties dans `data/correction/mpi/eobs_land/`. E-OBS ramené sur la grille ERA5-Land (moyenne des 4 voisines), 1970-2014, mailles complètes à 95 % au moins.
+
+- Écart moyen E-OBS − ERA5-Land : Tx +0,95 K (été +1,17 K, Tx maximal +1,3 à +1,8 K) ; Tn −0,30 K (été −0,66 K ; Tn minimal −3,3 K en Scandinavie, positif dans les Alpes, en Italie et en Turquie).
+- Dérive avec la densification du réseau : 0,15 K au plus entre 1970-1990 et 1991-2014 dans les régions européennes, tendance 0,08 K par décennie au plus, stable après 2014. L'écart ne dépend pas de la distance à la station la plus proche jusqu'à 100 km.
+- Afrique du Nord : rupture vers 2010 (Tx −3 K, Tn +2,5 K) ; repli sur ERA5-Land.
+
+### Licence
+
+Données E-OBS et ECA&D réservées à la recherche et à l'enseignement non commerciaux (« These observational data are strictly for use in non-commercial research and non-commercial education projects only », page d'accès E-OBS, Copernicus). ERA5 et ERA5-Land relèvent de la licence Copernicus, qui permet un usage commercial. Le site est donc gratuit et non commercial ; une version commerciale demanderait une autre référence (pistes : CERRA, sous licence CC-BY, ou ERA5-Land ajusté sur les stations nationales ouvertes).
+
+Remerciements demandés, repris dans la documentation du site : « We acknowledge the E-OBS dataset from the EU-FP6 project UERRA (https://www.uerra.eu) and the Copernicus Climate Change Service, and the data providers in the ECA&D project (https://www.ecad.eu) », et Cornes et al. (2018), doi:10.1029/2017JD028200.
+
+### Référence
+
+`src/correction/eobs_ref.py` (`stats`, puis `write`, pour `010` et `025`) : E-OBS sur les grilles du site, en K, dans `LaCie/.../eobs/ref_010/` et `ref_025/`.
+
+- Grilles : 0,1° (ERA5-Land, depuis E-OBS 0,1°) et 0,25° (ERA5, depuis E-OBS 0,25°). Les centres d'E-OBS sont décalés d'une demi-maille : poids bilinéaires, limités aux voisines valides et renormalisés (une voisine suffit, les côtes sont gardées).
+- Masque, un par grille, le même pour les trois variables, le passé et le futur (`source.nc`, 1 : E-OBS, 0 : repli) : E-OBS si la maille a une valeur au moins 99 % des jours de 1970-2025 pour Tx, Tn et Tg, hors de la zone Afrique du Nord et Proche-Orient (polygone tracé par la mer, Sahara occidental compris ; Canaries, Madère, Sicile, Malte, Crète et Chypre en dehors), sur terre (à 0,25° : masque terre-mer ERA5 ≥ 0,5). Ailleurs, repli : ERA5-Land à 0,1°, ERA5 à 0,25°.
+- Mailles à 0,1° : 295 579 de terre ; E-OBS 110 912, repli dans la zone 97 488, repli faute de complétude 87 179 (dont l'est du domaine au-delà de 45° E, le Groenland, une poche de Tg dans le sud de la Turquie). À 0,25° : 17 631, 15 607 et 13 152. Cartes : `data/correction/mpi/eobs_ref/masque_010.png`, `masque_025.png`.
+- Les rares jours sans E-OBS dans une maille E-OBS prennent le repli, plus l'écart moyen E-OBS − repli de la maille pour ce mois.
+
+### Correction
+
+Chaîne inchangée (QDM additif, 1970-2014, par mois, fenêtre glissante), seule la référence change : `WSA_MODEL=mpi WSA_REF=eobs`, sorties à part (`_eobs`), les anciennes gardées.
+
+- 0,25° : `python -m src.correction.qdm tasmax` (puis `tasmin`, `tas`), `derive tn_tx` (2,43 millions d'échanges Tn/Tx), `derive huss` ; `LaCie/.../cordex/eur12_mpi_025_qdm_eobs/`.
+- 0,1° : `python -m src.correction.land qdm tasmax` (puis `tasmin`, `tas`), `swap` (2,58 millions d'échanges) ; `LaCie/.../cordex/eur12_mpi_010_qdm_eobs/`.
+
+Lot `data/correction/mpi/lot_eobs.sh`, environ 8 h, terminé le 12/10/2026. Journaux dans `data/correction/mpi/eobs/`.
+
+### Contrôles
+
+Journaux `data/correction/mpi/eobs/controle_*` (`land_check.py` et `montsouris.py` avec `WSA_REF=eobs` ; `src/correction/eobs_controle.py alpes|humide|raccords`).
+
+- **Validation croisée** (calibration 1970-1991, test 1992-2014), `tasmax` à 0,1° : biais moyen corrigé de −1,1 à +0,2 K selon le mois (brut −1,6 à −0,1 K) ; RMS entre mailles divisé par 1,4 à 2,7 ; W1 corrigé au plus 0,3 K au-dessus de son plancher. Résidus semblables à ceux de la correction contre ERA5-Land : retard du modèle sur le réchauffement.
+- **Signal** 2071-2100 contre 1976-2005, moyenne des mailles, conservé à 0,04 K près (RMS entre mailles) : Tx +3,8 K en hiver, +3,5 K en été ; Tn +4,4 K et +3,3 K.
+- **Contre E-OBS 0,1°, 2015-2025**, Tx, sous 500 m : −0,5 K en janvier, 0,0 K en juillet (ancienne correction, contre ERA5-Land : −1,1 et −1,3 K). Au-dessus de 1 500 m, sur les mailles où E-OBS est le plus sûr : RMS du biais entre mailles 0,9 à 1,0 K (ancienne correction : 2,1 à 3,6 K). Paris, Tx moyen de juillet : E-OBS 26,6 °C, corrigé 25,4 °C (ancienne correction : 23,8 °C).
+- **Montsouris**, 1970-2019, simulation − station : Tx annuel −0,15 K (contre ERA5-Land : −1,11), Tn −0,84 K (−1,58) ; Tx maximal de l'année, moyenne 34,6 °C, station 34,5 °C.
+- **Alpes** (43,5-48,5 N, 5-17 E), 1991-2014, corrigé − E-OBS : −0,15 à −0,4 K à toutes les altitudes, Tn d'hiver et Tx d'été (ancienne correction, Tn d'hiver au-dessus de 2 000 m : −4,4 K). Le décalage se reporte tel quel sur 2071-2100 : Tn d'hiver +3,9 K au-dessus de 2 000 m, Tx d'été +1,5 K sous 1 500 m, par rapport à la correction contre ERA5-Land.
+- **Température humide**, France, `tas` à 0,1° et `hurs` d'ERA5 à 0,25° : presque inchangée, 0,036 jour par an à 26 °C ou plus en 2071-2100 (contre ERA5-Land : 0,056), maximum 29,6 °C (29,7).
+- **Raccords** entre mailles E-OBS et mailles de repli, climatologie 1991-2014, 1 182 paires voisines : saut supplémentaire de +0,7 K (Tn d'hiver) et +1,05 K (Tx d'été), surtout en Russie entre 40 et 45° E, dans le sud de la Turquie et autour de la mer d'Azov. Gardés tels quels, sans raccord progressif (13/10/2026).
+- **Extrême** : 49,2 °C le 3/8/2083 dans le Cher (46,9 N 2,1 E). Brut 45,9 °C, plus le delta du quantile le plus haut d'août (+3,3 K : le P99 du modèle est 2,5 K sous E-OBS). Ce n'est pas un artefact (`jour_2083-08-03.png`).
+
+### Site
+
+Stockage de service reconstruit le 13/10/2026 (`docs/application.md`, section 3) : températures passées lues dans la référence, températures futures dans les sorties `_eobs`. Contrôles du site le 13/10/2026 (`docs/application.md`, section 9).
+
+Reste : l'ajustement sur la TRACC. Sur 2015-2025, le corrigé est sous les données passées servies (Paris : Tx −1,0 K, Tn −0,6 K ; Chamonix : Tx d'hiver −1,5 K ; Ajaccio : Tx d'été −2,1 K) ; la matrice des années montre une marche entre 2025 et 2027.
 
 ## Fichiers
 
@@ -700,4 +765,10 @@ Restent : la bascule du site (`src/store/build.py`) et l'ajustement sur la TRACC
 | `data/correction/mpi/diagnostic/` | diagnostic du brut de MPI / ICON (1970-2014) |
 | `data/correction/comparaison_1970-2005/` | diagnostic du brut de RCA4 et de MPI / ICON sur la même période |
 | `LaCie/.../cordex/eur12_mpi_025/`, `eur12_mpi_010/` | MPI / ICON remappé à 0,25° (14 variables) et à 0,1° (températures), brut |
-| `LaCie/.../cordex/eur12_mpi_025_qdm/`, `eur12_mpi_010_qdm/` | MPI / ICON corrigé |
+| `LaCie/.../cordex/eur12_mpi_025_qdm/`, `eur12_mpi_010_qdm/` | MPI / ICON corrigé (températures contre ERA5 et ERA5-Land, remplacées par les sorties `_eobs`) |
+| `src/correction/eobs_ref.py` | référence des températures : E-OBS sur les grilles du site, repli ERA5-Land ou ERA5 (section 11) |
+| `src/correction/eobs_land.py`, `eobs_sommets.py`, `eobs_controle.py` | diagnostics E-OBS − ERA5-Land, stations de montagne, contrôles de la correction contre E-OBS |
+| `LaCie/.../eobs/ref_010/`, `ref_025/` | référence des températures, en K, et masque `source.nc` |
+| `LaCie/.../cordex/eur12_mpi_025_qdm_eobs/`, `eur12_mpi_010_qdm_eobs/` | MPI / ICON, températures corrigées contre E-OBS : `tas`, `tasmax`, `tasmin` |
+| `data/correction/mpi/eobs_ref/`, `eobs_land/`, `eobs/` | masques, diagnostics, journaux du lot `lot_eobs.sh` et contrôles |
+| `data/stations/` | séries de stations (Montsouris, Pontarlier) et listes ECA&D, voir `PROVENANCE.md` |

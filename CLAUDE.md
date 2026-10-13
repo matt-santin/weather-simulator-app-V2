@@ -64,7 +64,7 @@ scénario  `ssp370`, `historical` avant 2015
 
 Justification (modèles plus récents, aérosols variables, biais brut quasi nul sur la France, modèles globaux retenus par EURO-CORDEX et bien évalués, pas de palier des Tx d'été dans les années 2030-2040 contrairement à CNRM-ESM2-1) : `docs/choix_modele_cmip6.md`. CORDEX-CMIP6 n'est pas sur le CDS : les données viennent d'ESGF. Noms de fichiers, version, licence et attribution : `data/cordex/eur12_mpi-esm1-2-hr_icon-clm/PROVENANCE.md`. Ce modèle reste lui aussi en retard sur le réchauffement récent, comme toutes les simulations CMIP6 testées : un ajustement sur la TRACC est à décider.
 
-MPI-ESM1-2-HR / ICON-CLM est corrigé et validé (10/10/2026, `docs/correction.md` section 10). Le site sert encore RCA4 corrigé, jusqu'à la reconstruction du stockage de service.
+MPI-ESM1-2-HR / ICON-CLM est corrigé et validé (10/10/2026, `docs/correction.md` section 10). Le site sert MPI / ICON depuis le 10/10/2026. Ses températures sont corrigées contre E-OBS depuis le 13/10/2026 (`docs/correction.md` section 11) ; données E-OBS réservées à un usage non commercial.
 
 Les variables téléchargées sont les suivantes : 
 | Nom | Unité | Grandeur |
@@ -95,7 +95,7 @@ On souhaite s'assurer que chaque variable servie par CORDEX n'est pas biaisée p
 
 Pour chaque variable, à chaque lieu et à chaque mois de l'année, on va moyenner sur toutes les années disponibles et sur tous les jours du mois. On obtient ainsi une grille contenant, pour chaque point, l'écart/rapport moyenné sur 36 ans (1970-2005) x 30 jours entre ERA5 et CORDEX pour tous les mois de l'année. On appliquera ainsi cette correction sur toutes les données servies par CORDEX sur les données du futur. On fait ainsi l'hypothèse que les écarts ou les rapports restent constants malgré l'amplification du réchauffement climatique. Pour chaque maille ERA5, on regarde quelles mailles CORDEX la recouvrent, avec quel poids et on fait une moyenne pondérée. 
 
-Les détails sont enregistrés dans `docs/correction.md`. Les températures (`tas`, `tasmax`, `tasmin`) sont aussi corrigées à 0,1° contre ERA5-Land (section 9) ; ce sont elles que sert le site.
+Les détails sont enregistrés dans `docs/correction.md`. Les températures (`tas`, `tasmax`, `tasmin`) sont corrigées à 0,1° et à 0,25° contre E-OBS, avec ERA5-Land ou ERA5 là où il manque (section 11) ; ce sont elles que sert le site.
 
 ## Interface de l'application
 

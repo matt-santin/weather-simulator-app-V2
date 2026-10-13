@@ -223,7 +223,7 @@ def test_the_documentation_page_states_the_model_and_the_scenario(client: TestCl
     """The reader must know which simulation the future days come from, and the
     names are the store's: the small store describes EC-EARTH / RCA4."""
     page = " ".join(client.get("/documentation").text.split()).replace("&nbsp;", " ")
-    for name in ("ERA5", "CORDEX EUR-11", "EC-EARTH", "RCA4 (SMHI)", "RCP 4.5", "intermédiaire",
+    for name in ("ERA5", "E-OBS", "CORDEX EUR-11", "EC-EARTH", "RCA4 (SMHI)", "RCP 4.5, une trajectoire intermédiaire",
                  "ICHEC-EC-EARTH", "r12i1p1", "SMHI-RCA4", "sur 1970-2005",
                  "Copernicus Climate Data Store"):
         assert name in page, f"{name} absent de la page de documentation"
