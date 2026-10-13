@@ -21,12 +21,12 @@ from src.app.transform import block
 KMH = 3.6
 
 
-def source(store: Store, period: Period, fine: bool) -> str:
+def source(store: Store, period: Period, cell: Cell) -> str:
     """Which dataset served a day, without and with the 0.1 deg temperatures."""
     if period.source == "cordex":
         name = store.simulation.source
-        return f"{name}, températures à 0,1°" if fine else name
-    return "ERA5-Land (températures), ERA5" if fine else "ERA5"
+        return f"{name}, températures à 0,1°" if cell.fine is not None else name
+    return store.datasets(period.source, cell)
 
 
 def records(store: Store, period: Period, cell: Cell, start: date, end: date):
@@ -39,7 +39,7 @@ def records(store: Store, period: Period, cell: Cell, start: date, end: date):
         DailyRecord(
             date=start + timedelta(days=k),
             origin=origin,
-            source=source(store, period, cell.fine is not None),
+            source=source(store, period, cell),
             **{field: values[name][k] for name, field in FIELDS.items()},
         )
         for k in range(n)
@@ -51,7 +51,7 @@ def grid(store: Store, cell: Cell) -> Grid:
     fine = cell.fine is not None
     return Grid(
         model=store.simulation.model,
-        reference="ERA5-Land (températures), ERA5" if fine else "ERA5",
+        reference=store.datasets(cordex.source, cell),
         temperature_step=round(float(abs(store.latitude010[1] - store.latitude010[0])), 2)
         if fine else None,
         calibration_start=store.simulation.calibration_start,

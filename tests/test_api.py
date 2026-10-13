@@ -51,7 +51,7 @@ def test_a_past_range_is_era5_and_carries_no_warning(client: TestClient) -> None
     assert series["grid"] is None
     assert len(series["days"]) == 31
     assert {d["origin"] for d in series["days"]} == {"observed"}
-    assert {d["source"] for d in series["days"]} == {"ERA5-Land (températures), ERA5"}
+    assert {d["source"] for d in series["days"]} == {"E-OBS (températures), ERA5"}
 
 
 def test_a_future_range_is_cordex_and_says_so(client: TestClient) -> None:
@@ -61,7 +61,7 @@ def test_a_future_range_is_cordex_and_says_so(client: TestClient) -> None:
     assert series["grid"]["projection_start"] == "2027-01-01"
     assert series["grid"]["step"] == 0.25
     assert series["grid"]["temperature_step"] == 0.1
-    assert series["grid"]["reference"] == "ERA5-Land (températures), ERA5"
+    assert series["grid"]["reference"] == "E-OBS (températures), ERA5"
     assert series["grid"]["generated"] == "2026-10-02"
     assert len(series["days"]) == 92
 
@@ -100,7 +100,7 @@ def test_a_place_without_a_fine_cell_is_served_at_025(client: TestClient) -> Non
     series = days(client, day.isoformat(), day.isoformat(), where).json()
     assert (series["latitude"], series["longitude"]) == (45.0, 6.0)
     assert series["grid"]["temperature_step"] is None
-    assert series["grid"]["reference"] == "ERA5"
+    assert series["grid"]["reference"] == "ERA5"  # 45.0 N 6.0 E: E-OBS fallback
     served = series["days"][0]
     assert served["source"] == "CORDEX EUR-11 corrigé"
     assert served["temperature_max"] == pytest.approx(round(expected("cordex", day, "tasmax"), 1))
@@ -251,7 +251,7 @@ def test_the_climate_diagram_is_twelve_monthly_means(client: TestClient) -> None
 def test_the_climate_diagram_follows_the_reference(client: TestClient) -> None:
     answer = client.get("/api/climate", params={**GRENOBLE, "start": "1985-01-01", "end": "1985-01-31",
                                                 "reference": 1971}).json()
-    assert answer["window"]["start_year"] == 1978 and answer["window"]["source"] == "ERA5"
+    assert answer["window"]["start_year"] == 1978 and answer["window"]["source"] == "E-OBS (températures), ERA5"
     assert (answer["reference"]["start_year"], answer["reference"]["end_year"]) == (1971, 2000)
     refused = client.get("/api/climate", params={**GRENOBLE, "start": "2026-06-21", "end": "2026-06-23"})
     assert refused.status_code != 200
@@ -402,6 +402,42 @@ def test_a_store_mixing_two_simulations_is_refused(store_path, tmp_path) -> None
     zarr.open_array(path / "cordex010" / "tasmax", mode="r+").attrs["simulation"] = (
         SIMULATION | {"driving": "MPI-ESM1-2-HR"})
     with pytest.raises(RuntimeError, match="simulations differentes"):
+        Store(path)
+
+
+# --- so are the datasets ---------------------------------------------------------
+
+def test_a_cell_outside_e_obs_names_its_fallback(client: TestClient) -> None:
+    where = {"latitude": 45.5, "longitude": 5.5}
+    past = days(client, "1985-01-01", "1985-01-02", where).json()
+    assert {d["source"] for d in past["days"]} == {"ERA5-Land (températures), ERA5"}
+    future = days(client, "2044-07-01", "2044-07-02", where).json()
+    assert future["grid"]["reference"] == "ERA5-Land (températures), ERA5"
+
+
+def test_the_climate_diagram_names_the_datasets(client: TestClient) -> None:
+    answer = client.get("/api/climate", params={**GRENOBLE, "start": "1985-06-01", "end": "1985-06-30"}).json()
+    assert answer["window"]["source"] == "E-OBS (températures), ERA5"
+    assert answer["reference"]["source"] == "E-OBS (températures), ERA5"
+
+
+def test_a_store_that_does_not_name_its_datasets_is_refused(store_path, tmp_path) -> None:
+    import zarr
+    path = copied(store_path, tmp_path, "point.zarr")
+    arr = zarr.open_array(path / "era5" / "pr", mode="r+")
+    attrs = dict(arr.attrs)
+    del attrs["reference"]
+    arr.attrs.clear()
+    arr.attrs.update(attrs)
+    with pytest.raises(RuntimeError, match="de quelles donnees"):
+        Store(path)
+
+
+def test_e_obs_without_its_mask_is_refused(store_path, tmp_path) -> None:
+    import shutil
+    path = copied(store_path, tmp_path, "point.zarr")
+    shutil.rmtree(path / "eobs010")
+    with pytest.raises(RuntimeError, match="sans masque"):
         Store(path)
 
 

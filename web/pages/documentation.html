@@ -93,8 +93,11 @@
           météorologique recalé en permanence sur les observations&nbsp;: c'est
           la meilleure reconstitution disponible du temps qu'il a fait, sur une
           grille régulière d'environ 28&nbsp;km. Les températures viennent
-          d'ERA5-Land, sa déclinaison sur les terres, plus fine (environ
-          10&nbsp;km), qui suit mieux le relief.
+          d'E-OBS, une grille d'observations interpolée à partir des stations
+          météorologiques européennes (ECA&amp;D), ramenée à 0,1° (environ
+          10&nbsp;km) sur les terres. Là où E-OBS manque (Afrique du Nord,
+          Proche-Orient, séries trop incomplètes), elles viennent d'ERA5-Land,
+          la déclinaison d'ERA5 sur les terres, ou d'ERA5.
         </p>
 
         <p>
@@ -122,7 +125,8 @@
           Un modèle climatique a ses biais&nbsp;: un peu trop froid ici, trop
           pluvieux là. Chaque grandeur simulée est donc corrigée, maille par
           maille et mois par mois, en comparant sur {{calibration}} la distribution
-          des journées du modèle à celle d'ERA5. La correction porte sur chaque
+          des journées du modèle à celle des données passées (ERA5, E-OBS
+          pour les températures). La correction porte sur chaque
           niveau de la distribution (les journées froides, moyennes,
           chaudes), et non sur la seule moyenne. Elle conserve l'évolution que
           le modèle simule d'ici 2100&nbsp;: un jour chaud de 2080 reste plus
@@ -130,11 +134,12 @@
         </p>
 
         <p>
-          Les températures du modèle sont corrigées de la même façon contre
-          ERA5-Land, sur sa grille de 0,1°&nbsp;; les autres grandeurs contre
-          ERA5, sur sa grille de 0,25°. Dans les deux cas, un lieu est lu au
-          même endroit dans le passé et dans le futur. Sur les petites îles,
-          qu'ERA5-Land ne couvre pas, les températures restent à 0,25°.
+          Les températures du modèle sont corrigées contre E-OBS (ou ERA5-Land
+          et ERA5 là où il manque), sur une grille de 0,1°&nbsp;; les autres
+          grandeurs contre ERA5, sur sa grille de 0,25°. Dans les deux cas, un
+          lieu est lu au même endroit, et contre la même référence, dans le
+          passé et dans le futur. Sur les petites îles, sans maille à 0,1°,
+          les températures restent à 0,25°.
         </p>
       </section>
 
@@ -212,6 +217,20 @@
         <dl class="pairs">
           <dt>Réanalyse</dt>
           <dd>ERA5 et ERA5-Land, ECMWF / Copernicus Climate Change Service</dd>
+
+          <dt>Observations</dt>
+          <dd>
+            E-OBS v33.0e (températures). <span lang="en">We acknowledge the E-OBS
+            dataset from the EU-FP6 project UERRA (<a href="https://www.uerra.eu">https://www.uerra.eu</a>)
+            and the Copernicus Climate Change Service, and the data providers in the
+            ECA&amp;D project (<a href="https://www.ecad.eu">https://www.ecad.eu</a>).</span>
+            Cornes, R., G. van der Schrier, E.J.M. van den Besselaar et P.D. Jones,
+            2018&nbsp;: An Ensemble Version of the E-OBS Temperature and Precipitation
+            Datasets, <i>J. Geophys. Res. Atmos.</i>, 123,
+            <a href="https://doi.org/10.1029/2017JD028200">doi:10.1029/2017JD028200</a>.
+            Données réservées à un usage non commercial (recherche et
+            enseignement)&nbsp;: ce site est gratuit et non commercial.
+          </dd>
 
           <dt>Simulation climatique</dt>
           <dd>

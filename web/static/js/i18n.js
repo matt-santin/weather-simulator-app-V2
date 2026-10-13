@@ -169,7 +169,7 @@ export const texts = {
     legend: (years) => `Normales ${years}`,
     method: (years, window) =>
       `Normales ${years} : pour chaque date, moyenne des 30 années sur ${window} jours ` +
-      "centrés, au même lieu, d'après les réanalyses ERA5-Land et ERA5.",
+      "centrés, au même lieu, d'après E-OBS (températures) et la réanalyse ERA5.",
   },
 
   // The climate diagram, under the chart. Its window is said with its source,
@@ -302,9 +302,10 @@ export const texts = {
     source: (simulation, isobars) =>
       "Valeurs journalières sur les mailles terrestres de 0,25° (environ 28 km) : " +
       "températures maximale et minimale, cumul de précipitations, nébulosité moyenne. " +
-      `1970-2025 : réanalyse ERA5. 2027-2100 : CORDEX ${simulation.domain} ` +
+      "1970-2025 : réanalyse ERA5, températures E-OBS (ERA5 là où il manque). " +
+      `2027-2100 : CORDEX ${simulation.domain} ` +
       `(${simulation.driving} / ${simulation.regional}) corrigé ` +
-      "contre ERA5. Un jour de pluie compte au moins 1 mm (DRIAS, Météo-France). " +
+      "contre ces mêmes données. Un jour de pluie compte au moins 1 mm (DRIAS, Météo-France). " +
       (isobars
         ? "Isobares : pression au niveau de la mer, une ligne tous les 5 hPa, sur une " +
           "grille de 0,5°, lissée. "
@@ -385,9 +386,9 @@ export const texts = {
     degrees: (value) => `${value}°`,
     steps: (temperatures, rest) => `${temperatures} (températures), ${rest}`,
     observed:
-      "Les journées passées viennent des réanalyses ERA5 et ERA5-Land (températures), " +
-      "non d'un modèle climatique.",
-    noGrid: "Aucune journée simulée : ces journées viennent des réanalyses ERA5 et ERA5-Land.",
+      "Les journées passées viennent d'observations (E-OBS, températures) et de la " +
+      "réanalyse ERA5, non d'un modèle climatique.",
+    noGrid: "Aucune journée simulée : ces journées viennent d'E-OBS (températures) et de la réanalyse ERA5.",
   },
 
   // What a screen showing simulated days has to say, which is CLAUDE.md rule 1.

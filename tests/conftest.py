@@ -10,6 +10,10 @@ Beside it, the 0.1 deg grid of the temperatures, 11 x 11 cells over the same
 area, holding the same index plus FINE_OFFSET steps, so that a value also tells
 which grid was read. Its south-east corner (south of 45.15, east of 5.85) has
 no cell: the coarse cell there is served alone.
+
+The temperatures come from E-OBS, except at EOBS_FALLBACK (0.25 deg, the
+south-east corner) and EOBS_FALLBACK010 (0.1 deg, at 45.5 N 5.5 E), served
+from ERA5 and ERA5-Land.
 """
 
 from __future__ import annotations
@@ -45,6 +49,13 @@ SIMULATION = {
     "scenario": "RCP 4.5", "provider": "Copernicus Climate Data Store",
     "calibration_start": "1970-01-01", "calibration_end": "2005-12-31",
 }
+# What src.store.build writes on every array (attribute reference).
+EOBS = {"name": "E-OBS", "version": "v33.0e"}
+REFERENCE = {"era5": EOBS | {"fallback": "ERA5"}, "era5land": EOBS | {"fallback": "ERA5-Land"}}
+REFERENCE |= {"cordex": REFERENCE["era5"], "cordex010": REFERENCE["era5land"]}
+ERA5 = {"name": "ERA5", "version": "", "fallback": ""}
+EOBS_FALLBACK = (4, 4)
+EOBS_FALLBACK010 = (5, 5)
 
 
 def fill(dtype: str) -> int:
@@ -66,6 +77,9 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     domain = np.ones((5, 5), dtype="uint8")
     domain[0, 0] = 0
     root.create_array("domain", data=domain)
+    eobs = domain.copy()
+    eobs[EOBS_FALLBACK] = 0
+    root.create_array("eobs", data=eobs)
     for source, (start, end) in SOURCES.items():
         group = root.create_group(source)
         n = (end - start).days + 1
@@ -79,7 +93,8 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
             if source == "cordex" and name == "pr":
                 data[(GAP - start).days] = fill(dtype)
             arr = group.create_array(name, data=data, chunks=(n, 5, 5))
-            arr.attrs.update({"scale_factor": step, "_FillValue": fill(dtype), "built": "2026-09-30 22:00"})
+            arr.attrs.update({"scale_factor": step, "_FillValue": fill(dtype), "built": "2026-09-30 22:00",
+                              "reference": REFERENCE[source] if name.startswith("tas") else ERA5})
             if source == "cordex":
                 arr.attrs["simulation"] = SIMULATION
 
@@ -88,6 +103,9 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     domain010 = np.ones((LATITUDE010.size, LONGITUDE010.size), dtype="uint8")
     domain010[np.ix_(LATITUDE010 < 45.15, LONGITUDE010 > 5.85)] = 0
     root.create_array("domain010", data=domain010)
+    eobs010 = domain010.copy()
+    eobs010[EOBS_FALLBACK010] = 0
+    root.create_array("eobs010", data=eobs010)
     shape = (LATITUDE010.size, LONGITUDE010.size)
     for source, (start, end) in SOURCES.items():
         group = root.create_group(FINE[source])
@@ -99,7 +117,8 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
         for name in ("tasmax", "tasmin", "tas"):
             data = np.where(domain010[None].astype(bool), index, fill("int16")).astype("int16")
             arr = group.create_array(name, data=data, chunks=(n, *shape))
-            arr.attrs.update({"scale_factor": 0.01, "_FillValue": fill("int16"), "built": "2026-10-02 12:00"})
+            arr.attrs.update({"scale_factor": 0.01, "_FillValue": fill("int16"), "built": "2026-10-02 12:00",
+                              "reference": REFERENCE[FINE[source]]})
             if source == "cordex":
                 arr.attrs["simulation"] = SIMULATION
     return path

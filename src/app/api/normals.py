@@ -1,7 +1,8 @@
 """Seasonal normals at a place: a 30-year climate, day by day.
 
 Read at the cells of the search (temperatures at 0.1 deg where there is a cell,
-precipitation at 0.25 deg), from ERA5-Land and ERA5, whatever the period shown:
+precipitation at 0.25 deg), from the era5land and era5 groups (temperatures from
+E-OBS where the store says so, src.store.build), whatever the period shown:
 the normal of a simulated summer is the one of the observed climate.
 
 Three reference periods, the 30-year normals the store holds whole (it starts

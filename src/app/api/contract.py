@@ -79,7 +79,7 @@ class Grid(BaseModel):
 
     model: str = Field(description="Global and regional models, scenario")
     reference: str = Field(description="What the correction was calibrated against")
-    calibration_start: date = Field(description="Correction calibrated against ERA5 from")
+    calibration_start: date = Field(description="Correction calibrated from")
     calibration_end: date
     projection_start: date = Field(description="Simulated days served from")
     projection_end: date

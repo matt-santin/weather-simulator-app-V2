@@ -9,8 +9,7 @@ Two sources, each serving one period:
 would show a fictional weather for a year the visitor remembers.
 
 Two grids. Everything at 0.25 deg; the temperatures also at 0.1 deg, over
-land (era5land and cordex010, corrected against ERA5-Land), which keeps the
-relief the coarse grid smooths. A place takes its temperatures from the
+land (era5land and cordex010), which keeps the relief the coarse grid smooths. A place takes its temperatures from the
 nearest 0.1 deg cell if one lies within FINE_RADIUS (99.9 % of the coarse
 cells that are mostly land have one; small islands and the sea do not), and
 from its 0.25 deg cell otherwise. Without the 0.1 deg arrays, the store serves
@@ -19,6 +18,11 @@ from its 0.25 deg cell otherwise. Without the 0.1 deg arrays, the store serves
 The simulation is named by the store, not by this code: every cordex and
 cordex010 array carries the description of its run (attribute `simulation`,
 written by src.store.build), and they must all carry the same one.
+
+So are the datasets: every array says what it holds, or was calibrated
+against (attribute `reference`: ERA5, ERA5-Land, or E-OBS with its fallback).
+Where the temperatures come from E-OBS, the masks `eobs` and `eobs010` tell,
+cell by cell, E-OBS (1) from its fallback (0).
 
 zarr is read directly rather than through xarray: the server needs integer
 chunks and three attributes, and importing xarray and pandas would double its
@@ -109,6 +113,15 @@ class Simulation:
 
 
 @dataclass(frozen=True)
+class Reference:
+    """The dataset of an array, as src.store.build.reference describes it."""
+
+    name: str
+    version: str
+    fallback: str
+
+
+@dataclass(frozen=True)
 class Cell:
     """Where a place is read: its 0.25 deg cell, and its 0.1 deg one, if any."""
 
@@ -137,6 +150,12 @@ class Store:
                 self._open(root, path, FINE[period.source], TEMPERATURES, period)
         self.built = max(a.attrs["built"] for g in self.arrays.values() for a in g.values())
         self.simulation = self._simulation(path)
+        self.references = self._references(path)
+        self.masks = {fine: root[key][:].astype(bool) for fine, key in ((False, "eobs"), (True, "eobs010"))
+                      if key in root}
+        for (source, name), ref in self.references.items():
+            if ref.fallback and (source in FINE.values()) not in self.masks:
+                raise RuntimeError(f"{path}: {source}/{name} vient de {ref.name}, sans masque des mailles")
 
     def _open(self, root, path, source, names, period: Period) -> None:
         group = root[source]
@@ -172,6 +191,29 @@ class Store:
             raise RuntimeError(f"{path}: simulations differentes ({', '.join(differ)} contre "
                                f"{next(iter(found))})")
         return Simulation.read(first)
+
+    def _references(self, path) -> dict[tuple[str, str], Reference]:
+        """The dataset of each array; the temperatures of a group must share one."""
+        out = {}
+        for source, arrays in self.arrays.items():
+            for name, arr in arrays.items():
+                if "reference" not in arr.attrs:
+                    raise RuntimeError(f"{path}: {source}/{name} ne dit pas de quelles donnees il vient")
+                out[source, name] = Reference(**arr.attrs["reference"])
+            if len({out[source, n] for n in TEMPERATURES if n in arrays}) > 1:
+                raise RuntimeError(f"{path}: {source}, temperatures de sources differentes")
+        return out
+
+    def datasets(self, source: str, cell: Cell) -> str:
+        """The datasets a day of ``source`` is read from at ``cell``:
+        "E-OBS (températures), ERA5", or "ERA5" when one serves everything."""
+        fine = cell.fine is not None
+        ref = self.references[FINE[source] if fine else source, "tasmax"]
+        temperatures = ref.name
+        if ref.fallback and not self.masks[fine][cell.fine if fine else cell.coarse]:
+            temperatures = ref.fallback
+        rest = self.references[source, "pr"].name
+        return rest if temperatures == rest else f"{temperatures} (températures), {rest}"
 
     def cell(self, latitude: float, longitude: float) -> Cell | None:
         """Where to read a place, or None outside the domain."""

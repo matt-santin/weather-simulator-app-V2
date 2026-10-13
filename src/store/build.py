@@ -1,19 +1,28 @@
 """Serving store: corrected CORDEX rewritten as long series per point, in Zarr.
 
-    WSA_MODEL=mpi python -m src.store.build cordex tasmax [tasmin ...]
-    python -m src.store.build era5 tasmax [tasmin ...]
-    WSA_MODEL=mpi python -m src.store.build cordex010 tasmax tasmin tas
-    python -m src.store.build era5land tasmax tasmin tas
+    WSA_MODEL=mpi WSA_REF=eobs python -m src.store.build cordex tasmax [tasmin ...]
+    WSA_MODEL=mpi WSA_REF=eobs python -m src.store.build era5 tasmax [tasmin ...]
+    WSA_MODEL=mpi WSA_REF=eobs python -m src.store.build cordex010 tasmax tasmin tas
+    WSA_MODEL=mpi WSA_REF=eobs python -m src.store.build era5land tasmax tasmin tas
+    WSA_MODEL=mpi WSA_REF=eobs python -m src.store.build reference
 
 Run from the repo root, with the external drive plugged in. WSA_MODEL picks the
-CORDEX run (src.correction.models). The yearly files stay the reference, on
-two grids:
+CORDEX run (src.correction.models), WSA_REF=eobs the temperatures calibrated on
+E-OBS (src.correction.eobs_ref; without it, on ERA5-Land and ERA5). The yearly
+files stay the reference, on two grids:
 
     cordex     corrected CORDEX 1970-2100, 0.25 deg (src.correction.qdm)
-    era5       daily ERA5 1970-2025, 0.25 deg (src.download.era5)
-    cordex010  CORDEX corrected against ERA5-Land, 1970-2100, 0.1 deg, land,
-               temperatures only (src.correction.land)
-    era5land   daily ERA5-Land 1970-2025, 0.1 deg (src.download.era5land)
+    era5       daily ERA5 1970-2025, 0.25 deg (src.download.era5); with
+               WSA_REF=eobs, the temperatures from E-OBS (ERA5 where it lacks)
+    cordex010  corrected CORDEX, 1970-2100, 0.1 deg, land, temperatures only
+               (src.correction.land)
+    era5land   daily ERA5-Land 1970-2025, 0.1 deg (src.download.era5land); with
+               WSA_REF=eobs, E-OBS (ERA5-Land where it lacks)
+
+The group names stay those of ERA5 and ERA5-Land whatever the reference: the
+site reads which dataset an array holds, or was calibrated against, in its
+attribute `reference` ({"name", "version", "fallback"}). `reference` alone
+writes it on arrays that lack it (built before it existed: ERA5).
 
 The store is a copy that can be deleted and rebuilt at any time. ERA5 and
 ERA5-Land are stored under the CORDEX names and units, and masked to the cells
@@ -59,12 +68,11 @@ import zarr
 from zarr.codecs import BloscCodec
 from zarr.codecs.numcodecs import Delta
 
-from src.config import DATA
+from src.config import ARCHIVE, DATA
 from src.correction import land
 from src.correction.models import MODEL
-from src.correction.qdm import ERA5_DAILY
+from src.correction.qdm import BASE, EOBS_REF, ERA5_DAILY, TEMPS, YEARS
 from src.correction.qdm import OUT as CORRECTED
-from src.correction.qdm import YEARS
 from src.correction.remap import yearly
 
 STORE = DATA / "serve" / "point.zarr"
@@ -72,6 +80,22 @@ CHUNK = 2   # cells per chunk, in latitude and longitude
 SHARD = 20  # cells per shard, idem
 BAND = 2 * SHARD  # latitudes read at a time
 LAND_FIELD = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin"}  # ERA5-Land field
+EOBS = {"name": "E-OBS", "version": "v33.0e"}
+
+
+def eobs_file(fine: bool, name: str, year: int):
+    """E-OBS temperature on a site grid, in K (src.correction.eobs_ref)."""
+    return ARCHIVE / "eobs" / ("ref_010" if fine else "ref_025") / f"{name}_ref_day_{year}0101-{year}1231.nc"
+
+
+def eobs(name: str) -> bool:
+    return EOBS_REF and name in TEMPS
+
+
+def reference(fine: bool, name: str) -> dict[str, str]:
+    """What an array holds (ERA5, ERA5-Land) or was calibrated against (CORDEX)."""
+    base = {"name": "ERA5-Land" if fine else "ERA5", "version": "", "fallback": ""}
+    return EOBS | {"fallback": base["name"]} if eobs(name) else base
 
 
 @dataclass(frozen=True)
@@ -132,15 +156,19 @@ class Source:
 
 
 SOURCES = {
-    "cordex": Source(YEARS, lambda n, y: CORRECTED / yearly(n, y),
+    # Under WSA_REF=eobs, CORRECTED holds the temperatures only; the rest stays in BASE.
+    "cordex": Source(YEARS, lambda n, y: (CORRECTED if n in TEMPS else BASE) / yearly(n, y),
                      lambda n: n, lambda n: VARS[n].convert, simulated=True),
     "era5": Source(range(1970, 2026),
-                   lambda n, y: ERA5_DAILY / f"{VARS[n].era5}_ERA5_day_{y}0101-{y}1231.nc",
-                   lambda n: VARS[n].era5, lambda n: VARS[n].from_era5),
+                   lambda n, y: eobs_file(False, n, y) if eobs(n)
+                   else ERA5_DAILY / f"{VARS[n].era5}_ERA5_day_{y}0101-{y}1231.nc",
+                   lambda n: n if eobs(n) else VARS[n].era5,
+                   lambda n: kelvin if eobs(n) else VARS[n].from_era5),
     "cordex010": Source(YEARS, lambda n, y: land.OUT / yearly(n, y),
                         lambda n: n, lambda n: kelvin, fine=True, simulated=True),
-    "era5land": Source(range(1970, 2026), lambda n, y: land.land_file(LAND_FIELD[n], y),
-                       lambda n: LAND_FIELD[n], lambda n: kelvin, fine=True),
+    "era5land": Source(range(1970, 2026),
+                       lambda n, y: eobs_file(True, n, y) if eobs(n) else land.land_file(LAND_FIELD[n], y),
+                       lambda n: n if eobs(n) else LAND_FIELD[n], lambda n: kelvin, fine=True),
 }
 
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO, datefmt="%H:%M:%S")
@@ -151,34 +179,52 @@ def fill(dtype: str) -> int:
     return int(np.iinfo(dtype).min if dtype == "int16" else np.iinfo(dtype).max)
 
 
-def reference(fine: bool):
+def grid_file(fine: bool):
     """The corrected file that defines a grid: its cells with values are the domain."""
     return (land.OUT if fine else CORRECTED) / yearly("tasmax", YEARS[0])
 
 
 def domain(fine: bool = False) -> np.ndarray:
     """CORDEX domain on the grid: True where the corrected fields have values."""
-    with xr.open_dataset(reference(fine)) as ds:
+    with xr.open_dataset(grid_file(fine)) as ds:
         return np.isfinite(ds.tasmax[0].values)
 
 
 def write_domain() -> None:
     """The CORDEX domain of each grid, 1 inside: lets the server tell a covered
     place without reading a series. The 0.25 deg one through xarray, at the
-    root; the 0.1 deg one, once its files exist, as plain arrays beside it."""
-    with xr.open_dataset(reference(False)) as ds:
+    root; the 0.1 deg one, once its files exist, as plain arrays beside it.
+    With WSA_REF=eobs, the E-OBS masks too (write_eobs_mask)."""
+    with xr.open_dataset(grid_file(False)) as ds:
         lat, lon = ds.latitude.values, ds.longitude.values
     da = xr.DataArray(domain().astype("uint8"), dims=("latitude", "longitude"),
                       coords={"latitude": lat, "longitude": lon}, name="domain")
     da.to_dataset().to_zarr(STORE, mode="a", zarr_format=3, consolidated=False)
-    if not reference(True).exists():
+    if not grid_file(True).exists():
         return
-    with xr.open_dataset(reference(True)) as ds:
+    with xr.open_dataset(grid_file(True)) as ds:
         lat, lon = ds.latitude.values, ds.longitude.values
     root = zarr.open_group(STORE, mode="a")
     for key, data in (("latitude010", lat), ("longitude010", lon),
                       ("domain010", domain(True).astype("uint8"))):
         root.create_array(key, data=data, overwrite=True)
+    if EOBS_REF:
+        write_eobs_mask(root)
+
+
+def write_eobs_mask(root: zarr.Group) -> None:
+    """Where the temperatures come from E-OBS (1) or its fallback (0), on each
+    grid, inside the domain (src.correction.eobs_ref, source.nc): the site names
+    the dataset of each place."""
+    for fine, key in ((False, "eobs"), (True, "eobs010")):
+        with xr.open_dataset(eobs_file(fine, "tas", 1970).with_name("source.nc")) as ds, \
+                xr.open_dataset(grid_file(fine)) as ref:
+            if not (np.array_equal(ds.latitude.values, ref.latitude.values)
+                    and np.array_equal(ds.longitude.values, ref.longitude.values)):
+                raise ValueError(f"{key} : grille differente de CORDEX")
+            mask = (ds.source.values == 1) & domain(fine)
+        arr = root.create_array(key, data=mask.astype("uint8"), overwrite=True)
+        arr.attrs["reference"] = reference(fine, "tas")
 
 
 def grid(src: str, name: str) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray]:
@@ -186,7 +232,7 @@ def grid(src: str, name: str) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray]
     against each other and against the CORDEX grid of the same resolution."""
     s = SOURCES[src]
     days = pd.date_range(f"{s.years[0]}-01-01", f"{s.years[-1]}-12-31", freq="D")
-    with xr.open_dataset(reference(s.fine)) as ds:
+    with xr.open_dataset(grid_file(s.fine)) as ds:
         lat, lon = ds.latitude.values, ds.longitude.values
     for y in s.years:
         with xr.open_dataset(s.path(name, y)) as ds:
@@ -278,8 +324,9 @@ def build(src: str, name: str) -> None:
     days, lat, lon = grid(src, name)
     inside = domain(SOURCES[src].fine)
     arr = create(src, name, days, lat, lon)
-    log.info("%s %s : %d jours, %d x %d mailles%s", src, name, len(days), len(lat), len(lon),
-             f", {MODEL.driving} / {MODEL.regional}" if SOURCES[src].simulated else "")
+    log.info("%s %s : %d jours, %d x %d mailles%s, reference %s", src, name, len(days), len(lat), len(lon),
+             f", {MODEL.driving} / {MODEL.regional}" if SOURCES[src].simulated else "",
+             reference(SOURCES[src].fine, name)["name"])
     for i0 in range(0, len(lat), BAND):
         i1 = min(i0 + BAND, len(lat))
         arr[:, i0:i1, :] = band(src, name, i0, i1, inside)
@@ -291,12 +338,34 @@ def build(src: str, name: str) -> None:
         raise ValueError(f"{src} {name} : ecart maximal {worst:.4f}, au-dela de {step / 2}")
     if SOURCES[src].simulated:
         arr.attrs["simulation"] = MODEL.simulation()
+    arr.attrs["reference"] = reference(SOURCES[src].fine, name)
     arr.attrs["built"] = time.strftime("%Y-%m-%d %H:%M")
     log.info("%s %s : %.2f Go, ecart maximal au fichier source %.4f %s, %.0f min",
              src, name, size / 1e9, worst, VARS[name].units, (time.time() - t0) / 60)
 
 
+def label() -> None:
+    """Writes `reference` on the finished arrays that lack it: arrays built
+    before it existed, never from E-OBS."""
+    root = zarr.open_group(STORE, mode="r+")
+    for src, s in SOURCES.items():
+        if src not in root:
+            continue
+        for name in VARS:
+            if name not in root[src]:
+                continue
+            arr = root[src][name]
+            if "built" in arr.attrs and "reference" not in arr.attrs:
+                if eobs(name):
+                    raise ValueError(f"{src} {name} : sans reference, a reconstruire depuis E-OBS")
+                arr.attrs["reference"] = reference(s.fine, name)
+                log.info("%s %s : reference %s", src, name, arr.attrs["reference"]["name"])
+
+
 def main(argv: list[str]) -> int:
+    if argv == ["reference"]:
+        label()
+        return 0
     src, names = (argv[0], argv[1:]) if argv else (None, [])
     known = LAND_FIELD if src in SOURCES and SOURCES[src].fine else VARS
     unknown = [n for n in names if n not in known]
