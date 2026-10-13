@@ -23,7 +23,7 @@ import sys
 import numpy as np
 import xarray as xr
 
-from src.correction.qdm import OUT, YEARS
+from src.correction.qdm import BASE, OUT, TEMPS, YEARS
 from src.correction.remap import target as remapped
 from src.download.era5 import saturation
 
@@ -32,7 +32,8 @@ log = logging.getLogger("derive")
 
 
 def corrected(name: str, year: int) -> xr.DataArray:
-    return xr.open_dataarray(OUT / remapped(name, year).name).load()
+    """Temperatures from OUT, the rest from BASE (the same folder unless WSA_REF=eobs)."""
+    return xr.open_dataarray((OUT if name in TEMPS + ("huss",) else BASE) / remapped(name, year).name).load()
 
 
 def write(da: xr.DataArray, year: int) -> None:

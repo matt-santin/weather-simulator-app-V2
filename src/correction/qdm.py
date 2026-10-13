@@ -72,9 +72,16 @@ from src.correction.models import MODEL
 from src.correction.remap import load_weights, target as remapped
 
 TEST = os.environ.get("WSA_QDM_TEST") == "1"
-OUT = ARCHIVE / "cordex" / (f"{MODEL.out}_025_qdm" + ("_test" if TEST else ""))
-TABLES = DATA / "correction" / MODEL.tables / ("test" if TEST else "")
+# WSA_REF=eobs: temperatures against E-OBS (src.correction.eobs_ref, ERA5 where E-OBS lacks),
+# written apart; the other variables stay against ERA5, in BASE.
+EOBS_REF = os.environ.get("WSA_REF") == "eobs"
+TEMPS = ("tas", "tasmax", "tasmin")
+BASE = ARCHIVE / "cordex" / (f"{MODEL.out}_025_qdm" + ("_test" if TEST else ""))
+OUT = BASE.with_name(BASE.name + "_eobs") if EOBS_REF else BASE
+TABLES = DATA / "correction" / MODEL.tables / ("test" if TEST else "") / ("eobs" if EOBS_REF else "")
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
+EOBS_DAILY = ARCHIVE / "eobs" / "ref_025"
+REF_LABEL = "E-OBS v33.0e (ERA5 where E-OBS lacks)" if EOBS_REF else "ERA5"
 
 YEARS = range(1970, 2101)
 CAL = (1970, MODEL.hist_end)
@@ -151,10 +158,15 @@ def window(year: int) -> tuple[int, int]:
 
 
 def reference(name: str, years, cells: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """ERA5 as the CORDEX variable, (days, cells), and the month of each day."""
+    """ERA5 (or the E-OBS reference) as the CORDEX variable, (days, cells), and the month of each day."""
     v = VARS[name]
     xs, ms = [], []
     for y in years:
+        if EOBS_REF:
+            d = xr.open_dataset(EOBS_DAILY / f"{name}_ref_day_{y}0101-{y}1231.nc")[name]
+            xs.append(d.values.reshape(d.shape[0], -1)[:, cells])
+            ms.append(d.time.dt.month.values)
+            continue
         das = [xr.open_dataset(ERA5_DAILY / f"{f}_ERA5_day_{y}0101-{y}1231.nc")[f]
                for f in v.era5]
         xs.append(v.convert(*[d.values.reshape(d.shape[0], -1)[:, cells] for d in das]))
@@ -301,7 +313,7 @@ def correct(x: np.ndarray, win: np.ndarray, cal: dict[str, np.ndarray], v: Var) 
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 1 or argv[0] not in VARS or VARS[argv[0]].derived:
+    if len(argv) != 1 or argv[0] not in VARS or VARS[argv[0]].derived or (EOBS_REF and argv[0] not in TEMPS):
         print(__doc__)
         return 1
     name = argv[0]
@@ -328,7 +340,7 @@ def main(argv: list[str]) -> int:
     t0 = time.time()
     era, era_month = reference(name, range(CAL[0], CAL[1] + 1), cells)
     in_cal = (year >= CAL[0]) & (year <= CAL[1])
-    log.info("ERA5 lu en %.0f s", time.time() - t0)
+    log.info("reference lue en %.0f s", time.time() - t0)
 
     cal = []
     for m in range(1, 13):
@@ -354,7 +366,7 @@ def main(argv: list[str]) -> int:
     xr.Dataset(
         {k: (dims[a.ndim], a) for k, a in tables.items()},
         coords={"month": np.arange(1, 13), "quantile": LEVELS, "cell": cells},
-        attrs={"ref": f"ERA5 {', '.join(v.era5)}, in CORDEX units", "hist": f"CORDEX {name} remapped",
+        attrs={"ref": f"{REF_LABEL} {', '.join(v.era5)}, in CORDEX units", "hist": f"CORDEX {name} remapped",
                "kind": v.kind, "period": f"{CAL[0]}-{CAL[1]}", "grid": "ERA5 0.25 deg",
                "cell": "flat index into (latitude, longitude)",
                "latitude": lat.values, "longitude": lon.values}
@@ -376,7 +388,7 @@ def main(argv: list[str]) -> int:
         if v.cordex:
             da.attrs = {"units": "1", "long_name": f"{name}, from {' and '.join(v.cordex)}"}
         da.attrs["bias_correction"] = (
-            f"QDM {form} (Cannon 2015) against ERA5 {', '.join(v.era5)}, "
+            f"QDM {form} (Cannon 2015) against {REF_LABEL} {', '.join(v.era5)}, "
             f"{CAL[0]}-{CAL[1]}, per calendar month, {NQ} quantiles, "
             f"{WINDOW}-year sliding window"
             + (f", occurrence first (model threshold matching ERA5 days under {v.wet:g} "

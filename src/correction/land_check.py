@@ -33,6 +33,11 @@ about 43 000, as many as the 0.25 deg chain has.
    that day. Cells with E-OBS on fewer than MIN_VALID of the days are left out.
 4. A few places, at their own cell (nearest land cell of the full grid):
    January and July means over TEST, from each source.
+
+WSA_REF=eobs: checks of the correction against E-OBS (land.py in that mode):
+part 1 against the E-OBS reference (src.correction.eobs_ref), the 0.25 deg
+CORDEX is the E-OBS one, and parts 3 and 4 add the ERA5-Land correction
+("CORDEX 0,1 ancien").
 """
 
 import sys
@@ -41,17 +46,18 @@ import numpy as np
 import xarray as xr
 
 from src.config import ARCHIVE
-from src.correction.land import OUT, VARS, land_file, load_weights, remapped
+from src.correction.land import EOBS_DAILY, EOBS_REF, OUT, REF_LABEL, VARS, land_file, load_weights, remapped
 from src.correction.land import REFERENCE
 from src.correction.models import MODEL
-from src.correction.qdm import CAL, calibrate, correct
+from src.correction.qdm import CAL, OUT as OUT_025, calibrate, correct
 from src.correction.remap import yearly
 
 STRIDE = 4
 EOBS = ARCHIVE / "eobs" / "0.1deg"
 EOBS_NAME = {"tasmax": "tx", "tasmin": "tn", "tas": "tg"}
 ERA5 = {"tasmax": "mx2t", "tasmin": "mn2t", "tas": "t2m"}
-OUT_025 = ARCHIVE / "cordex" / f"{MODEL.out}_025_qdm"
+# WSA_REF=eobs: the E-OBS reference in part 1, the ERA5-Land correction beside the new one in 3 and 4.
+OLD = ARCHIVE / "cordex" / f"{MODEL.out}_010_qdm"
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
 MIN_VALID = 0.8
 ALTITUDES = [(-500, 500), (500, 1000), (1000, 1500), (1500, 5000)]
@@ -97,6 +103,13 @@ def months(years):
                            for y in years]).astype("datetime64[M]").astype(int) % 12 + 1
 
 
+def ref_file(name, year):
+    """Reference file of the correction and its field."""
+    if EOBS_REF:
+        return EOBS_DAILY / f"{name}_ref_day_{year}0101-{year}1231.nc", name
+    return land_file(REFERENCE[name], year), REFERENCE[name]
+
+
 def read(paths, field, grid, convert=lambda x: x):
     return np.concatenate([convert(grid.flat(xr.open_dataset(p)[field].values)) for p in paths])
 
@@ -117,15 +130,15 @@ def stats(x):
 def split_sample(name, grid):
     v = VARS[name]
     cal, val = range(CAL[0], SPLIT), range(SPLIT, CAL[1] + 1)
-    ref = REFERENCE[name]
-    ref_c = read([land_file(ref, y) for y in cal], ref, grid, v.convert)
-    ref_v = read([land_file(ref, y) for y in val], ref, grid, v.convert)
+    ref = ref_file(name, cal[0])[1]
+    ref_c = read([ref_file(name, y)[0] for y in cal], ref, grid, v.convert)
+    ref_v = read([ref_file(name, y)[0] for y in val], ref, grid, v.convert)
     raw_c = read([remapped(name, y) for y in cal], name, grid)
     raw_v = read([remapped(name, y) for y in val], name, grid)
     mc, mv = months(cal), months(val)
     yv = np.concatenate([np.full(365 + (y % 4 == 0), y) for y in val])
     to = celsius(name)
-    print(f"\n1. Validation croisee contre ERA5-Land : calibration {cal[0]}-{cal[-1]}, "
+    print(f"\n1. Validation croisee contre {REF_LABEL} : calibration {cal[0]}-{cal[-1]}, "
           f"test {val[0]}-{val[-1]}, "
           f"{grid.cells.size} mailles")
     print("mois | biais moyen brut / corrige | P5 brut / corrige | P95 brut / corrige | "
@@ -217,13 +230,15 @@ def against_eobs(name, grid):
     i25 = np.rint((73.0 - grid.lat[grid.i]) / 0.25).astype(int)
     j25 = np.rint((grid.lon[grid.j] + 45.0) / 0.25).astype(int)
     with_025 = (OUT_025 / yearly(name, TEST[0])).exists()
-    series = {k: [] for k in ("E-OBS", "CORDEX 0,1", "CORDEX 0,25", "ERA5-Land", "ERA5")
-              if with_025 or k != "CORDEX 0,25"}
+    series = {k: [] for k in ("E-OBS", "CORDEX 0,1", "CORDEX 0,1 ancien", "CORDEX 0,25", "ERA5-Land", "ERA5")
+              if (with_025 or k != "CORDEX 0,25") and (EOBS_REF or k != "CORDEX 0,1 ancien")}
     spread = []
     for y in TEST:
         series["E-OBS"].append(obs.year(y))
         spread.append(obs.spread(y))
         series["CORDEX 0,1"].append(to(grid.flat(xr.open_dataset(OUT / yearly(name, y))[name].values)))
+        if EOBS_REF:
+            series["CORDEX 0,1 ancien"].append(to(grid.flat(xr.open_dataset(OLD / yearly(name, y))[name].values)))
         if with_025:
             c25 = xr.open_dataset(OUT_025 / yearly(name, y))[name].values
             series["CORDEX 0,25"].append(to(c25[:, i25, j25]))
@@ -291,7 +306,7 @@ def main(argv):
     if argv[1:] == ["eobs"]:
         against_eobs(name, grid)
         return 0
-    print(f"{name} a 0,1 deg contre ERA5-Land ; valeurs en K")
+    print(f"{name} a 0,1 deg contre {REF_LABEL} ; valeurs en K")
     split_sample(name, grid)
     signal(name, grid)
     against_eobs(name, grid)

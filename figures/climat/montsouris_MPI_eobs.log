@@ -1,0 +1,48 @@
+Paris-Montsouris (48.82 N, 2.34 E), 1970-2019 ; maille 0,1° ERA5-Land et simulation 48.80 N 2.30 E, E-OBS 48.85 N 2.35 E
+Simulation : MPI-ESM1-2-HR / ICON-CLM, SSP3-7.0, corrigée contre E-OBS sur 1970-2014
+
+Écart moyen par mois (°C), source - station
+mois  Tx      E-OBS  Tx  ERA5-Land  Tx simulation  Tn      E-OBS  Tn  ERA5-Land  Tn simulation
+   1          +0.11          -0.62          -0.21          -0.21          -1.45          -0.67
+   2          +0.12          -0.60          -0.15          -0.27          -1.76          -0.62
+   3          +0.11          -1.00          -0.20          -0.39          -2.22          -0.94
+   4          +0.07          -1.42          -0.27          -0.43          -2.18          -0.93
+   5          +0.05          -1.52          -0.02          -0.36          -1.76          -0.74
+   6          +0.10          -1.58          -0.24          -0.36          -1.61          -0.92
+   7          +0.15          -1.60          -0.29          -0.39          -1.49          -1.04
+   8          +0.15          -1.43          -0.11          -0.42          -1.40          -0.92
+   9          +0.16          -1.04          +0.09          -0.43          -1.17          -0.86
+  10          +0.18          -0.56          -0.00          -0.31          -1.00          -0.82
+  11          +0.16          -0.56          -0.11          -0.29          -1.24          -0.81
+  12          +0.10          -0.70          -0.28          -0.23          -1.42          -0.80
+Année Tx : E-OBS +0.12, ERA5-Land -1.06, simulation -0.15
+Année Tn : E-OBS -0.34, ERA5-Land -1.56, simulation -0.84
+
+E-OBS jour par jour, Tx : corrélation 0.998, écart quadratique 0.45 °C, écart absolu > 3 °C 0.2 % des jours
+E-OBS jour par jour, Tn : corrélation 0.996, écart quadratique 0.60 °C, écart absolu > 3 °C 0.1 % des jours
+ERA5-Land jour par jour, Tx : corrélation 0.987, écart quadratique 1.67 °C, écart absolu > 3 °C 6.0 % des jours
+ERA5-Land jour par jour, Tn : corrélation 0.972, écart quadratique 2.09 °C, écart absolu > 3 °C 14.0 % des jours
+
+Tx d'été (juin-août), quantiles (°C) : station / E-OBS / ERA5-Land / simulation
+   5 % :  17.4 /  17.6 /  16.6 /  17.4
+  25 % :  20.8 /  21.0 /  19.6 /  20.7
+  50 % :  23.8 /  23.9 /  22.1 /  23.6
+  75 % :  27.1 /  27.1 /  25.1 /  26.8
+  95 % :  31.9 /  32.2 /  29.9 /  31.6
+  99 % :  35.1 /  35.4 /  33.1 /  34.7
+Moyenne des 5 % de journées d'été les plus chaudes, E-OBS - station : +0.17 °C
+Moyenne des 5 % de journées d'été les plus chaudes, ERA5-Land - station : -2.17 °C
+Moyenne des 5 % de journées d'été les plus chaudes, simulation - station : -0.53 °C
+
+Tendance du Tx moyen d'été 1970-2019 (°C par décennie, moindres carrés)
+  station    +0.60
+  E-OBS      +0.58
+  ERA5-Land  +0.57
+  simulation +0.32
+  station 1900-1969 : -0.10
+
+Tx maximal de l'année, moyenne (°C) : station 34.5, E-OBS 34.6, ERA5-Land 32.2, simulation 34.6
+E-OBS - station, même année : moyenne +0.16, de -0.4 à +1.3 °C
+ERA5-Land - station, même année : moyenne -2.23, de -4.4 à -0.1 °C
+  2003 : station 39.5, E-OBS 40.4, ERA5-Land 37.9
+  2019 : station 42.6, E-OBS 42.6, ERA5-Land 39.6

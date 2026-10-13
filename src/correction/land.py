@@ -38,6 +38,7 @@ exchanged, as derive.py does at 0.25 deg.
 """
 
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -56,8 +57,12 @@ LAND = ARCHIVE / "era5land" / "daily"
 GRID = LAND / "t2m_ERA5-Land_day_19700101-19701231.nc"
 WEIGHTS = DATA / "correction" / "poids_eur11_era5land.npz"
 REMAPPED = ARCHIVE / "cordex" / f"{MODEL.out}_010"
-OUT = ARCHIVE / "cordex" / f"{MODEL.out}_010_qdm"
-WORK = DATA / "correction" / MODEL.tables / "land"
+# WSA_REF=eobs: against E-OBS (src.correction.eobs_ref, ERA5-Land where E-OBS lacks), written apart.
+EOBS_REF = os.environ.get("WSA_REF") == "eobs"
+OUT = ARCHIVE / "cordex" / (f"{MODEL.out}_010_qdm" + ("_eobs" if EOBS_REF else ""))
+WORK = DATA / "correction" / MODEL.tables / ("land_eobs" if EOBS_REF else "land")
+EOBS_DAILY = ARCHIVE / "eobs" / "ref_010"
+REF_LABEL = "E-OBS v33.0e (ERA5-Land where E-OBS lacks)" if EOBS_REF else "ERA5-Land"
 BATCH = 40_000
 
 REFERENCE = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin"}
@@ -211,11 +216,14 @@ def qdm(name: str) -> None:
     t0 = time.time()
     ref_year = year[in_cal]
     for y in range(CAL[0], CAL[1] + 1):
-        x = xr.open_dataset(land_file(REFERENCE[name], y))[REFERENCE[name]].values
+        if EOBS_REF:
+            x = xr.open_dataset(EOBS_DAILY / f"{name}_ref_day_{y}0101-{y}1231.nc")[name].values
+        else:
+            x = xr.open_dataset(land_file(REFERENCE[name], y))[REFERENCE[name]].values
         x = v.convert(x.reshape(x.shape[0], -1))
         for b, cb in enumerate(batches):
             refs[b][ref_year == y] = x[:, cb]
-    log.info("ERA5-Land lu en %.0f s", time.time() - t0)
+    log.info("reference lue en %.0f s", time.time() - t0)
 
     tables = {k: np.full((12, NQ, cells.size), np.nan, "float32") for k in ("ref", "hist")}
     for b, cb in enumerate(batches):
@@ -241,7 +249,7 @@ def qdm(name: str) -> None:
     xr.Dataset(
         {k: (("month", "quantile", "cell"), a) for k, a in tables.items()},
         coords={"month": np.arange(1, 13), "quantile": LEVELS, "cell": cells},
-        attrs={"ref": f"ERA5-Land {REFERENCE[name]}, in CORDEX units",
+        attrs={"ref": f"{REF_LABEL} {REFERENCE[name]}, in CORDEX units",
                "hist": f"CORDEX {name} remapped to 0.1 deg", "kind": v.kind,
                "period": f"{CAL[0]}-{CAL[1]}", "grid": "ERA5-Land 0.1 deg, land",
                "cell": "flat index into (latitude, longitude)",
@@ -255,7 +263,7 @@ def qdm(name: str) -> None:
             out[:, cb] = series[b][year == y]
         da = src.copy(data=out.reshape(src.shape))
         da.attrs["bias_correction"] = (
-            f"QDM additive (Cannon 2015) against ERA5-Land {REFERENCE[name]}, "
+            f"QDM additive (Cannon 2015) against {REF_LABEL} {REFERENCE[name]}, "
             f"{CAL[0]}-{CAL[1]}, per calendar month, {NQ} quantiles, {WINDOW}-year sliding window"
             + (f", clipped to {v.bounds}" if v.bounds != (None, None) else ""))
         path = OUT / yearly(name, y)
