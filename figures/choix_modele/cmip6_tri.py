@@ -5,7 +5,8 @@
 
 telecharger : tas et tasmax mensuels, historical puis ssp370 (ou evaluation pour les simulations pilotées
 par ERA5), et le masque sftlf, de chaque simulation de RUNS, depuis ESGF (catalogue STAC, SHA256 et
-reprise de src.download.cordex6). Fichiers dans data/cordex/mensuel/<modèle global>_<régional>_<institut>/.
+reprise de src.download.cordex6). Fichiers dans data/cordex/mensuel/<modèle global>_<régional>_<institut>/,
+archivés sur le LaCie le 15/10/2026 : analyser les y lit quand ils ne sont plus sur le Mac.
 
 analyser : mailles dont le centre est en France métropolitaine et terrestres (sftlf ≥ 50 %), moyenne
 simple ; année et été (JJA) pondérés par le nombre de jours des mois ; écarts à 1976-2005 ; niveaux de
@@ -18,6 +19,7 @@ from pathlib import Path as P
 ROOT = P(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 OUT = ROOT / "data" / "cordex" / "mensuel"
+SUR_LACIE = P("/Volumes/LaCie/weather-simulator-app-V2/data/cordex/mensuel")  # après archivage (src.archive --free)
 VARS = ["tas", "tasmax"]
 # (modèle global, membre, modèle régional, institut, expériences)
 RUNS = [
@@ -113,6 +115,8 @@ def analyser():
     cols = {}
     for run in RUNS:
         dest = OUT / nom(run)
+        if not any(dest.glob("*.nc")):
+            dest = SUR_LACIE / nom(run)
         an, jja, n = serie(dest, "tas")
         _, txj, _ = serie(dest, "tasmax")
         k = f"{run[0]} / {run[2].split('-202')[0]}"

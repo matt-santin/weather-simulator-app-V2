@@ -158,7 +158,7 @@ Au 02/10/2026, tout est sur le LaCie, vérifié (MD5) et listé dans `data/archi
 - E-OBS v33.0e : 0,25° (dont `pp`, pression au niveau de la mer) et 0,1°, sur le LaCie seulement ;
 - stockage de service : 71 Go, aussi sur le Mac, lu par le site local.
 
-Restent seulement sur le Mac : `data/era5/_test` (janvier 1970, tests) et `data/cordex/mensuel` (9,7 Go : `tas` et `tasmax` mensuels des simulations CORDEX-CMIP6 comparées pour le choix du modèle, `figures/choix_modele/cmip6_tri.py`).
+Reste seulement sur le Mac : `data/era5/_test` (janvier 1970, tests). `data/cordex/mensuel` (9,7 Go : `tas` et `tasmax` mensuels des simulations CORDEX-CMIP6 comparées pour le choix du modèle, `figures/choix_modele/cmip6_tri.py`) est sur le LaCie seulement depuis le 15/10/2026.
 
 # Déploiement
 
