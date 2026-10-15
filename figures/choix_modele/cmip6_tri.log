@@ -1,0 +1,24 @@
+CNRM-ESM2-1 / ICON-CLM: 3628 mailles, 1950-2100
+MPI-ESM1-2-HR / ICON-CLM: 3628 mailles, 1950-2100
+MIROC6 / ICON-CLM: 3628 mailles, 1950-2100
+MIROC6 / CCLM6-0-1: 3639 mailles, 1971-2099
+EC-Earth3-Veg / CCLM6-0-1: 3639 mailles, 1971-2099
+CMCC-CM2-SR5 / CNRM-ALADIN64E1: 3505 mailles, 1971-2100
+NorESM2-MM / CNRM-ALADIN64E1: 3505 mailles, 1971-2100
+ERA5 / ICON-CLM: 3628 mailles, 1971-2024
+ERA5 / CNRM-ALADIN64E1: 3505 mailles, 1971-2022
+
+Écarts à 1976-2005, France (K). AN : température annuelle ; Tx : Tx d'été. Niveaux : année centrale de la moyenne glissante 20 ans (TRACC : 2030, 2050, 2100).
+                                tend 2006-25  AN 96-25  AN 16-25  AN 41-60  AN 81-00  Tx 96-25  Tx 41-60  Tx 81-00  +1.4 K  +2.1 K  +3.4 K  max 20 ans
+simulation                                                                                                                                            
+CNRM-ESM2-1 / ICON-CLM                  0.06      0.75      0.85      1.43      3.20      0.80      1.45      3.56  2050.0  2071.0     NaN        3.22
+MPI-ESM1-2-HR / ICON-CLM                0.20      0.55      0.85      1.40      2.73      1.02      2.53      3.69  2050.0  2076.0     NaN        2.73
+MIROC6 / ICON-CLM                      -0.07      0.69      0.86      1.72      3.04      0.87      2.52      4.44  2039.0  2061.0     NaN        3.04
+MIROC6 / CCLM6-0-1                     -0.08      0.62      0.80      1.48       NaN      0.70      1.81       NaN  2048.0  2067.0     NaN        2.65
+EC-Earth3-Veg / CCLM6-0-1               0.11      0.64      0.84      1.50       NaN      0.79      1.92       NaN  2044.0  2059.0  2080.0        4.07
+CMCC-CM2-SR5 / CNRM-ALADIN64E1          0.01      0.57      0.55      2.13      4.37      1.26      3.10      6.52  2037.0  2051.0  2076.0        4.37
+NorESM2-MM / CNRM-ALADIN64E1            0.31      0.41      0.62      1.34      2.82      0.33      1.86      4.18  2054.0  2067.0     NaN        2.82
+ERA5 / ICON-CLM                          NaN       NaN       NaN       NaN       NaN       NaN       NaN       NaN     NaN     NaN     NaN        0.79
+ERA5 / CNRM-ALADIN64E1                   NaN       NaN       NaN       NaN       NaN       NaN       NaN       NaN     NaN     NaN     NaN        0.55
+ERA5-Land                               0.88      0.76      1.43       NaN       NaN      1.07       NaN       NaN     NaN     NaN     NaN        0.96
+EC-EARTH / RCA4 (RCP4.5)                0.51      0.60      0.98      1.57      2.23      0.68      2.64      3.10  2046.0  2079.0     NaN        2.28

@@ -9,8 +9,8 @@ métropolitaine (contour Natural Earth, comme france_agregats.py) et terrestres 
 moyenne simple (mailles quasi égales). ERA5-Land : poids cos(latitude). Villes : maille terrestre
 la plus proche dans chaque source (altitudes différentes : l'écart moyen n'a de sens qu'en tendance).
 
-Écrit figures/climat/cmip6_test.csv (indicateurs) et affiche le tableau.
-    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/climat/cmip6_test.py
+Écrit figures/choix_modele/cmip6_test.csv (indicateurs) et affiche le tableau.
+    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/choix_modele/cmip6_test.py
 """
 import glob
 import sys
@@ -23,13 +23,14 @@ import xarray as xr
 from matplotlib.path import Path
 
 sys.path.insert(0, str(P(__file__).resolve().parent))
+sys.path.insert(0, str(P(__file__).resolve().parents[1] / "climat"))  # france_agregats
 from france_agregats import BOX, Z, poids, polys  # noqa: E402
 
 warnings.filterwarnings("ignore")
 Y0, Y1 = 2006, 2025
 ICON = P("data/cordex/eur12_cnrm-esm2-1_icon-clm")
 RCA4 = P("/Volumes/LaCie/weather-simulator-app-V2/data/cordex/eur11")
-OUT = P("figures/climat/cmip6_test.csv")
+OUT = P("figures/choix_modele/cmip6_test.csv")
 VARS = ["tasmax", "tasmin", "tas"]
 VILLES = {"Paris": (48.857, 2.352), "Lyon": (45.760, 4.840), "Bordeaux": (44.838, -0.579),
           "Toulouse": (43.604, 1.444), "Grenoble": (45.179, 5.715), "Madrid": (40.417, -3.704)}

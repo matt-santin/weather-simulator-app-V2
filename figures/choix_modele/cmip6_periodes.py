@@ -5,8 +5,8 @@ Même lecture que cmip6_test.py (France métropolitaine, villes), sur 1976-2025.
 et tas annuelle. C'est le test fait sur RCA4 corrigé le 2 octobre 2026 (Tx JJA : ERA5-Land
 +1,0 à +1,5 K, CORDEX corrigé +0,4 à +0,8 K).
 
-Écrit figures/climat/cmip6_periodes.csv et affiche le tableau.
-    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/climat/cmip6_periodes.py
+Écrit figures/choix_modele/cmip6_periodes.csv et affiche le tableau.
+    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/choix_modele/cmip6_periodes.py
 """
 import sys
 import warnings
@@ -20,7 +20,7 @@ import cmip6_test as T  # noqa: E402
 warnings.filterwarnings("ignore")
 T.Y0, T.Y1 = 1976, 2025
 AVANT, APRES = (1976, 2005), (1996, 2025)
-OUT = P("figures/climat/cmip6_periodes.csv")
+OUT = P("figures/choix_modele/cmip6_periodes.csv")
 
 
 def ecarts(s, var):

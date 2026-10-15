@@ -17,11 +17,11 @@ RCA4 brut est trop froid sur la France (Tx d'été 2006-2025 : −1,8 K contre E
 
 ## 2. Candidats
 
-Sept simulations EURO-CORDEX-CMIP6 SSP3-7.0 disponibles sur ESGF ont été comparées en moyennes mensuelles sur la France (`figures/climat/cmip6_tri.py`, `cmip6_tri.log`). Deux sont retenues pour la comparaison finale, pilotées par les deux modèles globaux les mieux évalués (section 4) et descendues par le même modèle régional : CNRM-ESM2-1 / ICON-CLM (CLMcom-BTU) et MPI-ESM1-2-HR / ICON-CLM (CLMcom-DWD).
+Sept simulations EURO-CORDEX-CMIP6 SSP3-7.0 disponibles sur ESGF ont été comparées en moyennes mensuelles sur la France (`figures/choix_modele/cmip6_tri.py`, `cmip6_tri.log`). Deux sont retenues pour la comparaison finale, pilotées par les deux modèles globaux les mieux évalués (section 4) et descendues par le même modèle régional : CNRM-ESM2-1 / ICON-CLM (CLMcom-BTU) et MPI-ESM1-2-HR / ICON-CLM (CLMcom-DWD).
 
-![Choix du modèle](../figures/climat/cmip6_choix.png)
+![Choix du modèle](../figures/choix_modele/cmip6_choix.png)
 
-`figures/climat/cmip6_choix.png` (`cmip6_choix.py`) : écarts à 1976-2005, moyennes glissantes sur 20 ans, modèles bruts.
+`figures/choix_modele/cmip6_choix.png` (`cmip6_choix.py`) : écarts à 1976-2005, moyennes glissantes sur 20 ans, modèles bruts.
 
 | France, écart à 1976-2005 (K) | ERA5-Land | RCA4 | CNRM / ICON | MPI / ICON |
 |---|---|---|---|---|

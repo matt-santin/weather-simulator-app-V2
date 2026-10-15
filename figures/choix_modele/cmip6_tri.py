@@ -1,7 +1,7 @@
 """Tri des simulations EURO-CORDEX-CMIP6 (EUR-12) en moyennes mensuelles, sur la France métropolitaine.
 
-    python3 figures/climat/cmip6_tri.py telecharger
-    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/climat/cmip6_tri.py analyser
+    python3 figures/choix_modele/cmip6_tri.py telecharger
+    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/choix_modele/cmip6_tri.py analyser
 
 telecharger : tas et tasmax mensuels, historical puis ssp370 (ou evaluation pour les simulations pilotées
 par ERA5), et le masque sftlf, de chaque simulation de RUNS, depuis ESGF (catalogue STAC, SHA256 et
@@ -9,8 +9,8 @@ reprise de src.download.cordex6). Fichiers dans data/cordex/mensuel/<modèle glo
 
 analyser : mailles dont le centre est en France métropolitaine et terrestres (sftlf ≥ 50 %), moyenne
 simple ; année et été (JJA) pondérés par le nombre de jours des mois ; écarts à 1976-2005 ; niveaux de
-la TRACC comme cmip6_futur.py. ERA5-Land et RCA4 : figures/climat/cmip6_futur.csv.
-Écrit figures/climat/cmip6_tri.csv (séries annuelles) et affiche les tableaux.
+la TRACC comme cmip6_futur.py. ERA5-Land et RCA4 : figures/choix_modele/cmip6_futur.csv.
+Écrit figures/choix_modele/cmip6_tri.csv (séries annuelles) et affiche les tableaux.
 """
 import sys
 from pathlib import Path as P
@@ -87,7 +87,7 @@ def analyser():
     import pandas as pd
     import xarray as xr
 
-    sys.path.insert(0, str(ROOT / "figures" / "climat"))
+    sys.path.insert(0, str(ROOT / "figures" / "choix_modele"))
     from cmip6_test import masque_france
     from cmip6_futur import NIVEAUX, niveau
 
@@ -119,14 +119,14 @@ def analyser():
         cols[(k, "tas_AN")], cols[(k, "tas_JJA")], cols[(k, "Tx_JJA")] = an, jja, txj
         print(f"{k}: {n} mailles, {an.index.min()}-{an.index.max()}", flush=True)
     df = pd.DataFrame(cols)
-    ref = pd.read_csv(ROOT / "figures/climat/cmip6_futur.csv", header=[0, 1], index_col=0)
+    ref = pd.read_csv(ROOT / "figures/choix_modele/cmip6_futur.csv", header=[0, 1], index_col=0)
     ref.index = ref.index.astype(int)
     anom = df - df.loc[1976:2005].mean()
     for src, k in [("era5land", "ERA5-Land"), ("rca4", "EC-EARTH / RCA4 (RCP4.5)")]:
         for ind in ["tas_AN", "tas_JJA", "Tx_JJA"]:
             anom[(k, ind)] = ref[(src, ind)]
     anom.columns = pd.MultiIndex.from_tuples(anom.columns, names=["simulation", "indicateur"])
-    anom.to_csv(ROOT / "figures/climat/cmip6_tri.csv", float_format="%.3f")
+    anom.to_csv(ROOT / "figures/choix_modele/cmip6_tri.csv", float_format="%.3f")
 
     pente = lambda s: 10 * np.polyfit(s.index, s.values, 1)[0]
     lignes = []
@@ -159,7 +159,7 @@ def tracer():
     import matplotlib.pyplot as plt
     import pandas as pd
 
-    a = pd.read_csv(ROOT / "figures/climat/cmip6_tri.csv", header=[0, 1], index_col=0)
+    a = pd.read_csv(ROOT / "figures/choix_modele/cmip6_tri.csv", header=[0, 1], index_col=0)
     a.index = a.index.astype(int)
     sims = [k for k in a.columns.get_level_values(0).unique()
             if k not in ("ERA5-Land", "EC-EARTH / RCA4 (RCP4.5)")]
@@ -218,7 +218,7 @@ def tracer():
                  "ERA5 / ... : simulations pilotées par la réanalyse ERA5 (évaluation, jusqu'en 2024).",
                  fontsize=8, color=MUTED)
         fig.tight_layout(rect=(0, 0.02, 1, 0.93))
-        fig.savefig(ROOT / "figures/climat" / fichier, dpi=130)
+        fig.savefig(ROOT / "figures/choix_modele" / fichier, dpi=130)
         print("écrit", fichier)
 
 

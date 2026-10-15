@@ -275,7 +275,7 @@ Même maille sur 1970-2005, période de calibration : `tas_islande-nord_01_violi
 
 Étendue : 6 247 mailles sur 53 573 ont, au moins un mois, un biais au P5 de plus de 10 K qui dépasse de plus de 7 K celui du P95 (seuils arbitraires). 1 393 en mer, 543 sur les côtes (`lsm` de 0,5 à 0,9), 4 311 sur terre, surtout en Russie du Nord (2 729) et en Scandinavie (1 517). Le problème est donc surtout celui de la neige sur terre.
 
-C'est le défaut le plus gênant : il touche la zone d'intérêt et l'information principale. Pour l'instant, on garde le QDM et on marque ces mailles par l'indicateur de fiabilité (section 7). Essais sur la glace de mer : `docs/notes_correction_glace.md`.
+C'est le défaut le plus gênant : il touche la zone d'intérêt et l'information principale. Pour l'instant, on garde le QDM et on marque ces mailles par l'indicateur de fiabilité (section 7). Essais sur la glace de mer : `docs/historique/notes_correction_glace.md`.
 
 ### Déserts (`pr`) : accepté
 

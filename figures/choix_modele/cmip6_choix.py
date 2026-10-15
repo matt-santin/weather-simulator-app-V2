@@ -1,8 +1,8 @@
-"""Figure du choix du modèle CORDEX-CMIP6 (docs/choix_modele_cmip6.md), à partir de figures/climat/cmip6_tri.csv.
+"""Figure du choix du modèle CORDEX-CMIP6 (docs/choix_modele_cmip6.md), à partir de figures/choix_modele/cmip6_tri.csv.
 
 Deux simulations EUR-12 SSP3-7.0 (CNRM-ESM2-1 / ICON-CLM et MPI-ESM1-2-HR / ICON-CLM) face à RCA4 (RCP4.5)
 et ERA5-Land, France métropolitaine, écarts à 1976-2005 : température annuelle en haut, Tx d'été en bas.
-    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/climat/cmip6_choix.py
+    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/choix_modele/cmip6_choix.py
 """
 from pathlib import Path as P
 

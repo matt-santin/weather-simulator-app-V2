@@ -56,7 +56,7 @@ clt_EUR-11_ICHEC-EC-EARTH_historical_r12i1p1_SMHI-RCA4_v1_day_19850101-19851231.
 
 #### Changement de modèle : CORDEX-CMIP6 (octobre 2026)
 
-Le couple EC-EARTH / RCA4 s'est révélé trop froid : 1,8 K de biais froid sur les Tx d'été en France (2006-2025, brut) et un réchauffement en retard de 15 à 20 ans sur le climat observé (`docs/resultats_rcp45.md`). Le 6/10/2026, il a été décidé de le remplacer par une simulation de la nouvelle génération EURO-CORDEX, pilotée par CMIP6 :
+Le couple EC-EARTH / RCA4 s'est révélé trop froid : 1,8 K de biais froid sur les Tx d'été en France (2006-2025, brut) et un réchauffement en retard de 15 à 20 ans sur le climat observé (`docs/historique/resultats_rcp45.md`). Le 6/10/2026, il a été décidé de le remplacer par une simulation de la nouvelle génération EURO-CORDEX, pilotée par CMIP6 :
 pilote    `MPI-ESM1-2-HR`   (CMIP6, membre r1i1p1f1)
 régional  `ICON-CLM-202407-1-1` (CLMcom-DWD)
 domaine   `EUR-12`, 0,11°, soit 12 km (même type de grille que EUR-11, pôle tourné)
@@ -158,7 +158,7 @@ Au 02/10/2026, tout est sur le LaCie, vérifié (MD5) et listé dans `data/archi
 - E-OBS v33.0e : 0,25° (dont `pp`, pression au niveau de la mer) et 0,1°, sur le LaCie seulement ;
 - stockage de service : 71 Go, aussi sur le Mac, lu par le site local.
 
-Restent seulement sur le Mac : `data/era5/_test` (janvier 1970, tests) et `data/cordex/mensuel` (9,7 Go : `tas` et `tasmax` mensuels des simulations CORDEX-CMIP6 comparées pour le choix du modèle, `figures/climat/cmip6_tri.py`).
+Restent seulement sur le Mac : `data/era5/_test` (janvier 1970, tests) et `data/cordex/mensuel` (9,7 Go : `tas` et `tasmax` mensuels des simulations CORDEX-CMIP6 comparées pour le choix du modèle, `figures/choix_modele/cmip6_tri.py`).
 
 # Déploiement
 

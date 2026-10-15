@@ -1,6 +1,6 @@
 """Futur du candidat CORDEX-CMIP6 : ICON (SSP3-7.0) face à RCA4 (RCP4.5), France métropolitaine.
 
-Mêmes définitions que docs/resultats_rcp45.md : moyennes France, écarts à 1976-2005, niveaux de la
+Mêmes définitions que docs/historique/resultats_rcp45.md : moyennes France, écarts à 1976-2005, niveaux de la
 TRACC (+1,4, +2,1, +3,4 K) atteints quand la moyenne glissante sur 20 ans (centrée, année affichée =
 année centrale, convention pandas) de la température annuelle les dépasse.
 
@@ -8,8 +8,8 @@ Sources : ICON brut (1976-2100), RCA4 brut (1976-2100, lu sur le LaCie), RCA4 co
 figures/climat/france_agregats.csv), ERA5-Land (1976-2025). Les écarts à 1976-2005 sont pris dans
 chaque source : le biais moyen s'annule, seul le réchauffement compte.
 
-Écrit figures/climat/cmip6_futur.csv (séries annuelles) et affiche les tableaux.
-    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/climat/cmip6_futur.py
+Écrit figures/choix_modele/cmip6_futur.csv (séries annuelles) et affiche les tableaux.
+    ~/Projets_data/VirtualEnv/weather_simulator_v2/bin/python figures/choix_modele/cmip6_futur.py
 """
 import sys
 import warnings
@@ -26,7 +26,7 @@ T.Y0, T.Y1 = 1976, 2100
 REF = (1976, 2005)
 NIVEAUX = [1.4, 2.1, 3.4]
 PERIODES = [(2016, 2025), (2041, 2060), (2071, 2100), (2081, 2100)]
-OUT = P("figures/climat/cmip6_futur.csv")
+OUT = P("figures/choix_modele/cmip6_futur.csv")
 
 
 def annuel(s):
