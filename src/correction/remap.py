@@ -1,7 +1,7 @@
 """Remap CORDEX daily fields onto the ERA5 0.25 deg grid.
 
     python -m src.correction.remap tas 1970-2100
-    WSA_MODEL=mpi python -m src.correction.remap tas 1970-2100
+    python -m src.correction.remap tas 1970-2100
 
 Run from the repo root, with the external drive plugged in: CORDEX is read
 from it and the remapped files are written to it, in cordex/eur11_025 (or the

@@ -1,6 +1,6 @@
 """Distribution of ERA5, raw and corrected CORDEX at one cell and month, 1970-2005.
 
-    python -m src.correction.violin tas 48.86 2.35 1 Paris
+    python -m src.validation.violin tas 48.86 2.35 1 Paris
 
 Left: both distributions as violins, the quantiles of same rank joined, which
 is what the QDM matches. Right: the bias table of that cell, the correction a
@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.correction.qdm import (CAL, LEVELS, OUT, TEST, VARS, calibrate, model, quantiles, ratio,
-                                reference, table)
+from src.correction.qdm import (CAL, LEVELS, TEST, VARS, calibrate, model, out, quantiles,
+                                ratio, reference, table)
 from src.correction.remap import target as remapped
 
 FIG = Path(__file__).resolve().parents[2] / "figures" / "correction"
@@ -50,9 +50,9 @@ def main(argv):
     # all on the same grid.
     fix, glat, glon = [], None, None
     for y in years:
-        f, glat, glon = series(OUT / remapped(name, y).name, name, lat, lon, month)
+        f, glat, glon = series(out(name) / remapped(name, y).name, name, lat, lon, month)
         fix.append(f.values)
-    grid = xr.open_dataset(OUT / remapped(name, years[0]).name)
+    grid = xr.open_dataset(out(name) / remapped(name, years[0]).name)
     flat = np.array([int(np.flatnonzero(grid.latitude.values == glat)[0]) * grid.longitude.size
                      + int(np.flatnonzero(grid.longitude.values == glon)[0])])
     cor = []

@@ -1,7 +1,7 @@
 """Temperature reference for the correction: E-OBS on the site grids, ERA5-Land or ERA5 where E-OBS lacks.
 
-    python -m src.correction.eobs_ref stats 010      pass 1: completeness, gaps, mask, map
-    python -m src.correction.eobs_ref write 010      pass 2: yearly reference files
+    python -m src.correction.reference stats 010      pass 1: completeness, gaps, mask, map
+    python -m src.correction.reference write 010      pass 2: yearly reference files
     (025 for the 0.25 deg grid)
 
 Run from the repo root, with the external drive plugged in. Decided on
@@ -18,7 +18,7 @@ needs one valid neighbour (coastal cells are kept).
 Mask, one per grid, the same for the three variables and the whole period,
 past and future: E-OBS where it has a value on at least COMPLETE of the days
 of YEARS for all three variables, outside FALLBACK_AREA (North Africa and the
-Near East: E-OBS networks broken or gone, src.correction.eobs_land), on land
+Near East: E-OBS networks broken or gone, src.validation.eobs_era5land), on land
 (at 0.25 deg, ERA5 land-sea mask >= 0.5); the fallback elsewhere. At 0.1 deg only cells with ERA5-Land (land) are written.
 The rare days without E-OBS in an E-OBS cell take the fallback plus the mean
 gap E-OBS - fallback of that cell and calendar month (pass 1).
@@ -40,7 +40,7 @@ import xarray as xr
 from matplotlib.path import Path as Polygon
 
 from src.config import ARCHIVE, DATA
-from src.correction.land import land_file
+from src.correction.qdm010 import land_file
 
 YEARS = range(1970, 2026)
 COMPLETE = 0.99

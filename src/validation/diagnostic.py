@@ -1,8 +1,8 @@
 """Diagnosis of a raw CORDEX run, before any correction.
 
-    WSA_MODEL=mpi python -m src.correction.diagnostic bias tas      0.25 deg, against ERA5
-    WSA_MODEL=mpi python -m src.correction.diagnostic land tasmax   0.1 deg, against ERA5-Land
-    WSA_MODEL=mpi python -m src.correction.diagnostic step          jump at the scenario start
+    python -m src.validation.diagnostic bias tas      0.25 deg, against ERA5
+    python -m src.validation.diagnostic land tasmax   0.1 deg, against ERA5-Land
+    python -m src.validation.diagnostic step          jump at the scenario start
 
 Run from the repo root, after src.correction.remap (and land remap for the
 0.1 deg grid), with the external drive plugged in. Output in
@@ -41,9 +41,9 @@ import numpy as np
 import xarray as xr
 
 from src.config import ARCHIVE, DATA
-from src.correction import land
+from src.correction import qdm010
 from src.correction.models import MODEL
-from src.correction.qdm import VARS, model, reference
+from src.correction.qdm import VARS, era5, model
 from src.correction.remap import load_weights, target as remapped
 
 PERIOD = (1970, MODEL.hist_end)
@@ -71,7 +71,7 @@ def grid_025(cells):
 
 
 def grid_010(cells):
-    g = xr.open_dataset(land.GRID)
+    g = xr.open_dataset(qdm010.GRID)
     lat = np.repeat(g.latitude.values, g.longitude.size)[cells]
     lon = np.tile(g.longitude.values, g.latitude.size)[cells]
     return lat, lon, np.ones(cells.size), g.latitude.values, g.longitude.values
@@ -206,28 +206,28 @@ def run_bias(name):
     _, keep = load_weights()
     cells = np.flatnonzero(keep.ravel())
     st = collect(name, cells.size, lambda y: model(name, y)[0][:, cells],
-                 lambda y: reference(name, [y], cells)[0], "025")
+                 lambda y: era5(name, [y], cells)[0], "025")
     save(name, st, cells, "025")
     lat, lon, lsm, lats, lons = grid_025(cells)
     b = bias(name, st)
     report(name, b, lat, lon, lsm >= 0.5, "025")
-    if name in land.REFERENCE:
+    if name in qdm010.REFERENCE:
         cold_tail(b, lat, lsm)
     draw(name, b, cells, lats, lons, "025")
 
 
 def run_land(name):
-    v = land.VARS[name]
-    _, keep = land.load_weights()
+    v = qdm010.VARS[name]
+    _, keep = qdm010.load_weights()
     cells = np.flatnonzero(keep.ravel())
 
     def read_model(y):
-        x = xr.open_dataset(land.remapped(name, y))[name].values
+        x = xr.open_dataset(qdm010.remapped(name, y))[name].values
         return x.reshape(x.shape[0], -1)[:, cells]
 
     def read_ref(y):
-        f = land.REFERENCE[name]
-        x = xr.open_dataset(land.land_file(f, y))[f].values
+        f = qdm010.REFERENCE[name]
+        x = xr.open_dataset(qdm010.land_file(f, y))[f].values
         return v.convert(x.reshape(x.shape[0], -1)[:, cells])
 
     st = collect(name, cells.size, read_model, read_ref, "land")
@@ -302,7 +302,7 @@ def main(argv: list[str]) -> int:
     if len(argv) == 2 and argv[0] == "bias" and argv[1] in NAMES:
         run_bias(argv[1])
         return 0
-    if len(argv) == 2 and argv[0] == "land" and argv[1] in land.REFERENCE:
+    if len(argv) == 2 and argv[0] == "land" and argv[1] in qdm010.REFERENCE:
         run_land(argv[1])
         return 0
     print(__doc__)

@@ -5,7 +5,8 @@
     python -m src.correction.derive rsus     corrected rsds x corrected albedo
 
 Run from the repo root, with the external drive plugged in, once the fields
-they need are corrected.
+they need are corrected. Each field is read from and written to its folder,
+qdm.out (the temperatures apart, corrected against E-OBS).
 
 - tn_tx: tasmax and tasmin are corrected apart, so a few days may end with
   tasmin > tasmax; the two values are swapped there. Running it again changes
@@ -13,6 +14,8 @@ they need are corrected.
 - huss: from hurs, tas and ps, as ERA5 huss is built from d2m and sp, with the
   IFS saturation vapour pressure over water. The CORDEX fields are daily
   means where ERA5 derives huss hour by hour: a small gap is expected.
+  tas is the one corrected against E-OBS; the huss files on the drive were
+  built before 2026-10-13, from tas corrected against ERA5.
 - rsus: the albedo rsus / rsds is corrected (variable alb), and rsus is
   rebuilt from it, so that it never exceeds rsds.
 """
@@ -23,7 +26,7 @@ import sys
 import numpy as np
 import xarray as xr
 
-from src.correction.qdm import BASE, OUT, TEMPS, YEARS
+from src.correction.qdm import YEARS, out
 from src.correction.remap import target as remapped
 from src.download.era5 import saturation
 
@@ -32,12 +35,11 @@ log = logging.getLogger("derive")
 
 
 def corrected(name: str, year: int) -> xr.DataArray:
-    """Temperatures from OUT, the rest from BASE (the same folder unless WSA_REF=eobs)."""
-    return xr.open_dataarray((OUT if name in TEMPS + ("huss",) else BASE) / remapped(name, year).name).load()
+    return xr.open_dataarray(out(name) / remapped(name, year).name).load()
 
 
 def write(da: xr.DataArray, year: int) -> None:
-    path = OUT / remapped(da.name, year).name
+    path = out(da.name) / remapped(da.name, year).name
     part = path.with_suffix(".part")
     da.to_netcdf(part, encoding={da.name: {"zlib": True, "complevel": 4}})
     part.rename(path)

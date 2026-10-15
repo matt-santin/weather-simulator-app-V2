@@ -1,10 +1,12 @@
-"""Bias-correct remapped CORDEX daily fields against ERA5, by quantile delta mapping.
+"""Bias-correct remapped CORDEX daily fields at 0.25 deg, by quantile delta mapping.
 
     python -m src.correction.qdm tas
-    WSA_MODEL=mpi python -m src.correction.qdm tas   (src.correction.models)
 
 Run from the repo root, after src.correction.remap, with the external drive
-plugged in.
+plugged in. The temperatures (tas, tasmax, tasmin) are corrected against the
+E-OBS reference (src.correction.reference, ERA5 where E-OBS lacks) and written
+to <run>_025_qdm_eobs; the other variables against ERA5, to <run>_025_qdm.
+Below, "ERA5" stands for the reference of the variable.
 
 Quantile delta mapping (Cannon et al. 2015, J. Climate), done for each ERA5
 cell and each calendar month:
@@ -51,7 +53,7 @@ src.correction.derive, which also puts right the days where tasmin > tasmax.
 
 Every year 1970-2100 is corrected; CAL serves for checks. With
 WSA_QDM_TEST=1, files and tables go to test folders (eur11_025_qdm_test,
-data/correction/test), which src.correction.check, spells and violin then
+data/correction/test), which src.validation.split_025, spells and violin then
 read. The whole series is first packed into a memmap on the Mac (about
 10 GB, deleted at the end), so that each month can be read across all years
 at once.
@@ -63,6 +65,7 @@ import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import xarray as xr
@@ -72,16 +75,27 @@ from src.correction.models import MODEL
 from src.correction.remap import load_weights, target as remapped
 
 TEST = os.environ.get("WSA_QDM_TEST") == "1"
-# WSA_REF=eobs: temperatures against E-OBS (src.correction.eobs_ref, ERA5 where E-OBS lacks),
-# written apart; the other variables stay against ERA5, in BASE.
-EOBS_REF = os.environ.get("WSA_REF") == "eobs"
+# Temperatures against E-OBS (src.correction.reference, ERA5 where E-OBS lacks), written
+# apart in BASE_eobs; the other variables against ERA5, in BASE.
 TEMPS = ("tas", "tasmax", "tasmin")
 BASE = ARCHIVE / "cordex" / (f"{MODEL.out}_025_qdm" + ("_test" if TEST else ""))
-OUT = BASE.with_name(BASE.name + "_eobs") if EOBS_REF else BASE
-TABLES = DATA / "correction" / MODEL.tables / ("test" if TEST else "") / ("eobs" if EOBS_REF else "")
+TABLES = DATA / "correction" / MODEL.tables / ("test" if TEST else "")
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
 EOBS_DAILY = ARCHIVE / "eobs" / "ref_025"
-REF_LABEL = "E-OBS v33.0e (ERA5 where E-OBS lacks)" if EOBS_REF else "ERA5"
+
+
+def out(name: str) -> Path:
+    """Folder of the corrected files of that variable."""
+    return BASE.with_name(BASE.name + "_eobs") if name in TEMPS else BASE
+
+
+def tables(name: str) -> Path:
+    """Folder of the quantile tables of that variable."""
+    return TABLES / "eobs" if name in TEMPS else TABLES
+
+
+def ref_label(name: str) -> str:
+    return "E-OBS v33.0e (ERA5 where E-OBS lacks)" if name in TEMPS else "ERA5"
 
 YEARS = range(1970, 2101)
 CAL = (1970, MODEL.hist_end)
@@ -158,15 +172,23 @@ def window(year: int) -> tuple[int, int]:
 
 
 def reference(name: str, years, cells: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """ERA5 (or the E-OBS reference) as the CORDEX variable, (days, cells), and the month of each day."""
+    """The reference of the correction as the CORDEX variable, (days, cells), and the month of
+    each day: the E-OBS reference for the temperatures, ERA5 for the rest."""
+    if name not in TEMPS:
+        return era5(name, years, cells)
+    xs, ms = [], []
+    for y in years:
+        d = xr.open_dataset(EOBS_DAILY / f"{name}_ref_day_{y}0101-{y}1231.nc")[name]
+        xs.append(d.values.reshape(d.shape[0], -1)[:, cells])
+        ms.append(d.time.dt.month.values)
+    return np.concatenate(xs).astype("float32"), np.concatenate(ms)
+
+
+def era5(name: str, years, cells: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """ERA5 as the CORDEX variable, (days, cells), and the month of each day."""
     v = VARS[name]
     xs, ms = [], []
     for y in years:
-        if EOBS_REF:
-            d = xr.open_dataset(EOBS_DAILY / f"{name}_ref_day_{y}0101-{y}1231.nc")[name]
-            xs.append(d.values.reshape(d.shape[0], -1)[:, cells])
-            ms.append(d.time.dt.month.values)
-            continue
         das = [xr.open_dataset(ERA5_DAILY / f"{f}_ERA5_day_{y}0101-{y}1231.nc")[f]
                for f in v.era5]
         xs.append(v.convert(*[d.values.reshape(d.shape[0], -1)[:, cells] for d in das]))
@@ -313,22 +335,23 @@ def correct(x: np.ndarray, win: np.ndarray, cal: dict[str, np.ndarray], v: Var) 
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 1 or argv[0] not in VARS or VARS[argv[0]].derived or (EOBS_REF and argv[0] not in TEMPS):
+    if len(argv) != 1 or argv[0] not in VARS or VARS[argv[0]].derived:
         print(__doc__)
         return 1
     name = argv[0]
     v = VARS[name]
     _, keep = load_weights()
     cells = np.flatnonzero(keep.ravel())
-    OUT.mkdir(parents=True, exist_ok=True)
-    TABLES.mkdir(parents=True, exist_ok=True)
+    dest, tabs, label = out(name), tables(name), ref_label(name)
+    dest.mkdir(parents=True, exist_ok=True)
+    tabs.mkdir(parents=True, exist_ok=True)
 
     # All days of all years, as (days, cells), with their dates.
     days = np.concatenate([np.arange(f"{y}-01-01", f"{y + 1}-01-01", dtype="datetime64[D]")
                            for y in YEARS])
     year = days.astype("datetime64[Y]").astype(int) + 1970
     month = days.astype("datetime64[M]").astype(int) % 12 + 1
-    pack = TABLES / f"{name}_pack.tmp"
+    pack = tabs / f"{name}_pack.tmp"
     series = np.lib.format.open_memmap(pack, mode="w+", dtype="float32",
                                        shape=(days.size, cells.size))
     t0 = time.time()
@@ -362,11 +385,11 @@ def main(argv: list[str]) -> int:
     grid = model(name, YEARS[0])[1]
     lat, lon = grid.latitude, grid.longitude
     dims = {2: ("month", "cell"), 3: ("month", "quantile", "cell")}
-    tables = {k: np.stack([c[k] for c in cal]) for k in cal[0]}
+    qtab = {k: np.stack([c[k] for c in cal]) for k in cal[0]}
     xr.Dataset(
-        {k: (dims[a.ndim], a) for k, a in tables.items()},
+        {k: (dims[a.ndim], a) for k, a in qtab.items()},
         coords={"month": np.arange(1, 13), "quantile": LEVELS, "cell": cells},
-        attrs={"ref": f"{REF_LABEL} {', '.join(v.era5)}, in CORDEX units", "hist": f"CORDEX {name} remapped",
+        attrs={"ref": f"{label} {', '.join(v.era5)}, in CORDEX units", "hist": f"CORDEX {name} remapped",
                "kind": v.kind, "period": f"{CAL[0]}-{CAL[1]}", "grid": "ERA5 0.25 deg",
                "cell": "flat index into (latitude, longitude)",
                "latitude": lat.values, "longitude": lon.values}
@@ -377,18 +400,18 @@ def main(argv: list[str]) -> int:
            if v.wet else {})
         | ({"mean_only": f"months {v.mean_only}: ref = hist shifted by the gap between means"}
            if v.mean_only else {}),
-    ).to_netcdf(TABLES / f"{name}_quantiles_{CAL[0]}-{CAL[1]}.nc")
+    ).to_netcdf(tabs / f"{name}_quantiles_{CAL[0]}-{CAL[1]}.nc")
 
     form = "additive" if v.kind == "add" else f"multiplicative, model change capped at {MAX_RATIO:g}"
     for y in YEARS:
         src = model(name, y)[1]
-        out = np.full((src.time.size, keep.size), np.nan, "float32")
-        out[:, cells] = series[year == y]
-        da = src.copy(data=out.reshape(src.shape)).rename(name)
+        values = np.full((src.time.size, keep.size), np.nan, "float32")
+        values[:, cells] = series[year == y]
+        da = src.copy(data=values.reshape(src.shape)).rename(name)
         if v.cordex:
             da.attrs = {"units": "1", "long_name": f"{name}, from {' and '.join(v.cordex)}"}
         da.attrs["bias_correction"] = (
-            f"QDM {form} (Cannon 2015) against {REF_LABEL} {', '.join(v.era5)}, "
+            f"QDM {form} (Cannon 2015) against {label} {', '.join(v.era5)}, "
             f"{CAL[0]}-{CAL[1]}, per calendar month, {NQ} quantiles, "
             f"{WINDOW}-year sliding window"
             + (f", occurrence first (model threshold matching ERA5 days under {v.wet:g} "
@@ -396,13 +419,13 @@ def main(argv: list[str]) -> int:
                f"{MIN_WET} wet days, dry days given the ERA5 drizzle by quantile mapping" if v.wet else "")
             + (f", mean only in months {v.mean_only}" if v.mean_only else "")
             + (f", clipped to {v.bounds}" if v.bounds != (None, None) else ""))
-        path = OUT / remapped(name, y).name
+        path = dest / remapped(name, y).name
         part = path.with_suffix(".part")
         da.to_netcdf(part, encoding={name: {"zlib": True, "complevel": 4}})
         part.rename(path)
     del series
     pack.unlink()
-    log.info("fichiers corriges ecrits dans %s", OUT)
+    log.info("fichiers corriges ecrits dans %s", dest)
     return 0
 
 

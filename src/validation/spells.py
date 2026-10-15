@@ -1,6 +1,6 @@
 """Dry spells of ERA5, raw and corrected CORDEX, on CAL (1970-2005 for RCA4), by season.
 
-    python -m src.correction.spells
+    python -m src.validation.spells
 
 A dry day has less than 1 mm. Spells are cut at the edges of each season
 (DJF takes December with the next January and February), the same way for
@@ -23,7 +23,7 @@ import xarray as xr
 from matplotlib.colors import LogNorm
 
 from src.config import ARCHIVE
-from src.correction.check import corrected, raw, run_max
+from src.validation.split_025 import corrected, raw, run_max
 from src.correction.qdm import CAL, DAY, TABLES, reference
 from src.correction.remap import load_weights
 

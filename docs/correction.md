@@ -4,7 +4,11 @@ Correction de biais des 14 variables CORDEX (EUR-11, ICHEC-EC-EARTH r12i1p1 / SM
 
 Ce document décrit la correction de EC-EARTH / RCA4, celle que sert le site. Ce couple sera remplacé par MPI-ESM1-2-HR / ICON-CLM (EUR-12, SSP3-7.0, `docs/choix_modele_cmip6.md`), téléchargé le 7/10/2026. La même chaîne lui a été appliquée les 7 et 8/10/2026, calibrée sur 1970-2014 : section 10. Les sections 1 à 9 décrivent RCA4, sauf mention contraire.
 
-Chaîne : remappage (`remap.py`), correction par quantiles (`qdm.py`), variables dérivées (`derive.py`), contrôles (`check.py`, `spells.py`, `violin.py`), scores de distribution et de cohérence spatiale (`scores.py`).
+Le code est en deux dossiers (réorganisé le 15/10/2026) :
+- `src/correction/`, la chaîne de production : simulations (`models.py`), remappage (`remap.py`), référence des températures (`reference.py`), correction par quantiles à 0,25° (`qdm.py`) et à 0,1° (`qdm010.py`), variables dérivées (`derive.py`) ;
+- `src/validation/`, les contrôles et analyses, inutiles pour reconstruire le site : diagnostic du brut (`diagnostic.py`), validation croisée à 0,25° et à 0,1° (`split_025.py`, `split_010.py`, anciens `check.py` et `land_check.py`), scores (`scores.py`), séries sèches (`spells.py`), distributions (`violin.py`), validation contre E-OBS (`eobs_025.py`, ancien `eobs.py`), E-OBS contre ERA5-Land (`eobs_era5land.py`, ancien `eobs_land.py`), stations de montagne (`stations_montagne.py`, ancien `eobs_sommets.py`), contrôles à 0,1° contre E-OBS (`eobs_controle_010.py`).
+
+Les anciens noms restent dans les journaux et dans le récit des sections qui suivent.
 
 ## 1. Principe
 
@@ -14,7 +18,7 @@ CORDEX (0,11°, grille en pôle tourné) est ramené sur la grille ERA5 (0,25°)
 
 `python -m src.correction.remap <variable> 1970-2100`
 
-La variable d'environnement `WSA_MODEL` choisit la simulation (`src/correction/models.py`) : `rca4` par défaut, `mpi` pour MPI / ICON. Elle vaut pour toute la chaîne (`remap`, `qdm`, `land`, `derive`, `check`, `scores`, `spells`, `land_check`, `diagnostic`). Les deux simulations ont la même grille en pôle tourné : les poids de remappage servent aux deux.
+La variable d'environnement `WSA_MODEL` choisit la simulation (`src/correction/models.py`) : `mpi` par défaut depuis le 15/10/2026, `rca4` pour EC-EARTH / RCA4. Elle vaut pour toute la chaîne et pour les contrôles. Relancée sur `rca4`, la chaîne corrigerait aussi ses températures contre E-OBS ; celles de RCA4 sur le LaCie le sont contre ERA5 et ERA5-Land. Les deux simulations ont la même grille en pôle tourné : les poids de remappage servent aux deux.
 
 ### Quantile delta mapping (QDM)
 
@@ -95,7 +99,7 @@ L'écart résiduel aux extrêmes a deux causes. D'une part, chaque année est cl
 
 Autres figures : `figures/correction/<variable>_paris_{01,07}_violin.png` pour `tasmax`, `tasmin`, `hurs` et `pr`. Pour `pr`, la courbe de droite porte sur le rang parmi les jours de pluie. Deux cas extrêmes de `pr` en janvier : `pr_coni_01_violin.png` (44,5 N 7,5 E), modèle bien trop sec, facteur de 3 à 80 selon le rang ; `pr_foret-noire_01_violin.png` (48,25 N 8,25 E), modèle deux fois trop pluvieux, facteur de 0,45 à 0,6.
 
-`python -m src.correction.violin <variable> 48.86 2.35 <mois> Paris`
+`python -m src.validation.violin <variable> 48.86 2.35 <mois> Paris`
 
 ## 4. Validation
 
@@ -121,13 +125,13 @@ Conséquences :
 
 ### Contrôles
 
-`python -m src.correction.check <variable>`, sorties dans `data/correction/check_<variable>.log` et `<variable>_validation.png`.
+`python -m src.validation.split_025 <variable>`, sorties dans `data/correction/check_<variable>.log` et `<variable>_validation.png`.
 
 - **Validation croisée.** Calibration sur 1970-1987, correction et comparaison à ERA5 sur 1988-2005 : biais moyen, P5 et P95 par mois, moyenne et RMS entre mailles.
 - **Conservation du signal.** Écart 2071-2100 contre 1976-2005, avant et après correction, en différence (forme additive) ou en % (multiplicative).
 - **Bornes.** Fréquence des jours secs pour `pr`, part de jours aux bornes pour les variables bornées.
 - **Indices** sur 1988-2005, année par année : jours > 25 et > 30 °C, Tx maximal, plus longue série > 30 °C ; nuits tropicales, jours de gel, Tn minimal, plus longue série de gel ; cumul annuel, jours ≥ 1 mm, pluie maximale en 1 et 5 jours, plus longue série sèche, durée moyenne des séries sèches ; persistance jour à jour (corrélation des anomalies au mois) pour toutes les variables.
-- **Séries sèches** par saison et par région, 1970-2005 : `python -m src.correction.spells`.
+- **Séries sèches** par saison et par région, 1970-2005 : `python -m src.validation.spells`.
 
 Pour `huss` et `rsus`, dérivées de champs calibrés sur 1970-2005, `check` compare les fichiers finaux à ERA5 sur 1988-2005 : ce n'est pas une validation indépendante.
 
@@ -158,7 +162,7 @@ Persistance jour à jour : inchangée par la correction pour toutes les variable
 
 ### Scores : distance aux distributions et cohérence spatiale
 
-`python -m src.correction.scores <variable> [lat0 lat1 lon0 lon1]`, sorties dans `data/correction/scores_<variable>.log` et `<variable>_scores.png`. Même validation croisée que `check` ; pour `huss` et `rsus`, fichiers finaux (non indépendant).
+`python -m src.validation.scores <variable> [lat0 lat1 lon0 lon1]`, sorties dans `data/correction/scores_<variable>.log` et `<variable>_scores.png`. Même validation croisée que `check` ; pour `huss` et `rsus`, fichiers finaux (non indépendant).
 
 **Distance aux distributions.** Pour chaque maille et chaque mois, distance de Wasserstein W1 = moyenne sur τ de |Q_A(τ) − Q_B(τ)| : l'écart moyen entre quantiles de même rang, dans l'unité de la variable. W1 entre ERA5 1988-2005 et, successivement, CORDEX brut et corrigé. Plancher : W1 entre ERA5 1970-1987 et ERA5 1988-2005, soit ce qui sépare déjà deux périodes de 18 ans du climat réel (variabilité et tendance). Une correction calibrée sur 18 ans ajoute son propre bruit d'échantillonnage : un corrigé entre 1 et 1,5 fois le plancher est un bon résultat (estimation, non calculée). Pour `pr`, W1 porte sur les jours ≥ 1 mm, s'il y en a au moins 30 dans chaque échantillon.
 
@@ -221,7 +225,7 @@ Sorties : `check_pr.log`, `pr_spells.log`, `pr_analyse.log` (signal en montagne,
 
 ### Validation contre E-OBS
 
-`python -m src.correction.eobs <variable>`, sorties dans `data/correction/<variable>_eobs.log` et `<variable>_eobs.png` (cartes du biais de la moyenne, janvier et juillet). 2 min 30 s par variable.
+`python -m src.validation.eobs_025 <variable>`, sorties dans `data/correction/<variable>_eobs.log` et `<variable>_eobs.png` (cartes du biais de la moyenne, janvier et juillet). 2 min 30 s par variable.
 
 E-OBS v33.0e (KNMI, ECA&D) : analyse sur grille des stations européennes, 0,25°, 1950-2025, téléchargée par `python -m src.download.eobs`. Sept variables comparables : `tas`, `tasmax`, `tasmin`, `pr`, `hurs`, `sfcWind` (à partir de 1980), `rsds`. Les autres n'existent pas dans E-OBS ; `pp`, réduite au niveau de la mer, n'est pas comparable à `ps` mais l'est à `psl` (MPI / ICON, section 10). Les périodes suivent `qdm.CAL` : relancé pour RCA4, B irait désormais jusqu'en 2025 (dernière année d'E-OBS), et non plus 2024. E-OBS est lu sur le disque externe.
 
@@ -418,7 +422,7 @@ Les fichiers temporaires du QDM (10 Go à 0,25°, 56 Go à 0,1°) sont effacés 
 
 Pour MPI / ICON, la référence des températures est E-OBS depuis le 11/10/2026 (section 11). Cette section décrit la chaîne à 0,1°, commune aux deux références, et le choix d'ERA5-Land qui a précédé.
 
-`tas`, `tasmax` et `tasmin` sont aussi corrigés à 0,1°, contre ERA5-Land, pour garder le détail du relief que la grille à 0,25° lisse. Ce sont ces versions que sert l'application. Les autres variables, dont `hurs`, restent à 0,25° contre ERA5. Code dans `src/correction/land.py` et `land_check.py` ; la chaîne à 0,25° n'est pas modifiée.
+`tas`, `tasmax` et `tasmin` sont aussi corrigés à 0,1°, contre ERA5-Land, pour garder le détail du relief que la grille à 0,25° lisse. Ce sont ces versions que sert l'application. Les autres variables, dont `hurs`, restent à 0,25° contre ERA5. Code dans `src/correction/qdm010.py` et `land_check.py` ; la chaîne à 0,25° n'est pas modifiée.
 
 ### Référence : ERA5-Land
 
@@ -444,11 +448,11 @@ Lecture par blocs natifs du serveur (120 jours × 64 × 64 mailles, alignés sur
 2. QDM identique à la section 1 (mêmes fonctions), forme additive, contre ERA5-Land 1970-2005. Les mailles sont traitées par paquets de 40 000 pour tenir en mémoire.
 3. Échange Tn/Tx des jours où `tasmin` > `tasmax` : 92,2 millions de valeurs sur 1970-2100, soit 1,1 % des jours-mailles (0,8 % à 0,25°).
 
-`python -m src.correction.land remap tasmax 1970-2100`, puis `qdm tasmax`, puis `swap` une fois `tasmax` et `tasmin` corrigés. Durées : remappage environ 12 s par année, QDM environ 1 h 35 par variable. Les fichiers remappés (`LaCie/.../cordex/eur11_010/`) ne servent qu'au QDM et à la validation croisée ; ils ont été supprimés une fois la validation faite, et `remap` les reconstruit en 30 min par variable.
+`python -m src.correction.qdm010 remap tasmax 1970-2100`, puis `qdm tasmax`, puis `swap` une fois `tasmax` et `tasmin` corrigés. Durées : remappage environ 12 s par année, QDM environ 1 h 35 par variable. Les fichiers remappés (`LaCie/.../cordex/eur11_010/`) ne servent qu'au QDM et à la validation croisée ; ils ont été supprimés une fois la validation faite, et `remap` les reconstruit en 30 min par variable.
 
 ### Validation
 
-`python -m src.correction.land_check tasmax`, sur une maille de terre sur quatre (43 262 mailles). Journaux dans `data/correction/land/check_<variable>.log` et `eobs_<variable>.log`.
+`python -m src.validation.split_010 tasmax`, sur une maille de terre sur quatre (43 262 mailles). Journaux dans `data/correction/land/check_<variable>.log` et `eobs_<variable>.log`.
 
 **Validation croisée contre ERA5-Land** (calibration 1970-1987, test 1988-2005). Même comportement qu'à 0,25° : biais moyen corrigé entre −0,6 et +0,4 K la plupart des mois (−1 à −4,4 K brut), résidu de −0,9 à −1,5 K en février et mars ; RMS entre mailles divisé par 2 à 6 ; W1 corrigé au niveau de son plancher.
 
@@ -507,7 +511,7 @@ Les deux grilles sont identiques (412 × 424 mailles, pôle 39,25 N 162 W, coord
 
 ### Diagnostic du brut
 
-`python -m src.correction.diagnostic bias <variable>` (contre ERA5 à 0,25°), `land <variable>` (contre ERA5-Land à 0,1°), `step` (marche au début du scénario). Sorties dans `data/correction/mpi/diagnostic/` : journal, statistiques par maille et par mois, cartes du biais de la moyenne en janvier, avril, juillet et octobre.
+`python -m src.validation.diagnostic bias <variable>` (contre ERA5 à 0,25°), `land <variable>` (contre ERA5-Land à 0,1°), `step` (marche au début du scénario). Sorties dans `data/correction/mpi/diagnostic/` : journal, statistiques par maille et par mois, cartes du biais de la moyenne en janvier, avril, juillet et octobre.
 
 Biais brut, modèle moins référence, 1970-2014, moyenne sur les mailles :
 
@@ -546,7 +550,7 @@ MPI / ICON brut est plus proche d'ERA5 sur presque toutes les variables ; il est
 
 ### Températures à 0,1° contre ERA5-Land
 
-`WSA_MODEL=mpi python -m src.correction.land qdm tasmax`, puis `swap`, puis `land_check`. Journaux dans `data/correction/mpi/land/`. Échange Tn/Tx : 8,4 millions de valeurs, 0,1 % des jours-mailles (RCA4 : 1,1 %).
+`python -m src.correction.qdm010 qdm tasmax`, puis `swap`, puis `land_check`. Journaux dans `data/correction/mpi/land/`. Échange Tn/Tx : 8,4 millions de valeurs, 0,1 % des jours-mailles (RCA4 : 1,1 %).
 
 - **Validation croisée** (calibration 1970-1991, test 1992-2014) : biais moyen corrigé de −1,0 à +0,3 K selon le mois ; RMS entre mailles divisé par 1,5 à 4 (juillet : Tx 2,0 → 0,8 K, Tn 2,7 → 0,6 K) ; W1 au plancher ou dessous. Le corrigé reste trop froid de 0,4 à 0,55 K en été : ERA5-Land se réchauffe plus vite que le modèle entre les deux moitiés.
 - **Signal** 2071-2100 contre 1976-2005 conservé à 0,05 K près : Tx +3,8 K en hiver, +3,5 K en été ; Tn +4,3 K et +3,3 K (moyenne des mailles de terre du domaine).
@@ -626,7 +630,7 @@ Calcul fait avant la bruine par quantiles, qui ne change ni les jours de pluie n
 
 ### Validation contre E-OBS à 0,25°
 
-`WSA_MODEL=mpi python -m src.correction.eobs <variable>`, 9/10/2026. A = 1970-2014 (`sfcWind` à partir de 1980) : ERA5, brut et corrigé ; le corrigé égale ERA5 par construction, A mesure l'écart d'ERA5 aux stations. B = 2015-2025 : brut et corrigé, années jamais vues. Huit variables : les sept de la section 4 et `psl`, comparée à `pp` d'E-OBS (pression réduite au niveau de la mer). Journaux `data/correction/mpi/<variable>_eobs.log`, cartes `<variable>_eobs.png`.
+`python -m src.validation.eobs_025 <variable>`, 9/10/2026. A = 1970-2014 (`sfcWind` à partir de 1980) : ERA5, brut et corrigé ; le corrigé égale ERA5 par construction, A mesure l'écart d'ERA5 aux stations. B = 2015-2025 : brut et corrigé, années jamais vues. Huit variables : les sept de la section 4 et `psl`, comparée à `pp` d'E-OBS (pression réduite au niveau de la mer). Journaux `data/correction/mpi/<variable>_eobs.log`, cartes `<variable>_eobs.png`.
 
 Europe terre, biais de la moyenne contre E-OBS (RCA4 corrigé sur 2006-2024 entre parenthèses) :
 
@@ -681,13 +685,13 @@ Décision du 11/10/2026 : `tas`, `tasmax` et `tasmin` de MPI / ICON sont corrig�
 
 - **Paris-Montsouris** (`figures/climat/montsouris.py`, `montsouris_MPI_eobs.log`), 1970-2019, écart à la station : Tx annuel E-OBS +0,12 K, ERA5-Land −1,06 K ; Tn −0,34 et −1,56 K. Tx jour par jour : écart quadratique 0,45 K (E-OBS), 1,67 K (ERA5-Land). Tx maximal de l'année, moyenne : station 34,5 °C, E-OBS 34,6, ERA5-Land 32,2 ; 2019 : 42,6, 42,6, 39,6. L'écart d'ERA5-Land grandit avec la chaleur : −2,2 K sur les 5 % de journées d'été les plus chaudes.
 - **Pontarlier**, 1970-2025 : Tn minimal de l'année ERA5-Land − E-OBS +4,0 K en moyenne, jusqu'à +10,8 K (1987 : −31,0 °C contre −20,7 °C pour ERA5-Land).
-- **Stations de montagne** (`src/correction/eobs_sommets.py`, 344 stations à 800 m et plus) : dans les Alpes, maille à 200 m au plus de la station (58 stations), ERA5-Land − station : Tn d'hiver −2,1 K, Tn minimal −3,4 K, Tx d'été −1,2 K, Tx maximal −1,8 K ; E-OBS proche de 0. L'écart E-OBS / ERA5-Land des Alpes (jusqu'à +4 K sur les Tn d'hiver au-dessus de 1 000 m) vient surtout d'ERA5-Land. Les crêtes loin au-dessus des stations restent invérifiables.
+- **Stations de montagne** (`src/validation/stations_montagne.py`, 344 stations à 800 m et plus) : dans les Alpes, maille à 200 m au plus de la station (58 stations), ERA5-Land − station : Tn d'hiver −2,1 K, Tn minimal −3,4 K, Tx d'été −1,2 K, Tx maximal −1,8 K ; E-OBS proche de 0. L'écart E-OBS / ERA5-Land des Alpes (jusqu'à +4 K sur les Tn d'hiver au-dessus de 1 000 m) vient surtout d'ERA5-Land. Les crêtes loin au-dessus des stations restent invérifiables.
 
 Montsouris, Pontarlier et Grenoble-Saint-Geoirs entrent dans E-OBS : l'accord avec la station y est en partie construit. Les stations d'E-OBS en France passent de 231 (1970) à 1 066 (2019) pour Tx (listes ECA&D, `data/stations/ecad/`).
 
 ### Diagnostics avant décision
 
-`src/correction/eobs_land.py`, sorties dans `data/correction/mpi/eobs_land/`. E-OBS ramené sur la grille ERA5-Land (moyenne des 4 voisines), 1970-2014, mailles complètes à 95 % au moins.
+`src/validation/eobs_era5land.py`, sorties dans `data/correction/mpi/eobs_land/`. E-OBS ramené sur la grille ERA5-Land (moyenne des 4 voisines), 1970-2014, mailles complètes à 95 % au moins.
 
 - Écart moyen E-OBS − ERA5-Land : Tx +0,95 K (été +1,17 K, Tx maximal +1,3 à +1,8 K) ; Tn −0,30 K (été −0,66 K ; Tn minimal −3,3 K en Scandinavie, positif dans les Alpes, en Italie et en Turquie).
 - Dérive avec la densification du réseau : 0,15 K au plus entre 1970-1990 et 1991-2014 dans les régions européennes, tendance 0,08 K par décennie au plus, stable après 2014. L'écart ne dépend pas de la distance à la station la plus proche jusqu'à 100 km.
@@ -701,7 +705,7 @@ Remerciements demandés, repris dans la documentation du site : « We acknowledg
 
 ### Référence
 
-`src/correction/eobs_ref.py` (`stats`, puis `write`, pour `010` et `025`) : E-OBS sur les grilles du site, en K, dans `LaCie/.../eobs/ref_010/` et `ref_025/`.
+`src/correction/reference.py` (`stats`, puis `write`, pour `010` et `025`) : E-OBS sur les grilles du site, en K, dans `LaCie/.../eobs/ref_010/` et `ref_025/`.
 
 - Grilles : 0,1° (ERA5-Land, depuis E-OBS 0,1°) et 0,25° (ERA5, depuis E-OBS 0,25°). Les centres d'E-OBS sont décalés d'une demi-maille : poids bilinéaires, limités aux voisines valides et renormalisés (une voisine suffit, les côtes sont gardées).
 - Masque, un par grille, le même pour les trois variables, le passé et le futur (`source.nc`, 1 : E-OBS, 0 : repli) : E-OBS si la maille a une valeur au moins 99 % des jours de 1970-2025 pour Tx, Tn et Tg, hors de la zone Afrique du Nord et Proche-Orient (polygone tracé par la mer, Sahara occidental compris ; Canaries, Madère, Sicile, Malte, Crète et Chypre en dehors), sur terre (à 0,25° : masque terre-mer ERA5 ≥ 0,5). Ailleurs, repli : ERA5-Land à 0,1°, ERA5 à 0,25°.
@@ -710,16 +714,16 @@ Remerciements demandés, repris dans la documentation du site : « We acknowledg
 
 ### Correction
 
-Chaîne inchangée (QDM additif, 1970-2014, par mois, fenêtre glissante), seule la référence change : `WSA_MODEL=mpi WSA_REF=eobs`, sorties à part (`_eobs`), les anciennes gardées.
+Chaîne inchangée (QDM additif, 1970-2014, par mois, fenêtre glissante), seule la référence change, sorties à part (`_eobs`), les anciennes gardées. Jusqu'au 15/10/2026, la variable `WSA_REF=eobs` choisissait cette référence ; elle a été retirée : les températures sont toujours corrigées contre E-OBS, les autres variables contre ERA5.
 
 - 0,25° : `python -m src.correction.qdm tasmax` (puis `tasmin`, `tas`), `derive tn_tx` (2,43 millions d'échanges Tn/Tx), `derive huss` ; `LaCie/.../cordex/eur12_mpi_025_qdm_eobs/`.
-- 0,1° : `python -m src.correction.land qdm tasmax` (puis `tasmin`, `tas`), `swap` (2,58 millions d'échanges) ; `LaCie/.../cordex/eur12_mpi_010_qdm_eobs/`.
+- 0,1° : `python -m src.correction.qdm010 qdm tasmax` (puis `tasmin`, `tas`), `swap` (2,58 millions d'échanges) ; `LaCie/.../cordex/eur12_mpi_010_qdm_eobs/`.
 
 Lot `data/correction/mpi/lot_eobs.sh`, environ 8 h, terminé le 12/10/2026. Journaux dans `data/correction/mpi/eobs/`.
 
 ### Contrôles
 
-Journaux `data/correction/mpi/eobs/controle_*` (`land_check.py` et `montsouris.py` avec `WSA_REF=eobs` ; `src/correction/eobs_controle.py alpes|humide|raccords`).
+Journaux `data/correction/mpi/eobs/controle_*` (`land_check.py` avec `WSA_REF=eobs`, devenu `split_010.py`, et `montsouris.py eobs` ; `src/validation/eobs_controle_010.py alpes|humide|raccords`).
 
 - **Validation croisée** (calibration 1970-1991, test 1992-2014), `tasmax` à 0,1° : biais moyen corrigé de −1,1 à +0,2 K selon le mois (brut −1,6 à −0,1 K) ; RMS entre mailles divisé par 1,4 à 2,7 ; W1 corrigé au plus 0,3 K au-dessus de son plancher. Résidus semblables à ceux de la correction contre ERA5-Land : retard du modèle sur le réchauffement.
 - **Signal** 2071-2100 contre 1976-2005, moyenne des mailles, conservé à 0,04 K près (RMS entre mailles) : Tx +3,8 K en hiver, +3,5 K en été ; Tn +4,4 K et +3,3 K.
@@ -748,7 +752,7 @@ Reste : l'ajustement sur la TRACC. Sur 2015-2025, le corrigé est sous les donn�
 | `data/correction/<variable>_eobs.log`, `<variable>_eobs.png` | validation contre E-OBS |
 | `data/eobs/` | E-OBS v33.0e, moyenne d'ensemble, dispersion (`tx`, `tn`, `rr`), altitude ; archivé sur le LaCie |
 | `data/correction/pr_spells.log`, `pr_spells.png`, `pr_analyse.log`, `pr_series_seches.log` | contrôles propres à `pr` ; `*_v2` : version 2 |
-| `figures/correction/` | figures de distribution (`violin.py`) |
+| `figures/correction/` | figures de distribution de RCA4 (`violin.py`) |
 | `LaCie/.../cordex/eur11_025/` | CORDEX remappé à 0,25°, brut |
 | `LaCie/.../cordex/eur11_025_qdm/` | CORDEX remappé à 0,25°, corrigé |
 | `data/correction/poids_eur11_era5land.npz` | poids du remappage CORDEX vers ERA5-Land (0,1°), mailles gardées |
@@ -757,8 +761,8 @@ Reste : l'ajustement sur la TRACC. Sur 2015-2025, le corrigé est sous les donn�
 | `LaCie/.../era5land/daily/` | ERA5-Land journalier 1970-2025 : `t2m`, `t2mmax`, `t2mmin`, `d2m`, `hurs` |
 | `LaCie/.../eobs/0.1deg/` | E-OBS v33.0e à 0,1° : `tx`, `tn`, `tg`, `hu`, dispersion de `tx` et `tn`, altitude |
 | `LaCie/.../cordex/eur11_010_qdm/` | CORDEX remappé à 0,1° et corrigé contre ERA5-Land : `tas`, `tasmax`, `tasmin` |
-| `src/correction/models.py` | simulations de la chaîne (`WSA_MODEL`), noms de fichiers, fin de `historical` |
-| `src/correction/diagnostic.py` | diagnostic du brut : biais, queue froide, marche au début du scénario |
+| `src/correction/models.py` | simulations de la chaîne (`WSA_MODEL`, `mpi` par défaut), noms de fichiers, fin de `historical` |
+| `src/validation/diagnostic.py` | diagnostic du brut : biais, queue froide, marche au début du scénario |
 | `data/correction/mpi/lot3.sh`, `lot4.sh`, `lot5.sh` | lots du 9/10/2026 : décisions sur `pr`, `ps`, `zg500` ; remappage, diagnostic et correction de `psl` |
 | `data/correction/mpi/` | MPI / ICON : tables `<variable>_quantiles_1970-2014.nc`, journaux `qdm_*`, `derive_*`, `check_*`, `scores_*`, figures |
 | `data/correction/mpi/land/` | MPI / ICON à 0,1° : tables, `land.log`, `check_<variable>.log` |
@@ -766,8 +770,8 @@ Reste : l'ajustement sur la TRACC. Sur 2015-2025, le corrigé est sous les donn�
 | `data/correction/comparaison_1970-2005/` | diagnostic du brut de RCA4 et de MPI / ICON sur la même période |
 | `LaCie/.../cordex/eur12_mpi_025/`, `eur12_mpi_010/` | MPI / ICON remappé à 0,25° (14 variables) et à 0,1° (températures), brut |
 | `LaCie/.../cordex/eur12_mpi_025_qdm/`, `eur12_mpi_010_qdm/` | MPI / ICON corrigé (températures contre ERA5 et ERA5-Land, remplacées par les sorties `_eobs`) |
-| `src/correction/eobs_ref.py` | référence des températures : E-OBS sur les grilles du site, repli ERA5-Land ou ERA5 (section 11) |
-| `src/correction/eobs_land.py`, `eobs_sommets.py`, `eobs_controle.py` | diagnostics E-OBS − ERA5-Land, stations de montagne, contrôles de la correction contre E-OBS |
+| `src/correction/reference.py` | référence des températures : E-OBS sur les grilles du site, repli ERA5-Land ou ERA5 (section 11) |
+| `src/validation/eobs_era5land.py`, `stations_montagne.py`, `eobs_controle_010.py` | diagnostics E-OBS − ERA5-Land, stations de montagne, contrôles de la correction contre E-OBS |
 | `LaCie/.../eobs/ref_010/`, `ref_025/` | référence des températures, en K, et masque `source.nc` |
 | `LaCie/.../cordex/eur12_mpi_025_qdm_eobs/`, `eur12_mpi_010_qdm_eobs/` | MPI / ICON, températures corrigées contre E-OBS : `tas`, `tasmax`, `tasmin` |
 | `data/correction/mpi/eobs_ref/`, `eobs_land/`, `eobs/` | masques, diagnostics, journaux du lot `lot_eobs.sh` et contrôles |

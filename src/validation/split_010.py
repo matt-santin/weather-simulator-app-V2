@@ -1,17 +1,18 @@
-"""Checks of the 0.1 deg correction (src.correction.land), printed.
+"""Checks of the 0.1 deg correction (src.correction.qdm010), printed.
 
-    python -m src.correction.land_check tasmax
-    python -m src.correction.land_check tasmax eobs     parts 3 and 4 only
+    python -m src.validation.split_010 tasmax
+    python -m src.validation.split_010 tasmax eobs     parts 3 and 4 only
 
-Run from the repo root, with the external drive plugged in, once land.py has
+Run from the repo root, with the external drive plugged in, once qdm010 has
 corrected the variable (and swapped Tn/Tx). Part 1 reads the remapped files:
-rebuild them first (land.py remap) if they were deleted. One land cell in STRIDE is used,
+rebuild them first (qdm010 remap) if they were deleted. One land cell in STRIDE is used,
 about 43 000, as many as the 0.25 deg chain has.
 
-1. Split sample, against ERA5-Land: CAL cut in two halves (1970-1987 and
+1. Split sample, against the reference of the correction (E-OBS, ERA5-Land
+   where it lacks, src.correction.reference): CAL cut in two halves (1970-1987 and
    1988-2005 for RCA4, 1970-1991 and 1992-2014 for MPI / ICON), calibrated on
    the first, applied to the second (its own years as the model
-   distribution, as check.py), and compared with ERA5-Land on the second. Per calendar month: bias of the mean,
+   distribution, as split_025.py), and compared with the reference on the second. Per calendar month: bias of the mean,
    P5 and P95 (mean over cells, and RMS between cells), raw and corrected;
    then W1, the mean gap between quantiles of same rank, median over cells,
    with its floor: ERA5-Land of the first half against the second.
@@ -34,10 +35,8 @@ about 43 000, as many as the 0.25 deg chain has.
 4. A few places, at their own cell (nearest land cell of the full grid):
    January and July means over TEST, from each source.
 
-WSA_REF=eobs: checks of the correction against E-OBS (land.py in that mode):
-part 1 against the E-OBS reference (src.correction.eobs_ref), the 0.25 deg
-CORDEX is the E-OBS one, and parts 3 and 4 add the ERA5-Land correction
-("CORDEX 0,1 ancien").
+Parts 3 and 4 add, when its files are on the drive, the former correction
+against ERA5-Land alone ("CORDEX 0,1 ancien", <run>_010_qdm).
 """
 
 import sys
@@ -46,17 +45,17 @@ import numpy as np
 import xarray as xr
 
 from src.config import ARCHIVE
-from src.correction.land import EOBS_DAILY, EOBS_REF, OUT, REF_LABEL, VARS, land_file, load_weights, remapped
-from src.correction.land import REFERENCE
+from src.correction.qdm010 import EOBS_DAILY, OUT, REF_LABEL, VARS, land_file, load_weights, remapped
+from src.correction.qdm010 import REFERENCE
 from src.correction.models import MODEL
-from src.correction.qdm import CAL, OUT as OUT_025, calibrate, correct
+from src.correction.qdm import CAL, calibrate, correct, out as out_025
 from src.correction.remap import yearly
 
 STRIDE = 4
 EOBS = ARCHIVE / "eobs" / "0.1deg"
 EOBS_NAME = {"tasmax": "tx", "tasmin": "tn", "tas": "tg"}
 ERA5 = {"tasmax": "mx2t", "tasmin": "mn2t", "tas": "t2m"}
-# WSA_REF=eobs: the E-OBS reference in part 1, the ERA5-Land correction beside the new one in 3 and 4.
+# The former correction, against ERA5-Land alone, beside the current one in 3 and 4.
 OLD = ARCHIVE / "cordex" / f"{MODEL.out}_010_qdm"
 ERA5_DAILY = ARCHIVE / "era5" / "daily"
 MIN_VALID = 0.8
@@ -105,9 +104,7 @@ def months(years):
 
 def ref_file(name, year):
     """Reference file of the correction and its field."""
-    if EOBS_REF:
-        return EOBS_DAILY / f"{name}_ref_day_{year}0101-{year}1231.nc", name
-    return land_file(REFERENCE[name], year), REFERENCE[name]
+    return EOBS_DAILY / f"{name}_ref_day_{year}0101-{year}1231.nc", name
 
 
 def read(paths, field, grid, convert=lambda x: x):
@@ -229,18 +226,19 @@ def against_eobs(name, grid):
     to = celsius(name)
     i25 = np.rint((73.0 - grid.lat[grid.i]) / 0.25).astype(int)
     j25 = np.rint((grid.lon[grid.j] + 45.0) / 0.25).astype(int)
-    with_025 = (OUT_025 / yearly(name, TEST[0])).exists()
+    with_025 = (out_025(name) / yearly(name, TEST[0])).exists()
+    with_old = (OLD / yearly(name, TEST[0])).exists()
     series = {k: [] for k in ("E-OBS", "CORDEX 0,1", "CORDEX 0,1 ancien", "CORDEX 0,25", "ERA5-Land", "ERA5")
-              if (with_025 or k != "CORDEX 0,25") and (EOBS_REF or k != "CORDEX 0,1 ancien")}
+              if (with_025 or k != "CORDEX 0,25") and (with_old or k != "CORDEX 0,1 ancien")}
     spread = []
     for y in TEST:
         series["E-OBS"].append(obs.year(y))
         spread.append(obs.spread(y))
         series["CORDEX 0,1"].append(to(grid.flat(xr.open_dataset(OUT / yearly(name, y))[name].values)))
-        if EOBS_REF:
+        if with_old:
             series["CORDEX 0,1 ancien"].append(to(grid.flat(xr.open_dataset(OLD / yearly(name, y))[name].values)))
         if with_025:
-            c25 = xr.open_dataset(OUT_025 / yearly(name, y))[name].values
+            c25 = xr.open_dataset(out_025(name) / yearly(name, y))[name].values
             series["CORDEX 0,25"].append(to(c25[:, i25, j25]))
         series["ERA5-Land"].append(to(grid.flat(xr.open_dataset(land_file(REFERENCE[name], y))[REFERENCE[name]].values)))
         e = xr.open_dataset(ERA5_DAILY / f"{ERA5[name]}_ERA5_day_{y}0101-{y}1231.nc")[ERA5[name]].values

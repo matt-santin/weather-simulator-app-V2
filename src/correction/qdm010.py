@@ -1,14 +1,15 @@
-"""Temperatures and humidity at 0.1 deg: CORDEX corrected against ERA5-Land.
+"""Temperatures at 0.1 deg: CORDEX corrected against E-OBS (ERA5-Land where E-OBS lacks).
 
-    python -m src.correction.land remap tasmax 1970-2100
-    python -m src.correction.land qdm tasmax
-    python -m src.correction.land swap          tasmin > tasmax days, once both are done
-    WSA_MODEL=mpi python -m src.correction.land ...   (src.correction.models)
+    python -m src.correction.qdm010 remap tasmax 1970-2100
+    python -m src.correction.qdm010 qdm tasmax
+    python -m src.correction.qdm010 swap          tasmin > tasmax days, once both are done
 
 Run from the repo root, with the external drive plugged in. The 0.25 deg chain
 (src.correction.remap, qdm, derive) is left as it is: this one runs beside it,
-for tas, tasmax and tasmin only, against ERA5-Land (src.download.era5land),
-whose 2 m fields are brought down to a finer relief. hurs was corrected this
+for tas, tasmax and tasmin only, against the E-OBS reference on the ERA5-Land
+grid (src.correction.reference; ERA5-Land, src.download.era5land, where E-OBS
+lacks). Until 2026-10-13 the reference was ERA5-Land alone (docs/correction.md,
+sections 9 and 11); those outputs stay on the drive in <run>_010_qdm. hurs was corrected this
 way too and not retained (docs/correction.md, section 9): it stays at 0.25 deg.
 
 remap: CORDEX EUR-11 (0.11 deg, rotated pole) onto the ERA5-Land grid (0.1 deg),
@@ -21,7 +22,7 @@ about 30 min per variable.
 
 qdm: the method of qdm.py, unchanged (same functions): calibration on
 CAL (1970 to the last historical year of the run), per cell and calendar month, 100 quantiles, 30-year sliding window,
-additive. References:
+additive. ERA5-Land fields of the reference, where E-OBS lacks:
 
     tas     t2m     daily mean of hourly t2m
     tasmax  t2mmax  daily maximum of hourly t2m (ERA5 mx2t is the maximum over
@@ -38,7 +39,6 @@ exchanged, as derive.py does at 0.25 deg.
 """
 
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -57,19 +57,17 @@ LAND = ARCHIVE / "era5land" / "daily"
 GRID = LAND / "t2m_ERA5-Land_day_19700101-19701231.nc"
 WEIGHTS = DATA / "correction" / "poids_eur11_era5land.npz"
 REMAPPED = ARCHIVE / "cordex" / f"{MODEL.out}_010"
-# WSA_REF=eobs: against E-OBS (src.correction.eobs_ref, ERA5-Land where E-OBS lacks), written apart.
-EOBS_REF = os.environ.get("WSA_REF") == "eobs"
-OUT = ARCHIVE / "cordex" / (f"{MODEL.out}_010_qdm" + ("_eobs" if EOBS_REF else ""))
-WORK = DATA / "correction" / MODEL.tables / ("land_eobs" if EOBS_REF else "land")
+OUT = ARCHIVE / "cordex" / f"{MODEL.out}_010_qdm_eobs"
+WORK = DATA / "correction" / MODEL.tables / "land_eobs"
 EOBS_DAILY = ARCHIVE / "eobs" / "ref_010"
-REF_LABEL = "E-OBS v33.0e (ERA5-Land where E-OBS lacks)" if EOBS_REF else "ERA5-Land"
+REF_LABEL = "E-OBS v33.0e (ERA5-Land where E-OBS lacks)"
 BATCH = 40_000
 
-REFERENCE = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin"}
+REFERENCE = {"tas": "t2m", "tasmax": "t2mmax", "tasmin": "t2mmin"}  # ERA5-Land fields
 VARS: dict[str, Var] = {n: VARS_025[n] for n in REFERENCE}
 
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO, datefmt="%H:%M:%S")
-log = logging.getLogger("land")
+log = logging.getLogger("qdm010")
 
 
 def land_file(field: str, year: int) -> Path:
@@ -216,10 +214,7 @@ def qdm(name: str) -> None:
     t0 = time.time()
     ref_year = year[in_cal]
     for y in range(CAL[0], CAL[1] + 1):
-        if EOBS_REF:
-            x = xr.open_dataset(EOBS_DAILY / f"{name}_ref_day_{y}0101-{y}1231.nc")[name].values
-        else:
-            x = xr.open_dataset(land_file(REFERENCE[name], y))[REFERENCE[name]].values
+        x = xr.open_dataset(EOBS_DAILY / f"{name}_ref_day_{y}0101-{y}1231.nc")[name].values
         x = v.convert(x.reshape(x.shape[0], -1))
         for b, cb in enumerate(batches):
             refs[b][ref_year == y] = x[:, cb]
@@ -249,7 +244,7 @@ def qdm(name: str) -> None:
     xr.Dataset(
         {k: (("month", "quantile", "cell"), a) for k, a in tables.items()},
         coords={"month": np.arange(1, 13), "quantile": LEVELS, "cell": cells},
-        attrs={"ref": f"{REF_LABEL} {REFERENCE[name]}, in CORDEX units",
+        attrs={"ref": f"{REF_LABEL} {name}, in CORDEX units",
                "hist": f"CORDEX {name} remapped to 0.1 deg", "kind": v.kind,
                "period": f"{CAL[0]}-{CAL[1]}", "grid": "ERA5-Land 0.1 deg, land",
                "cell": "flat index into (latitude, longitude)",
@@ -263,7 +258,7 @@ def qdm(name: str) -> None:
             out[:, cb] = series[b][year == y]
         da = src.copy(data=out.reshape(src.shape))
         da.attrs["bias_correction"] = (
-            f"QDM additive (Cannon 2015) against {REF_LABEL} {REFERENCE[name]}, "
+            f"QDM additive (Cannon 2015) against {REF_LABEL} {name}, "
             f"{CAL[0]}-{CAL[1]}, per calendar month, {NQ} quantiles, {WINDOW}-year sliding window"
             + (f", clipped to {v.bounds}" if v.bounds != (None, None) else ""))
         path = OUT / yearly(name, y)

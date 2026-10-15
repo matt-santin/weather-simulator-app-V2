@@ -1,9 +1,9 @@
 """Mountain stations against E-OBS and ERA5-Land, daily Tx and Tn, 1991-2014.
 
-    python -m src.correction.eobs_sommets          (LaCie plugged in)
+    python -m src.validation.stations_montagne          (LaCie plugged in)
 
 Who is right on the Alpine crests in winter, where E-OBS is 3 to 6 K warmer
-than ERA5-Land and ERA5 on Tn (src.correction.eobs_land densite)? ECA&D blended
+than ERA5-Land and ERA5 on Tn (src.validation.eobs_era5land densite)? ECA&D blended
 series (data/stations/ecad/blend/ECA_blend_tx.zip, _tn.zip, non-commercial
 licence: validation only) of every station at or above MIN_ELEV m, valid days
 only (quality code 0). At each station:
@@ -31,8 +31,8 @@ import pandas as pd
 import xarray as xr
 
 from src.config import ARCHIVE, ROOT
-from src.correction.eobs_land import OUT, stations
-from src.correction.land import land_file
+from src.validation.eobs_era5land import OUT, stations
+from src.correction.qdm010 import land_file
 
 BLEND = ROOT / "data" / "stations" / "ecad" / "blend"
 EOBS = ARCHIVE / "eobs" / "0.1deg"

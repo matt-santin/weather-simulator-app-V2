@@ -1,7 +1,7 @@
 """E-OBS against ERA5-Land, daily Tx and Tn at 0.1 deg: can E-OBS replace ERA5-Land as the reference?
 
-    python -m src.correction.eobs_land compute     year by year, resumable (LaCie plugged in)
-    python -m src.correction.eobs_land report      maps, series, tables (Mac only)
+    python -m src.validation.eobs_era5land compute     year by year, resumable (LaCie plugged in)
+    python -m src.validation.eobs_era5land report      maps, series, tables (Mac only)
 
 compute: for each year 1970-2025, E-OBS v33.0e (ensemble mean, 0.1 deg) is
 brought onto the ERA5-Land grid, each ERA5-Land cell taking the mean of the 4
@@ -39,7 +39,7 @@ import xarray as xr
 from scipy.spatial import cKDTree
 
 from src.config import ARCHIVE, DATA, ROOT
-from src.correction.land import land_file
+from src.correction.qdm010 import land_file
 
 OUT = DATA / "correction" / "mpi" / "eobs_land"
 YEARS = range(1970, 2026)

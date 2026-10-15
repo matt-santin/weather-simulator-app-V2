@@ -1,8 +1,8 @@
 """Checks of the temperatures corrected against E-OBS, at 0.1 deg (step 4).
 
-    WSA_MODEL=mpi python -m src.correction.eobs_controle alpes
-    WSA_MODEL=mpi python -m src.correction.eobs_controle humide
-    WSA_MODEL=mpi python -m src.correction.eobs_controle raccords
+    python -m src.validation.eobs_controle_010 alpes
+    python -m src.validation.eobs_controle_010 humide
+    python -m src.validation.eobs_controle_010 raccords
 
 External drive plugged in. Three corrections side by side: raw (remapped),
 "ancien" (QDM against ERA5-Land, <model>_010_qdm), "E-OBS" (QDM against the

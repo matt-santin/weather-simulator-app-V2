@@ -1,6 +1,6 @@
 """CORDEX, raw and corrected, and ERA5 against E-OBS, the gridded station analysis.
 
-    python -m src.correction.eobs tasmax
+    python -m src.validation.eobs_025 tasmax
 
 Only distributions are compared, per ERA5 cell and calendar month: CORDEX does
 not follow the real weather day by day.
@@ -53,9 +53,9 @@ import numpy as np
 import xarray as xr
 
 from src.config import ARCHIVE
-from src.correction.qdm import CAL, ERA5_DAILY, OUT, TABLES, VARS, quantiles
+from src.correction.qdm import CAL, ERA5_DAILY, TABLES, VARS, out, quantiles
 from src.correction.remap import load_weights, target as remapped
-from src.correction.scores import regions
+from src.validation.scores import regions
 from src.download.eobs import MEAN, VERSION
 
 NAMES = {cordex: e for e, cordex in MEAN.items()}  # CORDEX name: E-OBS name
@@ -147,7 +147,7 @@ def read_era5(name, years, cells):
 def read_cordex(name, years, cells, corrected):
     xs, ds = [], []
     for y in years:
-        path = OUT / remapped(name, y).name if corrected else remapped(name, y)
+        path = out(name) / remapped(name, y).name if corrected else remapped(name, y)
         da = xr.open_dataset(path)[name]
         xs.append(da.values.reshape(da.shape[0], -1)[:, cells])
         ds.append(da.time.values.astype("datetime64[D]"))

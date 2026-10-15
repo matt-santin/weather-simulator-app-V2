@@ -1,6 +1,6 @@
 """Checks of the QDM correction, printed and drawn in data/correction/.
 
-    python -m src.correction.check tas
+    python -m src.validation.split_025 tas
 
 1. Split sample, CAL cut in two halves (qdm.HALVES; 1970-1987 and 1988-2005
    for RCA4): calibrate on the first, correct the second (its own years
@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from src.correction.qdm import CAL, DAY, HALVES, LABELS, OUT, TABLES, VARS, calibrate, correct, model, reference
+from src.correction.qdm import CAL, DAY, HALVES, LABELS, TABLES, VARS, calibrate, correct, model, out, reference
 from src.correction.remap import load_weights, target as remapped
 
 FIG = TABLES
@@ -53,7 +53,7 @@ def raw(name, years, cells):
 
 
 def corrected(name, years, cells):
-    return load([OUT / remapped(name, y).name for y in years], name, cells)
+    return load([out(name) / remapped(name, y).name for y in years], name, cells)
 
 
 def stats(x):

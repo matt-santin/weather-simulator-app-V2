@@ -1,18 +1,21 @@
 """The CORDEX runs the correction chain can work on, chosen by WSA_MODEL.
 
-    WSA_MODEL=mpi python -m src.correction.remap tas 1970-2100
+    python -m src.correction.remap tas 1970-2100                  mpi, the default
+    WSA_MODEL=rca4 python -m src.correction.remap tas 1970-2100
 
-    rca4  EC-EARTH r12i1p1 / SMHI-RCA4, EUR-11, historical then rcp45 (default:
-          the run the site serves)
     mpi   MPI-ESM1-2-HR r1i1p1f1 / ICON-CLM-202407-1-1 (CLMcom-DWD), EUR-12,
-          historical then ssp370 (docs/choix_modele_cmip6.md)
+          historical then ssp370 (docs/choix_modele_cmip6.md): the run the
+          site serves
+    rca4  EC-EARTH r12i1p1 / SMHI-RCA4, EUR-11, historical then rcp45: the
+          former run, its serving store kept on the drive
 
 Both runs share the same rotated grid (412 x 424 cells, pole 39.25 N, 162 W;
 coordinates equal to 4e-15 deg), so the remapping weights onto ERA5 and
 ERA5-Land are computed once and serve both.
 
 Each run writes to its own folders: remapped and corrected files on the drive
-(cordex/<out>_025, <out>_025_qdm, <out>_010, <out>_010_qdm), tables and logs
+(cordex/<out>_025, <out>_025_qdm, <out>_025_qdm_eobs, <out>_010,
+<out>_010_qdm_eobs), tables and logs
 under data/correction/<tables>. The files of the derived chain are always one
 per year, named after the run.
 
@@ -98,4 +101,4 @@ MODELS = {
                  scenario_label="SSP3-7.0", provider="ESGF (DKRZ)"),
 }
 
-MODEL = MODELS[os.environ.get("WSA_MODEL", "rca4")]
+MODEL = MODELS[os.environ.get("WSA_MODEL", "mpi")]

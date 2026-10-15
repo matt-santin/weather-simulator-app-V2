@@ -1,9 +1,9 @@
 """Distance between distributions and spatial coherence, raw and corrected CORDEX against ERA5.
 
-    python -m src.correction.scores tas
-    python -m src.correction.scores tas 44 48 4 10      only the cells in that box (lat, lon)
+    python -m src.validation.scores tas
+    python -m src.validation.scores tas 44 48 4 10      only the cells in that box (lat, lon)
 
-Both on the split sample of src.correction.check (qdm.HALVES; 1970-1987 and
+Both on the split sample of src.validation.split_025 (qdm.HALVES; 1970-1987 and
 1988-2005 for RCA4): the correction calibrated on the first half and applied
 to the second, compared with ERA5 on the second (derived variables: their
 final files, calibrated on CAL).
@@ -36,7 +36,7 @@ import xarray as xr
 from matplotlib.colors import LogNorm
 
 from src.config import ARCHIVE
-from src.correction.check import corrected, raw
+from src.validation.split_025 import corrected, raw
 from src.correction.qdm import HALVES, LABELS, TABLES, VARS, calibrate, correct, quantiles, reference
 from src.correction.remap import load_weights
 
