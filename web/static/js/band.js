@@ -20,33 +20,59 @@
 import { el } from "./dom.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
+import { at } from "./calendar.js";
 import { seamIndex } from "./series.js";
 
 /**
- * The days in order, with the seam marked where the simulated begins.
+ * The days in order, laid on a calendar of seven columns, Monday first.
  *
- * The seam gets a card of its own rather than a colour: the tint on what
- * follows says the same thing, but colour alone must never be what carries it.
+ * **Each month opens on a line of its own**, its name and year across the seven
+ * columns: the week is cut on the last day of the month before, and the new
+ * month picks up under its weekday. The first month of the range opens the same
+ * way. The line is hidden from screen readers, which hear the month on the
+ * card that opens it (the card's month line, kept off screen).
  *
- * *Where* it falls is series.js, shared with the chart under the strip, which
- * has to mark the same crossing at the same day. What is left here is what that
- * mark looks like in a strip of cards.
+ * **Empty cells before the first day of each month**, so that each day falls
+ * under its own weekday: a month starting on a Thursday opens with three. They
+ * are hidden from screen readers too, which hear the weekday on every card and
+ * have no column to lose. Nothing is padded after the last day of a month; the
+ * row simply ends.
+ *
+ * **The seam rides on the first simulated card** rather than taking a cell of
+ * its own: a cell would push every following day one column off its weekday.
+ * It stays written, beside that card's date, since colour alone must never be
+ * what carries it. *Where* it falls is series.js, shared with the chart under
+ * the calendar, which has to mark the same crossing at the same day.
  */
 export function strip(days, humidHeatPeak = 0) {
-  const nodes = [];
   const seam = seamIndex(days);
   const reservesHumidHeat = humidHeatPeak > 0;
+  const nodes = [];
   let month = null;
 
   for (const [index, day] of days.entries()) {
-    if (index === seam) {
-      nodes.push(el("li", { className: "seam" }, [el("span", { text: texts.results.seam })]));
-    }
     const turned = present.monthKey(day.date) !== month;
     month = present.monthKey(day.date);
-    nodes.push(card(day, turned, reservesHumidHeat));
+    if (turned) {
+      nodes.push(
+        el("li", {
+          className: "month-row",
+          text: present.monthYear(day.date),
+          attrs: { "aria-hidden": "true" },
+        }),
+      );
+      for (let cell = 0; cell < weekdayIndex(day.date); cell += 1) {
+        nodes.push(el("li", { className: "pad", attrs: { "aria-hidden": "true" } }));
+      }
+    }
+    nodes.push(card(day, turned, reservesHumidHeat, index === seam));
   }
   return nodes;
+}
+
+/** 0 for a Monday, 6 for a Sunday. */
+function weekdayIndex(iso) {
+  return (new Date(at(iso)).getUTCDay() + 6) % 7;
 }
 
 /**
@@ -62,11 +88,24 @@ export function strip(days, humidHeatPeak = 0) {
  * `source` rides along as a title attribute: it is what tells one seam from the
  * other when something looks wrong, and it has no business on screen otherwise.
  */
-export function card(day, namesMonth, reservesHumidHeat = false) {
+export function card(day, namesMonth, reservesHumidHeat = false, opensSimulation = false) {
   const { emoji, label } = present.sky(day.sky);
-  const { celsius, millimetres, kilometresPerHour } = texts.units;
+  const { celsius, millimetres, kilometresPerHour, percent } = texts.units;
+  const className = `card card--${day.origin}${opensSimulation ? " card--seam" : ""}`;
 
-  return el("li", { className: `card card--${day.origin}`, attrs: { title: day.source } }, [
+  // The band of the maximum tints the whole card. It arrives decided by the
+  // server and is written as an attribute, never as a colour: the hues live in
+  // the stylesheet, exactly as the pictogram lives here rather than in the JSON.
+  // A day with no maximum carries no attribute and keeps the plain paper: a gap
+  // is not a shade of cold.
+  const band = day.temperature_max_band;
+  return el("li", {
+    className,
+    attrs: {
+      title: day.source,
+      "data-band": band === null || band === undefined ? undefined : String(band),
+    },
+  }, [
     // The tinted band. The month line is rendered on every card, empty where the
     // month has not turned, so the cards keep one height and the dates line up
     // across the strip.
@@ -78,11 +117,24 @@ export function card(day, namesMonth, reservesHumidHeat = false) {
     // the month wherever the reader has scrolled to, and leave the name to the
     // one card that has news.
     el("div", { className: "card-head" }, [
+      // **Two dates, one of them read.** On the calendar the column says the
+      // weekday and the line above the month says the month, so the card shows
+      // the day of the month alone; the full "lundi 01/08" and the month line
+      // stay for the screen reader, and the list shown on a narrow window prints
+      // the full date instead.
       el("p", {
         className: "card-month",
         text: namesMonth ? present.monthLabel(day.date) : "",
       }),
-      el("p", { className: "card-day", text: present.dayLabel(day.date) }),
+      el("p", { className: "card-day" }, [
+        el("span", { className: "card-date-long", text: present.dayLabel(day.date) }),
+        el("span", {
+          className: "card-date-short",
+          text: present.dayOfMonth(day.date),
+          attrs: { "aria-hidden": "true" },
+        }),
+        ...(opensSimulation ? [el("span", { className: "card-seam", text: texts.results.seamCard })] : []),
+      ]),
     ]),
     el("div", { className: "card-body" }, [
       // The emoji is hidden from screen readers and the written class carries it
@@ -90,32 +142,64 @@ export function card(day, namesMonth, reservesHumidHeat = false) {
       el("p", { className: "card-emoji", text: emoji, attrs: { "aria-hidden": "true" } }),
       // Straight under the pictogram, large, and unlabelled: two numbers beside
       // a degree sign on a weather card need no word to say what they are.
-      // Which is the maximum *does* need saying — that is carried by colour and
+      // Which is the maximum *does* need saying — that is carried by size and
       // by position on screen, and neither is information, so each is named for
       // anyone not reading them.
       //
-      // **Maximum above minimum**, stacked rather than set side by side. The
-      // earlier card ran "min · max" on one line, in the order projet.md and
-      // the README write the pair; the results mock-up stacks them and leads
-      // with the maximum, which is the figure a summer read is looking for.
-      // The reading order follows the eye — a screen reader now hears the
-      // maximum first too, and band.test.js pins that order.
+      // **Maximum first, and larger.** The earlier card ran "min · max", in the
+      // order projet.md and the README write the pair; the results mock-up led
+      // with the maximum, the figure a summer read is looking for. Stacked while
+      // each had a tinted box, side by side since the tint moved to the whole
+      // card (2026-10-16), the minimum smaller and softened. The reading order
+      // follows the eye, and band.test.js pins it.
       el("p", { className: "card-temperatures" }, [
         el("span", { className: "sr-only", text: texts.measure.high }),
-        degrees(day.temperature_max, "high", celsius, day.temperature_max_band),
+        degrees(day.temperature_max, "high", celsius),
         el("span", { className: "sr-only", text: texts.measure.low }),
-        degrees(day.temperature_min, "low", celsius, day.temperature_min_band),
+        degrees(day.temperature_min, "low", celsius),
       ]),
       el("p", { className: "card-sky", text: label }),
       el("dl", { className: "card-measures" }, [
         ...measure(texts.measure.precipitation, day.precipitation, present.precipitation, millimetres),
+        ...measure(texts.measure.humidity, day.relative_humidity_mean, present.humidity, percent),
         // The daily mean wind: CORDEX serves no daily maximum.
         ...measure(texts.measure.windMean, day.wind_speed_mean, present.wind, kilometresPerHour),
       ]),
       // Under the wind, and reserved on every card of the strip or on none.
       ...(reservesHumidHeat ? [humidHeat(day)] : []),
+      detail(day),
     ]),
   ]);
+}
+
+/**
+ * The table the enlarged card shows: every reading on a line of its own, the
+ * word on the left, the figure and its unit on the right, all at one size.
+ *
+ * Off screen on the card itself, which shows its maximum alone, and hidden
+ * from screen readers, which hear the same readings from the card above it
+ * (dayzoom.js draws the enlarged copy, the stylesheet shows this table there).
+ */
+function detail(day) {
+  const { celsius, millimetres, kilometresPerHour, percent } = texts.units;
+  const rows = [
+    [texts.detail.high, day.temperature_max, present.temperature, celsius],
+    [texts.detail.low, day.temperature_min, present.temperature, celsius],
+    [texts.detail.precipitation, day.precipitation, present.precipitation, millimetres],
+    [texts.detail.humidity, day.relative_humidity_mean, present.humidity, percent],
+    [texts.detail.wind, day.wind_speed_mean, present.wind, kilometresPerHour],
+  ];
+  return el(
+    "dl",
+    { className: "card-detail", attrs: { "aria-hidden": "true" } },
+    rows.flatMap(([label, raw, format, unit]) => [
+      el("dt", { text: label }),
+      el("dd", {}, [
+        el("span", { className: "value", text: format(raw) }),
+        el("span", { className: "unit", text: unit }),
+      ]),
+    ]),
+  );
 }
 
 /**
@@ -181,30 +265,14 @@ function value(shown, raw, className) {
 }
 
 /**
- * One temperature on a line of its own, degree sign included.
- *
- * The unit rides on each of the two rather than once at the end, which is what
- * stacking costs: side by side, "14 · 28 °C" let one sign serve both, and one
- * above the other it would sit against the lower number alone.
+ * One temperature, degree sign included. The unit rides on each of the two,
+ * the maximum and the minimum being set at two sizes.
  */
-function degrees(raw, className, unit, band) {
-  // The band arrives decided by the server and is written as an attribute, never
-  // as a colour: the hues live in the stylesheet, exactly as the pictogram lives
-  // here rather than in the JSON. How many of them there are is not this file's
-  // to know — it said twenty-two here for as long as the ladder had nine.
-  //
-  // An attribute rather than a class so that the sheet can say *any band* in one
-  // selector — which is what carries the white ink and the tint. A day with no
-  // temperature carries no attribute at all, keeps the page's own ink and stays
-  // untinted: a gap is not a shade of cold.
-  return el(
-    "span",
-    {
-      className: `card-degrees ${className}`,
-      attrs: { "data-band": band === null || band === undefined ? undefined : String(band) },
-    },
-    [value(present.temperature(raw), raw, "value"), el("span", { className: "unit", text: unit })],
-  );
+function degrees(raw, className, unit) {
+  return el("span", { className: `card-degrees ${className}` }, [
+    value(present.temperature(raw), raw, "value"),
+    el("span", { className: "unit", text: unit }),
+  ]);
 }
 
 /**

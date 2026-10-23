@@ -78,6 +78,11 @@ export function wind(value) {
   return present(value, WHOLE);
 }
 
+/** Relative humidity, in whole percent. */
+export function humidity(value) {
+  return present(value, WHOLE);
+}
+
 // Dates arrive as "2046-07-14" and are read in UTC, deliberately. Left to the
 // local zone, `new Date("2046-07-14")` lands on midnight UTC and slides back a
 // day for any visitor west of Greenwich — the card would carry the wrong date
@@ -95,6 +100,7 @@ const DAY = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "UTC",
 });
 const MONTH = new Intl.DateTimeFormat("fr-FR", { month: "long", timeZone: "UTC" });
+const MONTH_YEAR = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
 const FULL = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
   month: "long",
@@ -108,9 +114,19 @@ export function dayLabel(iso) {
   return DAY.format(new Date(iso));
 }
 
+/** "1", "14": the day of the month, under the weekday column of the calendar. */
+export function dayOfMonth(iso) {
+  return String(Number(iso.slice(8, 10)));
+}
+
 /** "juillet" — shown only where the month changes. */
 export function monthLabel(iso) {
   return MONTH.format(new Date(iso));
+}
+
+/** "juillet 2046": the line that opens each month on the calendar. */
+export function monthYear(iso) {
+  return MONTH_YEAR.format(new Date(iso));
 }
 
 /** "14 juillet 2046" — the header, where there is room. */

@@ -8,14 +8,11 @@
     <link rel="stylesheet" href="/static/css/style.css" />
     <script type="module" src="/static/js/results.js"></script>
   </head>
-  <!-- The heat, as the home page has its sunset. A results page used to be a
-       strip of cards on flat paper; the mock-up puts them on the summer that
-       produced them — and results.js turns the ground over to the season the
-       range actually falls in. The attribute written here is the fallback, for
-       a URL carrying no usable range: the summer the page was drawn on. -->
+  <!-- The season sets the page's inks and rules (the ground is white since
+       2026-10-17): results.js writes the season the range actually falls in.
+       The attribute written here is the fallback, for a URL carrying no usable
+       range: the summer the page was drawn on. -->
   <body class="results" data-season="summer">
-    <div class="sky" aria-hidden="true"></div>
-
     <a class="skip" href="#days" data-text="site.skipToDays"></a>
 
     <header class="banner">
@@ -63,16 +60,31 @@
       <p id="failure" class="failure" role="alert" hidden></p>
 
       <!--
-        tabindex makes the strip focusable, which is what lets the arrow keys
-        scroll it: ninety cards are otherwise out of reach without a mouse.
+        The calendar: seven columns, Monday first, four weeks in view and the
+        rest scrolled to. The weekday row stands outside the scrolled box so it
+        stays put; it is hidden from screen readers, which hear the weekday on
+        every card. The cards take the focus themselves, one in the tab order
+        and the arrows for the rest (dayzoom.js). Hidden until the days arrive.
       -->
-      <ol
-        id="days"
-        class="band"
-        tabindex="0"
-        role="group"
-        data-attr-aria-label="results.bandLabel"
-      ></ol>
+      <div id="calendar" class="calendar" hidden>
+        <ol class="calendar-weekdays" aria-hidden="true">
+          <li data-text="results.weekdays.0"></li>
+          <li data-text="results.weekdays.1"></li>
+          <li data-text="results.weekdays.2"></li>
+          <li data-text="results.weekdays.3"></li>
+          <li data-text="results.weekdays.4"></li>
+          <li data-text="results.weekdays.5"></li>
+          <li data-text="results.weekdays.6"></li>
+        </ol>
+        <div
+          id="days-scroll"
+          class="band"
+          role="group"
+          data-attr-aria-label="results.bandLabel"
+        >
+          <ol id="days" class="band-grid"></ol>
+        </div>
+      </div>
 
       <!--
         The sentence that says what the mark on the cards means, and it is built

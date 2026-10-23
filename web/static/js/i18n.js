@@ -129,8 +129,11 @@ export const texts = {
     count: (n) => (n === 1 ? "1 journée" : `${n} journées`),
     loading: "Récupération des données…",
     back: "Nouvelle recherche",
-    bandLabel: "Les journées, dans l'ordre. Défilement horizontal.",
+    bandLabel: "Les journées, semaine par semaine, du lundi au dimanche. Flèches pour passer d'un jour à l'autre.",
     seam: "À partir d'ici, simulation",
+    // On the first simulated card of the calendar, beside the month name.
+    seamCard: "simulation",
+    weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
   },
 
   // The chart says the same days as the strip, in the other reading. Its one
@@ -347,6 +350,7 @@ export const texts = {
       `Température maximale (${texts.units.celsius})`,
       `${texts.measure.precipitation} (${texts.units.millimetres})`,
       "Nébulosité (%)",
+      `${texts.measure.humidity} (${texts.units.percent})`,
       `Vent moyen (${texts.units.kilometresPerHour})`,
       `Température humide moyenne (${texts.units.celsius})`,
       "Chaleur humide",
@@ -492,6 +496,7 @@ export const texts = {
     precipitation: "Précipitations",
     // The daily mean at 10 m, CORDEX serving no maximum: never "rafale".
     windMean: "Vent moyen",
+    humidity: "Humidité relative",
     missing: "—",
     missingLabel: "donnée manquante",
   },
@@ -542,6 +547,17 @@ export const texts = {
     celsius: "°C",
     millimetres: "mm",
     kilometresPerHour: "km/h",
+    percent: "%",
+  },
+
+  // The table of the enlarged card: every reading, one line each, the word
+  // shown this time since the card has the room.
+  detail: {
+    high: "Température max.",
+    low: "Température min.",
+    precipitation: "Précipitations",
+    humidity: "Humidité",
+    wind: "Vent moyen",
   },
 
   // Handed to fetch.js, which transports and does not write. Separate sentences

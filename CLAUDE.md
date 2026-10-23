@@ -101,7 +101,7 @@ Les détails sont enregistrés dans `docs/correction.md`. Les températures (`ta
 
 /!\ À faire
 
-Le site de la V1 est branché sur les données V2 (ERA5-Land et ERA5 1970-2025, CORDEX corrigé 2027-2100, 2026 indisponible) : voir `docs/application.md`.
+Le site de la V1 est branché sur les données V2 (ERA5-Land et ERA5 1970-2025, CORDEX corrigé 2027-2100, 2026 indisponible) : voir `docs/application.md`. Schéma de la chaîne, des données brutes aux pages, et commandes dans l'ordre : `docs/tuyauterie_site.pdf` (état au 15/10/2026).
 
 ### Comparaison aux normales
 

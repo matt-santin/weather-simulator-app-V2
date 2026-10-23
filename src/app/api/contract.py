@@ -7,8 +7,9 @@ cloud-cover table.
 
 It carries the sky class, never the pictogram; the temperature band, never the
 colour; ``origin`` on every day and ``has_simulated`` on the response, which
-the warning turns on. It omits ``temperature_mean`` and the relative humidity:
-inputs of the snow criterion and the wet bulb, not displayed.
+the warning turns on. It omits ``temperature_mean``: an input of the snow
+criterion, not displayed. The relative humidity, long omitted on the same
+grounds, travels since 2026-10-17, when the enlarged card began to show it.
 """
 
 from __future__ import annotations
@@ -33,6 +34,9 @@ class Day(BaseModel):
     temperature_max: float | None = Field(default=None, description="degrees Celsius")
     precipitation: float | None = Field(default=None, description="millimetres, all phases")
     cloud_cover: float | None = Field(default=None, description="percent, daily mean")
+    relative_humidity_mean: float | None = Field(
+        default=None, description="percent, daily mean at 2 m"
+    )
     wind_speed_mean: float | None = Field(default=None, description="km/h, daily mean at 10 m")
     wet_bulb_mean: float | None = Field(
         default=None, description="degrees Celsius, daily mean wet bulb (Stull)"
@@ -61,6 +65,7 @@ class Day(BaseModel):
             temperature_max=_round(record.temperature_max),
             precipitation=_round(record.precipitation),
             cloud_cover=_round(record.cloud_cover),
+            relative_humidity_mean=_round(record.relative_humidity_mean),
             wind_speed_mean=_round(record.wind_speed_mean),
             wet_bulb_mean=_round(wet_bulb),
             humid_heat=humidity.humid_heat(wet_bulb),

@@ -34,6 +34,7 @@ import {
 } from "./fetch.js";
 import { sources, strip } from "./band.js";
 import { chart } from "./chart.js";
+import { attachZoom } from "./dayzoom.js";
 import { diagram, summary, years as yearsOf } from "./climate.js";
 import { alignByDate, referenceYears } from "./compare.js";
 import { toCsv, fileName } from "./csv.js";
@@ -50,7 +51,9 @@ const warning = document.getElementById("warning");
 const note = document.getElementById("humid-note");
 const wait = document.getElementById("wait");
 const failure = document.getElementById("failure");
+const calendar = document.getElementById("calendar");
 const band = document.getElementById("days");
+const bandScroll = document.getElementById("days-scroll");
 const chartPanel = document.getElementById("chart-panel");
 const provenance = document.getElementById("provenance");
 const provenanceGrid = document.getElementById("provenance-grid");
@@ -175,11 +178,57 @@ function humidNote(peak) {
   note.hidden = false;
 }
 
+/**
+ * Four weeks in view at most, the rest scrolled to.
+ *
+ * Measured rather than written in the sheet: a week is as tall as its tallest
+ * card, which depends on the type, the width, and whether the humid-heat line
+ * is reserved. The box is cut under the last whole week that fits, four at
+ * most, fewer when the window is too short to show four, never fewer than one.
+ * On a narrow window the sheet turns the calendar into a list of one column,
+ * and the box is left to its full height: the page scrolls, not a box inside
+ * it.
+ */
+const WEEKS = 4;
+const WINDOW_MARGIN = 64;
+
+function fitCalendar() {
+  bandScroll.style.maxHeight = "";
+  const columns = getComputedStyle(band).gridTemplateColumns.split(" ").length;
+  if (columns < 7) return;
+  // The tops of the rows of days, in order; the month lines between them are
+  // counted in the height but are not weeks.
+  const weeks = [
+    ...new Set([...band.querySelectorAll(".card, .pad")].map((cell) => cell.offsetTop)),
+  ];
+  if (weeks.length <= WEEKS) return;
+  const gap = parseFloat(getComputedStyle(band).rowGap) || 0;
+  const room = window.innerHeight - WINDOW_MARGIN;
+  let height = 0;
+  for (let week = 1; week <= WEEKS; week += 1) {
+    const bottom = rowBottom(weeks[week - 1], gap);
+    if (week > 1 && bottom > room) break;
+    height = bottom;
+  }
+  bandScroll.style.maxHeight = `${height}px`;
+}
+
+/** Where the row of days starting at `top` ends: the top of what follows, less a gap. */
+function rowBottom(top, gap) {
+  const next = [...band.children].find((cell) => cell.offsetTop > top);
+  return next ? next.offsetTop - gap : band.scrollHeight;
+}
+
 async function show(series) {
   wait.hidden = true;
   warning.hidden = !series.has_simulated;
   count.textContent = texts.results.count(series.days.length);
   band.append(...strip(series.days, series.humid_heat_peak));
+  calendar.hidden = false;
+  attachZoom(band, bandScroll);
+  fitCalendar();
+  document.fonts?.ready.then(fitCalendar);
+  window.addEventListener("resize", fitCalendar);
   humidNote(series.humid_heat_peak);
 
   // Offered as soon as the days are on screen, and before the chart: what the

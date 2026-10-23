@@ -89,11 +89,20 @@ export function textOf(node, name) {
   return byClass(node, name)[0]?.textContent;
 }
 
-/** Everything the card says, in reading order — what a screen reader gets. */
+/**
+ * Everything the card says, in reading order — what a screen reader gets.
+ *
+ * `aria-hidden` takes its whole subtree out, as it does in a browser: the table
+ * of the enlarged card is hidden as one block, its words and figures with it.
+ */
 export function reads(node) {
-  return walk(node)
-    .filter((child) => child.attrs["aria-hidden"] !== "true")
+  return heard(node)
     .map((child) => child.textContent)
     .filter(Boolean)
     .join(" ");
+}
+
+function heard(node) {
+  if (node.attrs["aria-hidden"] === "true") return [];
+  return [node, ...node.children.flatMap(heard)];
 }

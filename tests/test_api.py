@@ -82,6 +82,12 @@ def test_the_wind_is_served_in_kmh(client: TestClient) -> None:
     assert served["wind_speed_mean"] == pytest.approx(round(expected("cordex", day, "sfcWind") * 3.6, 1))
 
 
+def test_the_relative_humidity_is_served_in_percent(client: TestClient) -> None:
+    for source, day in (("era5", date(1999, 7, 1)), ("cordex", date(2044, 7, 1))):
+        served = days(client, day.isoformat(), day.isoformat()).json()["days"][0]
+        assert served["relative_humidity_mean"] == pytest.approx(round(expected(source, day, "hurs"), 1))
+
+
 def test_a_gap_stays_a_gap(client: TestClient) -> None:
     served = days(client, GAP.isoformat(), GAP.isoformat()).json()["days"][0]
     assert served["precipitation"] is None

@@ -109,7 +109,6 @@
      rather than a preference — a hair more and the column passes the reading
      measure it is defined against. */
   --column: 33rem;
-  --card: 13rem;
 
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Garamond before Georgia: the fallbacks are ordered by how little the page
@@ -291,17 +290,12 @@ body.results {
      is organised against. It lands on #ebe8e2 over the card's paper. */
   --past-fill: color-mix(in srgb, var(--past) 22%, transparent);
 
-  /* Narrower than the dark card was, and narrower again since. The mock-up's
-     are portrait, and a portrait card puts the two temperatures under the
-     pictogram instead of beside it — which is what buys the room to set them
-     large. The width is what the widest line inside actually needs: "100 km/h"
-     at its size, plus the padding, and nothing spare. */
-  --card: 8.25rem;
-
-  /* Served, not copied: this is the gradient's own first stop, and the sky layer
-     stops where the document does. The same reasoning as `--sky-foot` on the
-     home page, from the other end. */
-  background-color: var(--sky-head);
+  /* White, on all four seasons, since 2026-10-17. The page used to sit on a
+     gradient, near-white at the top to near-black at the foot, and once the
+     calendar, the chart, the diagram and the matrix made it several screens
+     long the gradient stretched into a long wash behind them. The season now
+     sets the inks and the rules only. */
+  background-color: #fff;
   position: relative;
   color: var(--ink);
 
@@ -345,9 +339,10 @@ body.results {
 /*
  * The four palettes.
  *
- * Six tokens each and no more: the gradient, its head, and the four inks that
- * sit on it. Everything else on this page is the same whatever the season,
- * because everything else is drawn on a card rather than on the sky.
+ * Four inks each and no more. The gradient each season used to carry, and its
+ * head, came off on 2026-10-17 with the sky layer: the page is white, and the
+ * notes below on the gradient's shape and its stops are its history. Everything
+ * else on this page is the same whatever the season.
  *
  * **Summer is read, the other three are drawn.** Its eleven stops were decoded
  * from the raster embedded in design/summer_result.svg and sampled every ten
@@ -376,17 +371,6 @@ body.results {
 
 /* Winter, 21 December to 20 March. White above, deep blue below. */
 body.results[data-season="winter"] {
-  --sky-head: #f7fbfe;
-  --sky: linear-gradient(
-    to bottom,
-    var(--sky-head) 0%,
-    #dbeaf7 20%,
-    #b3d0e8 40%,
-    #6f9dc9 60%,
-    #2c5b90 80%,
-    #0a1b33 100%
-  );
-
   --ink: #0b1c30;
   --ink-soft: #12293f;
   --rule: #5b87b5;
@@ -397,17 +381,6 @@ body.results[data-season="winter"] {
    green of a wood — the foot has to go dark for the provenance to keep reading
    pale, which is the one thing the four grounds must agree on. */
 body.results[data-season="spring"] {
-  --sky-head: #f9fcef;
-  --sky: linear-gradient(
-    to bottom,
-    var(--sky-head) 0%,
-    #eaf3c8 20%,
-    #d8e894 40%,
-    #c8d94a 60%,
-    #5f8a22 80%,
-    #0f2409 100%
-  );
-
   --ink: #17280c;
   --ink-soft: #24380f;
   --rule: #7d9438;
@@ -417,22 +390,6 @@ body.results[data-season="spring"] {
 /* Summer, 21 June to 20 September — the mock-up's own, and the page was drawn on
    it. Not one value here has moved; only the selector around them has. */
 body.results[data-season="summer"] {
-  --sky-head: #fafdea;
-  --sky: linear-gradient(
-    to bottom,
-    var(--sky-head) 0%,
-    #f9deb1 10%,
-    #fbbe7f 20%,
-    #fe9e52 30%,
-    #ff7b30 40%,
-    #fd5816 50%,
-    #fd3a0c 60%,
-    #fd2101 70%,
-    #d60e01 80%,
-    #810402 90%,
-    #070000 100%
-  );
-
   /* Dark ink on a bright ground — the reverse of every other surface here. The
      brown is the sunset's own, not a black: the warning on the home page picks
      its ink the same way. */
@@ -445,17 +402,6 @@ body.results[data-season="summer"] {
 /* Autumn, 21 September to 20 December. White through the orange of the leaves,
    into the brown they end as. */
 body.results[data-season="autumn"] {
-  --sky-head: #fdf7ec;
-  --sky: linear-gradient(
-    to bottom,
-    var(--sky-head) 0%,
-    #fae2bd 20%,
-    #f3bb72 40%,
-    #e08a35 60%,
-    #a4501a 80%,
-    #1e0c03 100%
-  );
-
   --ink: #2a1206;
   --ink-soft: #3d1c07;
   --rule: #bd7734;
@@ -489,7 +435,7 @@ body.results .doc-link {
   font-size: 0.9375rem;
 }
 
-body.results .band {
+body.results .calendar {
   margin-top: calc(var(--space) * 8);
 }
 
@@ -522,7 +468,7 @@ body.results .band {
     padding: calc(var(--space) * 3) 0;
   }
 
-  body.results .band {
+  body.results .calendar {
     margin-top: calc(var(--space) * 6);
   }
 
@@ -909,7 +855,7 @@ footer.banner {
 .card-sky,
 button[type="submit"],
 .mode,
-.seam span {
+.calendar-weekdays {
   font-family: var(--font);
   font-size: var(--label-size);
   font-weight: 500;
@@ -1325,17 +1271,76 @@ button[type="submit"]:hover {
 
 /* --- the strip of days ----------------------------------------------------- */
 
-.band {
-  display: flex;
+/*
+ * A calendar of seven columns, Monday first: four weeks in view, the rest
+ * scrolled to, a week at a time. How tall four weeks are is measured in
+ * results.js, since a week is as tall as its tallest card.
+ *
+ * **The weekday row stands outside the scrolled box**, so it stays in view, and
+ * it has to keep the box's columns exactly. The scrollbar is what would shift
+ * them: both reserve the same gutter with the same scrollbar, the row by being
+ * an `overflow-y: hidden` box that never scrolls.
+ */
+.calendar {
+  margin-top: calc(var(--space) * 12);
+}
+
+.calendar-weekdays,
+.band-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: calc(var(--space) * 3);
-  margin: calc(var(--space) * 12) 0 0;
-  padding: 0 0 calc(var(--space) * 5);
+  margin: 0;
+  padding: 0;
   list-style: none;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  overscroll-behavior-x: contain;
+}
+
+.calendar-weekdays {
+  margin-bottom: calc(var(--space) * 2);
+  overflow-y: hidden;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.calendar-weekdays,
+.band {
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--rule-strong) transparent;
+}
+
+.band {
+  position: relative;
+  overflow-y: auto;
+  scroll-snap-type: y proximity;
+  overscroll-behavior-y: contain;
+}
+
+.band-grid > li {
+  scroll-snap-align: start;
+}
+
+/* The line that opens each month: its name across the seven columns, between
+   two rules. */
+.month-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 3);
+  padding-top: calc(var(--space) * 2);
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 600;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.month-row::before,
+.month-row::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
 }
 
 /*
@@ -1345,11 +1350,14 @@ button[type="submit"]:hover {
  * narrow window for its own reason and needs the same telling.
  */
 .band::-webkit-scrollbar,
+.calendar-weekdays::-webkit-scrollbar,
 .chart-panel::-webkit-scrollbar {
+  width: 8px;
   height: 8px;
 }
 
 .band::-webkit-scrollbar-track,
+.calendar-weekdays::-webkit-scrollbar-track,
 .chart-panel::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -1363,9 +1371,7 @@ button[type="submit"]:hover {
 }
 
 .card {
-  flex: 0 0 auto;
-  width: var(--card);
-  scroll-snap-align: start;
+  min-width: 0;
   border: 1px solid var(--rule);
   background: var(--raised);
   overflow: hidden;
@@ -1409,6 +1415,27 @@ button[type="submit"]:hover {
   font-family: var(--font-display);
   font-size: 1.0625rem;
   white-space: nowrap;
+}
+
+/* On the calendar the column names the weekday: the day of the month is shown,
+   the month with it on the turn, and the full date and the month line are
+   read. The list on a narrow window swaps them back. */
+.card-month,
+.card-date-long {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The seam, written on the first simulated card beside the month name, at the
+   page's own ink so that it is not taken for a second month. */
+.card-seam {
+  margin-left: 0.4em;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .card-body {
@@ -1569,69 +1596,40 @@ button[type="submit"]:hover {
  * boundaries they stand for are written where they are measured — twelve French
  * towns, 1981-2010.
  *
- * **The colour is a ground, and the number sits on it.** That is what buys the
- * scale its legibility: a hue laid over an area is far easier to tell from its
- * neighbour than the same hue on the thin strokes of a digit. It is also the one
- * place on this site that is a filled shape — the sheet's own habit is that
- * nothing is in a box — and it earns the exception by being the only thing on
- * the card that has to be read as a *quantity* rather than as a word.
+ * **One colour per day, on the whole card, from the maximum.** The minimum is
+ * written and not tinted. Four weeks of cards then read as a heat map of the
+ * month: a hot spell stands out at a glance, which two tinted figures per card
+ * did not show. Chosen on 2026-10-16 over a card with the maximum alone in a box.
  *
- * **The ink turns over with the ground, and that is what makes a yellow
- * possible.** A single white ink would force every band dark enough to carry
- * it, and a yellow dark enough for white text is an ochre — which is what an
- * earlier ramp was, and why it was thrown out. So each band names its own ink:
- * white on the four dark ones, near-black on the five light ones. Every pairing
- * is measured, and the weakest is 4.77:1; `scripts/ink_contrast.py` re-reads
- * them from this file whenever one moves.
- *
- * **Nine, because nine can be named.** Dark blue, light blue, light green,
- * yellow, orange, light red, dark red, very dark red, black — a reader can hold
- * that many and tell one from the next. Finer steps were tried at 2.5 °C and
- * needed twenty-two tones, which is a gradient wearing a legend.
+ * **Blue, green, yellow, orange, red, black**, one step per band, softened to
+ * serve as a ground. Chosen on 2026-10-17, in place of a sober blue, cream and
+ * red scale (2026-10-16). The ink turns over
+ * with the ground: dark up to 35 °C, white on the two hottest bands. Measured
+ * on 2026-10-17: full ink 5.45:1 at the weakest (< 5), the softened ink at 85 %
+ * 4.54:1 (< 5).
  */
-body.results .card-degrees[data-band] {
-  padding: calc(var(--space) * 1) calc(var(--space) * 2);
-  background-color: var(--band);
-  color: var(--band-ink);
+body.results [data-band] {
+  --tile-ink: #1c1408;
 }
 
-/* Air between the maximum and the minimum. Touching, the two grounds read as a
-   single two-tone bar and the eye stops counting them as two readings. */
-body.results .card-degrees[data-band] ~ .card-degrees[data-band] {
-  margin-top: calc(var(--space) * 1.5);
-}
-
-/* The unit rides on the tint, so it drops its own ink and keeps only the step
-   down in weight the sheet gives it everywhere else. */
-body.results .card-degrees[data-band] .unit {
-  color: inherit;
-}
-
-/* Near-black rather than the page's own ink: that one turns with the season,
-   and a band is drawn on a card, which does not. */
-body.results .card-degrees[data-band] {
-  --dark-ink: #1c1408;
-}
-
-/* < 5 — bleu foncé */
-body.results [data-band="0"] { --band: #123a72; --band-ink: #fff; }
+/* < 5 — bleu */
+body.results [data-band="0"] { --tile: #5b8fd0; }
 /* 5 à 10 — bleu clair */
-body.results [data-band="1"] { --band: #5aa9de; --band-ink: var(--dark-ink); }
-/* 10 à 15 — vert clair */
-body.results [data-band="2"] { --band: #8bc94a; --band-ink: var(--dark-ink); }
-/* 15 à 20 — jaune */
-body.results [data-band="3"] { --band: #f2ce1b; --band-ink: var(--dark-ink); }
-/* 20 à 25 — orange */
-body.results [data-band="4"] { --band: #f0902a; --band-ink: var(--dark-ink); }
-/* 25 à 30 — rouge clair */
-body.results [data-band="5"] { --band: #e9634a; --band-ink: var(--dark-ink); }
-/* 30 à 35 — rouge foncé */
-body.results [data-band="6"] { --band: #b01712; --band-ink: #fff; }
-/* 35 à 40 — rouge très foncé */
-body.results [data-band="7"] { --band: #6b0a0a; --band-ink: #fff; }
-/* ≥ 40 — noir. Le haut de l'échelle s'éteint plutôt qu'il ne crie : c'est la
-   bande qu'aucune journée française de 1981-2010 n'atteint. */
-body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
+body.results [data-band="1"] { --tile: #8dbde0; }
+/* 10 à 15 — vert */
+body.results [data-band="2"] { --tile: #8fcca0; }
+/* 15 à 20 — vert-jaune */
+body.results [data-band="3"] { --tile: #c8de7c; }
+/* 20 à 25 — jaune */
+body.results [data-band="4"] { --tile: #f5de6a; }
+/* 25 à 30 — orange clair */
+body.results [data-band="5"] { --tile: #f7b456; }
+/* 30 à 35 — orange */
+body.results [data-band="6"] { --tile: #ee7c48; }
+/* 35 à 40 — rouge */
+body.results [data-band="7"] { --tile: #b52d24; --tile-ink: #fff; }
+/* ≥ 40 — noir : la bande qu'aucune journée française de 1981-2010 n'atteint. */
+body.results [data-band="8"] { --tile: #241212; --tile-ink: #fff; }
 
 .sep {
   margin-inline: 0.5ch;
@@ -1643,25 +1641,6 @@ body.results [data-band="8"] { --band: #16100c; --band-ink: #fff; }
   font-family: var(--font);
   font-size: 0.6875rem;
   letter-spacing: 0.04em;
-  color: var(--ink-soft);
-}
-
-/*
- * The seam, as a card of its own. Vertical because it has to be narrow, and
- * written because colour must never be what carries the information.
- */
-.seam {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(var(--space) * 8);
-  border-left: 1px solid var(--rule-strong);
-}
-
-.seam span {
-  writing-mode: vertical-rl;
-  padding: calc(var(--space) * 2) 0;
   color: var(--ink-soft);
 }
 
@@ -2519,57 +2498,75 @@ body.doc h1 {
  * What the mock-up changes, component by component. Everything above stays as
  * it was for the home page; nothing here reaches it.
  *
- * **The card stops being the box.** It was a bordered panel with a tinted head;
- * now the date sits bare on the gradient and only the body below it is drawn.
- * That is the mock-up's arrangement and it earns itself: on a ground this loud,
- * a single white rectangle per day gives the eye something to count.
+ * **The card is one tinted box**, the date and the pictogram on its first line,
+ * the two temperatures under them, the rain and the wind last. The tint is the
+ * band of the maximum (see the scale above); a day with no maximum keeps the
+ * plain paper, since a gap is not a shade of cold. Compact because four weeks
+ * have to stand in one window.
+ *
+ * The card's own boxes go: `display: contents` lets the head and the body hand
+ * their children to the card's grid, and keeps them in the document for the
+ * screen reader in the same order.
  */
 body.results .card {
-  border: 0;
-  background: transparent;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: calc(var(--space) * 2) calc(var(--space) * 2.5);
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  background: var(--tile, var(--raised));
+  color: var(--tile-ink, #1c1408);
   overflow: visible;
 }
 
-body.results .card-head {
-  padding: 0 0 calc(var(--space) * 2);
-  border-bottom: 0;
-  text-align: center;
+body.results .card-head,
+body.results .card-body {
+  display: contents;
 }
 
 body.results .card-day {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
+  opacity: 0.85;
 }
 
-body.results .card-body {
-  padding: calc(var(--space) * 4) calc(var(--space) * 3) calc(var(--space) * 4);
-  border: 1px solid var(--ink);
-  background: var(--raised);
-}
-
-/* The simulated side of the seam, still two cues and still neither alone: a
-   warmer paper, and the written marker standing in the strip. */
-body.results .card--simulated .card-body {
-  background: var(--raised-simulated);
-}
-
-/*
- * The two temperatures, stacked, maximum first. They are the card's headline
- * and they are set larger here than on the dark card — a white rectangle this
- * narrow has room for exactly one thing that shouts.
- */
-body.results .card-temperatures {
-  margin-top: calc(var(--space) * 2);
-  font-size: 1.875rem;
+body.results .card-emoji {
+  min-height: 0;
+  font-size: 1.25rem;
   line-height: 1.2;
 }
 
+/*
+ * The maximum large, the minimum smaller and softened beside it, maximum first:
+ * the figure a summer read is looking for leads, and the order read aloud is
+ * the order seen.
+ */
+body.results .card-temperatures {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: calc(var(--space) * 2);
+  margin-top: calc(var(--space) * 1);
+  line-height: 1.15;
+}
+
 body.results .card-degrees {
-  display: block;
+  color: inherit;
+}
+
+body.results .card-degrees.high {
+  font-size: 1.75rem;
+}
+
+body.results .card-degrees.low {
+  font-size: 1.0625rem;
+  opacity: 0.85;
 }
 
 /* Written for the screen reader, drawn by the pictogram. docs/application.md
    asks that the emoji never travel alone; it does not ask that the word be
-   shown, and the mock-up's card has no room for it. */
+   shown, and the card has no room for it. */
 body.results .card-sky {
   position: absolute;
   width: 1px;
@@ -2579,24 +2576,186 @@ body.results .card-sky {
   white-space: nowrap;
 }
 
-/* Both measures on one centred column, the words gone off-screen with the
-   labels. The rule above them is what keeps them a footnote to the degrees. */
+/* Both measures on one line, small and softened, the words gone off-screen with
+   the labels: a footnote to the degrees. */
 body.results .card-measures {
-  display: block;
-  margin-top: calc(var(--space) * 3);
-  padding-top: calc(var(--space) * 3);
-  border-top: 1px solid var(--rule);
-  text-align: center;
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: calc(var(--space) * 2.5);
+  margin-top: calc(var(--space) * 1);
+  padding-top: 0;
+  border-top: 0;
+  opacity: 0.85;
 }
 
 body.results .card-measures dd {
   text-align: center;
-  font-size: 1.0625rem;
+  font-size: 0.8125rem;
 }
 
-body.results .card-measures dd + dt + dd,
-body.results .card-measures dd ~ dd {
-  margin-top: calc(var(--space) * 1);
+body.results .card-humid {
+  grid-column: 1 / -1;
+}
+
+/*
+ * **On the calendar a card shows its date, its pictogram and its maximum, and
+ * nothing else.** The colour behind the figure is the band of that same
+ * maximum. The rest of the
+ * day stays in the card, off-screen for the screen reader, and comes on screen
+ * in the enlarged copy dayzoom.js draws over a card under the pointer or with
+ * the focus. Chosen on 2026-10-17, the pictogram added back the same day. The list a narrow window shows has the room,
+ * and keeps everything on screen.
+ */
+@media (min-width: 60rem) {
+  body.results .card:not(.card--zoom) :is(.card-degrees.low, .card-measures, .card-humid) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The date alone on the first line; under it the pictogram and the maximum
+     side by side, at one size, meeting in the middle of the card. */
+  body.results .card:not(.card--zoom) {
+    grid-template-columns: 1fr 1fr;
+    column-gap: calc(var(--space) * 2);
+  }
+
+  body.results .card:not(.card--zoom) .card-day {
+    grid-column: 1 / -1;
+  }
+
+  body.results .card:not(.card--zoom) .card-emoji {
+    justify-self: end;
+    font-size: 2.25rem;
+    line-height: 1;
+  }
+
+  body.results .card:not(.card--zoom) .card-temperatures {
+    grid-column: auto;
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+
+  body.results .card:not(.card--zoom) .card-degrees.high {
+    font-size: 2.25rem;
+    line-height: 1;
+  }
+}
+
+body.results .card:hover,
+body.results .card:focus-visible {
+  outline: 2px solid var(--ink);
+  /* Inside the card: outside, the scrolled box would cut it on the side columns. */
+  outline-offset: -2px;
+}
+
+/*
+ * The enlarged copy: fixed to the window, over the card it copies, with
+ * everything on screen. It grows from the card's own size (`--from`, set by
+ * dayzoom.js); the global rule for reduced motion takes the transition off.
+ */
+body.results .card--zoom {
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  padding: calc(var(--space) * 3) calc(var(--space) * 4) calc(var(--space) * 3.5);
+  list-style: none;
+  box-shadow: 0 12px 32px rgb(28 20 8 / 28%);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(var(--from, 0.6));
+  transition:
+    transform 140ms ease-out,
+    opacity 140ms ease-out;
+}
+
+body.results .card--zoom.is-open {
+  opacity: 1;
+  transform: none;
+}
+
+body.results .card--zoom .card-date-long {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+}
+
+body.results .card--zoom .card-date-short {
+  display: none;
+}
+
+body.results .card--zoom .card-day {
+  font-size: 1rem;
+}
+
+body.results .card--zoom .card-emoji {
+  font-size: 1.75rem;
+}
+
+/* The sky's word, which the small card leaves to the screen reader: the copy
+   has the room. */
+body.results .card--zoom .card-sky {
+  position: static;
+  grid-column: 1 / -1;
+  width: auto;
+  height: auto;
+  margin: calc(var(--space) * 1) 0 0;
+  overflow: visible;
+  clip-path: none;
+}
+
+/* The figures of the small card make way for the table below. */
+body.results .card--zoom :is(.card-temperatures, .card-measures) {
+  display: none;
+}
+
+/*
+ * The table: every reading on a line, the word left, the figure right, all at
+ * one size, in the order maximum, minimum, rain, humidity, wind. Absent from
+ * every card but the enlarged copy.
+ */
+.card-detail {
+  display: none;
+}
+
+body.results .card--zoom .card-detail {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: calc(var(--space) * 1.5) calc(var(--space) * 4);
+  margin: calc(var(--space) * 3) 0 0;
+  padding-top: calc(var(--space) * 3);
+  border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  font-size: 1rem;
+}
+
+body.results .card--zoom .card-detail dt {
+  text-align: left;
+  font-family: var(--font);
+  font-size: 0.875rem;
+}
+
+body.results .card--zoom .card-detail dd {
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--font);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Same size as the figure: the table is read line by line, not at a glance. */
+body.results .card--zoom .card-detail .unit {
+  margin-left: 0.25em;
+  font-size: inherit;
 }
 
 body.results .unit {
@@ -2604,13 +2763,10 @@ body.results .unit {
   opacity: 0.75;
 }
 
-/* The seam keeps its written marker; only its rule changes side of the palette. */
-body.results .seam {
-  border-left-color: var(--ink);
-}
-
-body.results .seam span {
-  color: var(--ink);
+/* The first simulated card, a firmer edge on the side the past comes from. The
+   word beside its date is what says it; this only draws the eye there. */
+body.results .card--seam {
+  border-left: 3px solid var(--ink);
 }
 
 /* The refusal keeps its rule, but not in red: `--warm` is the mock-up's pure
@@ -2620,39 +2776,15 @@ body.results .failure {
 }
 
 body.results .band,
+body.results .calendar-weekdays,
 body.results .chart-panel {
   scrollbar-color: var(--rule-strong) transparent;
 }
 
 body.results .band::-webkit-scrollbar-thumb,
+body.results .calendar-weekdays::-webkit-scrollbar-thumb,
 body.results .chart-panel::-webkit-scrollbar-thumb {
   background-color: var(--rule-strong);
-}
-
-/*
- * **The bottom of the page is where the ink turns over.** By the provenance the
- * gradient is past `#810402` and heading for black, and the dark ink that
- * serves the heading would vanish into it. This is the foot of the page reading
- * pale, and the rule over the provenance is what marks the crossing.
- *
- * **The export button crossed with it**, and it was written dark first: on the
- * ground at that height, `--ink-soft` is #3d1c07 against #8c4315, which is two
- * darks and a button nobody can see. It sits above the rule rather than below
- * it, so it takes the pale ink without the border.
- */
-body.results .provenance {
-  border-top-color: rgb(255 255 255 / 30%);
-  color: rgb(255 255 255 / 72%);
-}
-
-body.results .provenance summary,
-body.results .export .link {
-  color: rgb(255 255 255 / 72%);
-}
-
-body.results .provenance summary:hover,
-body.results .provenance .pairs dd {
-  color: #fff;
 }
 
 /* --- read but not shown ---------------------------------------------------- */
@@ -2742,12 +2874,6 @@ body.results .provenance .pairs dd {
 
   .dates {
     gap: calc(var(--space) * 6);
-  }
-
-  /* The strip keeps scrolling horizontally at every width, as the document
-     asks — only the card gives a little. */
-  :root {
-    --card: 12rem;
   }
 }
 
@@ -3122,3 +3248,84 @@ body.maps .toggle[aria-pressed="true"] {
 #map.zoomed:active {
   cursor: grabbing;
 }
+
+/*
+ * The calendar on a narrow window: one day per line, in the same order.
+ *
+ * Under 60rem seven columns leave less than the "100 km/h" a card has to hold,
+ * so the grid drops to one column: the date on the left, written out, and the
+ * card's content in a row beside it. Nothing is taken off; the empty cells and
+ * the weekday row go, since there are no columns left for them to name. The
+ * box stops scrolling and the page scrolls instead (results.js leaves its
+ * height alone once it counts fewer than seven columns).
+ */
+@media (max-width: 59.99rem) {
+  .calendar-weekdays,
+  .band-grid > .pad {
+    display: none;
+  }
+
+  .band-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--space) * 2);
+  }
+
+  .band {
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  body.results .card {
+    grid-template-columns: 6.5rem auto minmax(0, 1fr) auto;
+    column-gap: calc(var(--space) * 3);
+  }
+
+  .card-date-long {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .card-date-short {
+    display: none;
+  }
+
+  .card-seam {
+    display: block;
+    margin-left: 0;
+  }
+
+  body.results .card-temperatures {
+    grid-column: auto;
+    justify-content: flex-start;
+    margin: 0;
+  }
+
+  body.results .card-degrees.high {
+    font-size: 1.5rem;
+  }
+
+  body.results .card-measures {
+    grid-column: auto;
+    display: block;
+    margin: 0;
+    text-align: right;
+  }
+
+  body.results .card-measures dd {
+    text-align: right;
+  }
+
+  body.results .card-measures dd ~ dd {
+    margin-top: calc(var(--space) * 1);
+  }
+
+  .card-humid {
+    min-height: 0;
+    margin-top: 0;
+    padding-top: calc(var(--space) * 2);
+  }
+}
+

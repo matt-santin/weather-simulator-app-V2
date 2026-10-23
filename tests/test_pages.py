@@ -48,6 +48,7 @@ def test_pages_are_served_as_html(client: TestClient, path: str) -> None:
         "/static/js/present.js",
         "/static/js/dom.js",
         "/static/js/band.js",
+        "/static/js/dayzoom.js",
         "/static/js/bounds.js",
         "/static/js/prompt.js",
         "/static/js/home.js",
@@ -90,8 +91,8 @@ def test_every_season_the_page_can_name_has_a_palette() -> None:
     """The one join between `season.js` and the stylesheet, and it is by name.
 
     A season the script can write and the sheet cannot paint leaves the page
-    with no gradient at all — `--sky` undefined, the sky layer blank. Nothing
-    else would catch it: the two files never meet, they only agree.
+    with no inks and no rules of its own. Nothing else would catch it: the two
+    files never meet, they only agree.
     """
     sheet = (WEB / "static/css/style.css").read_text()
     # Every name the module can hand back, read off the one table it hands them

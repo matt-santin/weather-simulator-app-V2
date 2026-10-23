@@ -17,6 +17,15 @@ install();
 const { card, sources, strip } = await import("../../web/static/js/band.js");
 const { texts } = await import("../../web/static/js/i18n.js");
 
+/** Every text under the first node carrying that class, in reading order. */
+function said(node, name) {
+  const [found] = byClass(node, name);
+  return found ? walk(found).map((child) => child.textContent).join("") : undefined;
+}
+
+/** The cards alone, without the empty cells that open the calendar. */
+const cards = (nodes) => nodes.filter((node) => node.className.split(" ").includes("card"));
+
 /** A day of the series, as /api/days serves one. */
 function day(date, origin, extra = {}) {
   return {
@@ -27,6 +36,7 @@ function day(date, origin, extra = {}) {
     temperature_max: 27.6,
     precipitation: 0.44,
     cloud_cover: 22.4,
+    relative_humidity_mean: 63.4,
     wind_speed_mean: 8.4,
     wind_speed_max: 18.7,
     sky: "clear",
@@ -48,7 +58,7 @@ describe("the daily card", () => {
     assert.equal(
       reads(only).replace(/\s+/g, " "),
       "juillet samedi 14/07 Maximale 28 °C Minimale 14 °C Dégagé " +
-        "Précipitations 0,4 mm Vent moyen 8 km/h",
+        "Précipitations 0,4 mm Humidité relative 63 % Vent moyen 8 km/h",
     );
   });
 
@@ -69,6 +79,17 @@ describe("the daily card", () => {
 
   it("carries its source as an attribute, for diagnosing the seams", () => {
     assert.equal(only.attrs.title, "MRI_AGCM3_2_S");
+  });
+
+  it("carries the band of the maximum, which tints the whole card", () => {
+    // The band arrives decided by the server; the card only writes it down.
+    const banded = card(day("2046-07-14", "simulated", { temperature_max_band: 5 }), false);
+    assert.equal(banded.attrs["data-band"], "5");
+  });
+
+  it("carries no band on a day with no maximum: a gap is not a shade of cold", () => {
+    const blank = card(day("2046-07-14", "simulated", { temperature_max_band: null }), false);
+    assert.equal(blank.attrs["data-band"], undefined);
   });
 });
 
@@ -102,52 +123,104 @@ describe("a day with gaps", () => {
   });
 });
 
+describe("the calendar", () => {
+  it("opens with the month, then empty cells, so that each day falls under its weekday", () => {
+    // 2046-07-12 is a Thursday: three cells, Monday to Wednesday, come first.
+    const nodes = strip([day("2046-07-12", "observed"), day("2046-07-13", "observed")]);
+    assert.deepEqual(
+      nodes.map((node) => node.className),
+      ["month-row", "pad", "pad", "pad", "card card--observed", "card card--observed"],
+    );
+    assert.equal(nodes[0].textContent, "juillet 2046");
+  });
+
+  it("opens each new month on a line of its own, under its weekday", () => {
+    // 2046-07-31 is a Tuesday, 2046-08-01 a Wednesday: the week is cut, and
+    // August picks up after two empty cells.
+    const nodes = strip([day("2046-07-31", "observed"), day("2046-08-01", "observed")]);
+    assert.deepEqual(
+      nodes.map((node) => node.className),
+      ["month-row", "pad", "card card--observed", "month-row", "pad", "pad", "card card--observed"],
+    );
+    assert.equal(nodes[3].textContent, "août 2046");
+  });
+
+  it("hides the month lines and the empty cells from screen readers", () => {
+    const [month, pad] = strip([day("2046-07-12", "observed")]);
+    assert.equal(month.attrs["aria-hidden"], "true");
+    assert.equal(pad.attrs["aria-hidden"], "true");
+  });
+
+  it("adds no empty cell before a month starting on a Monday", () => {
+    const nodes = strip([day("2046-07-09", "observed")]);
+    assert.deepEqual(
+      nodes.map((node) => node.className),
+      ["month-row", "card card--observed"],
+    );
+  });
+
+  it("shows the day of the month and reads the full date", () => {
+    const [first, next] = cards(strip([day("2046-07-09", "observed"), day("2046-07-10", "observed")]));
+    assert.equal(textOf(first, "card-date-short"), "9");
+    assert.equal(textOf(next, "card-date-short"), "10");
+    const only = first;
+    assert.equal(byClass(only, "card-date-short")[0].attrs["aria-hidden"], "true");
+    assert.equal(textOf(only, "card-date-long"), "lundi 09/07");
+  });
+
+  it("is empty when there are no days", () => {
+    assert.deepEqual(strip([]), []);
+  });
+});
+
 describe("the seam", () => {
   const days = [
-    day("2026-08-06", "observed"),
-    day("2026-08-07", "observed"),
-    day("2026-08-08", "simulated"),
-    day("2026-08-09", "simulated"),
+    day("2026-08-03", "observed"),
+    day("2026-08-04", "observed"),
+    day("2026-08-05", "simulated"),
+    day("2026-08-06", "simulated"),
   ];
+  const seamed = (nodes) => nodes.filter((node) => node.className.includes("card--seam"));
 
-  it("is marked once, right before the first simulated day", () => {
-    const nodes = strip(days);
-    const seams = nodes.filter((node) => node.className === "seam");
-    assert.equal(seams.length, 1);
-    assert.equal(nodes.indexOf(seams[0]), 2);
-    assert.equal(nodes[3].className, "card card--simulated");
+  it("rides on the first simulated card, and on that one alone", () => {
+    // A cell of its own would push every following day off its weekday.
+    const nodes = cards(strip(days));
+    assert.equal(nodes.length, 4);
+    assert.deepEqual(seamed(nodes), [nodes[2]]);
+    assert.equal(nodes[2].className, "card card--simulated card--seam");
   });
 
   it("is written, not only tinted", () => {
     // Colour alone must never be what carries the information.
-    const [seam] = strip(days).filter((node) => node.className === "seam");
-    assert.match(reads(seam), /À partir d'ici, simulation/);
+    const [seam] = seamed(strip(days));
+    assert.equal(textOf(seam, "card-seam"), texts.results.seamCard);
+    assert.match(reads(seam), /simulation/);
   });
 
   it("does not appear on a range lying wholly in the past", () => {
-    const past = strip([day("2024-06-01", "observed"), day("2024-06-02", "observed")]);
-    assert.equal(past.filter((node) => node.className === "seam").length, 0);
+    const past = strip([day("2024-06-03", "observed"), day("2024-06-04", "observed")]);
+    assert.equal(seamed(past).length, 0);
   });
 
   it("nor on a range lying wholly in the model", () => {
     // No bank to leave: a marker on the very first card would announce a
     // passage that never happens. The warning at the top covers that case.
-    const future = strip([day("2046-07-01", "simulated"), day("2046-07-02", "simulated")]);
-    assert.equal(future.filter((node) => node.className === "seam").length, 0);
+    const future = strip([day("2046-07-02", "simulated"), day("2046-07-03", "simulated")]);
+    assert.equal(seamed(future).length, 0);
   });
 
   it("falls at the end of the forecast, not at tonight", () => {
     // The whole point of the IFS segment: tomorrow is weather, and the crossing
     // belongs where forecasting stops rather than where the calendar turns.
-    const nodes = strip([
-      day("2026-08-11", "observed"),
-      day("2026-08-12", "forecast"),
-      day("2026-08-13", "forecast"),
-      day("2026-08-14", "simulated"),
-    ]);
-    const seams = nodes.filter((node) => node.className === "seam");
-    assert.equal(seams.length, 1);
-    assert.equal(nodes.indexOf(seams[0]), 3);
+    const nodes = cards(
+      strip([
+        day("2026-08-11", "observed"),
+        day("2026-08-12", "forecast"),
+        day("2026-08-13", "forecast"),
+        day("2026-08-14", "simulated"),
+      ]),
+    );
+    assert.deepEqual(seamed(nodes), [nodes[3]]);
   });
 
   it("is still marked on a range that starts tomorrow", () => {
@@ -158,24 +231,26 @@ describe("the seam", () => {
       day("2026-08-13", "forecast"),
       day("2026-08-14", "simulated"),
     ]);
-    assert.equal(nodes.filter((node) => node.className === "seam").length, 1);
+    assert.equal(seamed(nodes).length, 1);
   });
 
   it("does not appear on a range that never leaves the forecast", () => {
     const ahead = strip([day("2026-08-12", "forecast"), day("2026-08-13", "forecast")]);
-    assert.equal(ahead.filter((node) => node.className === "seam").length, 0);
+    assert.equal(seamed(ahead).length, 0);
   });
 });
 
 describe("the month marker", () => {
   it("writes the month name only where it turns", () => {
-    const nodes = strip([
-      day("2046-07-30", "observed"),
-      day("2046-07-31", "observed"),
-      day("2046-08-01", "observed"),
-    ]);
+    const nodes = cards(
+      strip([
+        day("2046-07-30", "observed"),
+        day("2046-07-31", "observed"),
+        day("2046-08-01", "observed"),
+      ]),
+    );
     assert.deepEqual(
-      nodes.map((node) => textOf(node, "card-month")),
+      nodes.map((node) => said(node, "card-month")),
       ["juillet", "", "août"],
     );
   });
@@ -187,18 +262,20 @@ describe("the month marker", () => {
     // on the date line say the month wherever the reader is, at no such price. A
     // cadence of one card in seven was the third candidate and fails on a narrow
     // window, which shows two cards at a time.
-    const written = strip([
-      day("2046-07-30", "observed"),
-      day("2046-07-31", "observed"),
-      day("2046-08-01", "observed"),
-    ]).map((node) => textOf(node, "card-day"));
+    const written = cards(
+      strip([
+        day("2046-07-30", "observed"),
+        day("2046-07-31", "observed"),
+        day("2046-08-01", "observed"),
+      ]),
+    ).map((node) => textOf(node, "card-date-long"));
 
     assert.deepEqual(written, ["lundi 30/07", "mardi 31/07", "mercredi 01/08"]);
   });
 
   it("names the month on the first card, whatever happens", () => {
-    const [first] = strip([day("2046-07-31", "observed")]);
-    assert.equal(textOf(first, "card-month"), "juillet");
+    const [first] = cards(strip([day("2046-07-31", "observed")]));
+    assert.equal(said(first, "card-month"), "juillet");
   });
 });
 

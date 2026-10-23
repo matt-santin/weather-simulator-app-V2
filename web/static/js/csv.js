@@ -50,6 +50,7 @@ const FIELDS = [
   "temperature_max",
   "precipitation",
   "cloud_cover",
+  "relative_humidity_mean",
   "wind_speed_mean",
   "wet_bulb_mean",
   "humid_heat",
