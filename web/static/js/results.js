@@ -32,7 +32,7 @@ import {
   SearchError,
   years as everyYear,
 } from "./fetch.js";
-import { sources, strip } from "./band.js";
+import { legend, sources, strip } from "./band.js";
 import { chart } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
 import { diagram, summary, years as yearsOf } from "./climate.js";
@@ -242,6 +242,7 @@ async function show(series) {
   const config = await settings;
   if (config) {
     scale = { edges: config.temperature_band_edges, step: config.temperature_band_step };
+    calendar.append(legend(config.temperature_band_edges));
     drawn = chart(series.days, scale);
     chartPanel.append(drawn);
     chartPanel.hidden = false;

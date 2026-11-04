@@ -70,6 +70,29 @@ export function strip(days, humidHeatPeak = 0) {
   return nodes;
 }
 
+/**
+ * The legend of the calendar: one chip per band, coloured by the stylesheet
+ * through `data-band` exactly like a card, with its bounds written in it. The
+ * edges are the server's (`/api/config`), so the legend cannot drift from the
+ * bands the cards carry.
+ */
+export function legend(edges) {
+  const { legendTitle, legendBelow, legendBetween, legendAbove } = texts.results;
+  const chips = [legendBelow(edges[0])];
+  for (let index = 1; index < edges.length; index += 1) {
+    chips.push(legendBetween(edges[index - 1], edges[index]));
+  }
+  chips.push(legendAbove(edges[edges.length - 1]));
+  return el("div", { className: "band-legend" }, [
+    el("span", { text: legendTitle, attrs: { id: "band-legend-title" } }),
+    el(
+      "ol",
+      { attrs: { "aria-labelledby": "band-legend-title" } },
+      chips.map((text, band) => el("li", { text, attrs: { "data-band": String(band) } })),
+    ),
+  ]);
+}
+
 /** 0 for a Monday, 6 for a Sunday. */
 function weekdayIndex(iso) {
   return (new Date(at(iso)).getUTCDay() + 6) % 7;

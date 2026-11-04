@@ -48,12 +48,12 @@ const empty = {
 };
 
 describe("the colour of a tile", () => {
-  it("runs blue, green, yellow at the normal, orange, red, and saturates", () => {
+  it("runs blue, pale blue, near white at the normal, salmon, red, and saturates", () => {
     assert.equal(color(-CLAMP), "rgb(33, 102, 172)");
-    assert.equal(color(-CLAMP / 2), "rgb(24, 128, 56)");
-    assert.equal(color(0), "rgb(242, 197, 61)");
-    assert.equal(color(CLAMP / 2), "rgb(240, 124, 30)");
-    assert.equal(color(CLAMP), "rgb(198, 40, 40)");
+    assert.equal(color(-CLAMP / 2), "rgb(146, 197, 222)");
+    assert.equal(color(0), "rgb(247, 247, 247)");
+    assert.equal(color(CLAMP / 2), "rgb(244, 165, 130)");
+    assert.equal(color(CLAMP), "rgb(178, 24, 43)");
     assert.equal(color(10), color(CLAMP));
   });
 

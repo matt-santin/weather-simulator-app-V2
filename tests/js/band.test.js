@@ -14,7 +14,7 @@ import { byClass, install, reads, textOf, walk } from "./dom-stub.js";
 // Before the import, not after: `el` reaches for the global on its first call.
 install();
 
-const { card, sources, strip } = await import("../../web/static/js/band.js");
+const { card, legend, sources, strip } = await import("../../web/static/js/band.js");
 const { texts } = await import("../../web/static/js/i18n.js");
 
 /** Every text under the first node carrying that class, in reading order. */
@@ -394,5 +394,18 @@ describe("the humid-heat line", () => {
 
     assert.equal(line.textContent, "");
     assert.equal(line.attrs["data-humid"], undefined);
+  });
+});
+
+describe("the legend of the calendar", () => {
+  it("has one chip per band, bounded by the server's edges", () => {
+    const edges = [5, 10, 15, 20, 25, 30, 35, 40];
+    const [, list] = legend(edges).children;
+    const chips = list.children;
+    assert.equal(chips.length, edges.length + 1);
+    assert.deepEqual(chips.map((chip) => chip.attrs["data-band"]), ["0", "1", "2", "3", "4", "5", "6", "7", "8"]);
+    assert.equal(chips[0].textContent, "< 5");
+    assert.equal(chips[1].textContent, "5-10");
+    assert.equal(chips[8].textContent, "≥ 40");
   });
 });

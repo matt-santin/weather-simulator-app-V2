@@ -369,43 +369,18 @@ body.results {
  * re-measures it on the render whenever one of these numbers moves.
  */
 
-/* Winter, 21 December to 20 March. White above, deep blue below. */
-body.results[data-season="winter"] {
-  --ink: #0b1c30;
-  --ink-soft: #12293f;
-  --rule: #5b87b5;
-  --rule-strong: #2f5b87;
-}
-
-/* Spring, 21 March to 20 June. White through yellow-green, and down to the dark
-   green of a wood — the foot has to go dark for the provenance to keep reading
-   pale, which is the one thing the four grounds must agree on. */
-body.results[data-season="spring"] {
-  --ink: #17280c;
-  --ink-soft: #24380f;
-  --rule: #7d9438;
-  --rule-strong: #4c6d1e;
-}
-
-/* Summer, 21 June to 20 September — the mock-up's own, and the page was drawn on
-   it. Not one value here has moved; only the selector around them has. */
-body.results[data-season="summer"] {
-  /* Dark ink on a bright ground — the reverse of every other surface here. The
-     brown is the sunset's own, not a black: the warning on the home page picks
-     its ink the same way. */
-  --ink: #21100a;
-  --ink-soft: #3d1608;
-  --rule: #c9793f;
-  --rule-strong: #8f3f16;
-}
-
-/* Autumn, 21 September to 20 December. White through the orange of the leaves,
-   into the brown they end as. */
+/* The four seasons share one set of inks since 2026-11-04: a slate that reads
+   on the grey ground and on the white sections alike. The season brown on a
+   long white page read as faded. results.js still writes the season; each
+   selector is kept so that a season can take its own ink again. */
+body.results[data-season="winter"],
+body.results[data-season="spring"],
+body.results[data-season="summer"],
 body.results[data-season="autumn"] {
-  --ink: #2a1206;
-  --ink-soft: #3d1c07;
-  --rule: #bd7734;
-  --rule-strong: #8c4315;
+  --ink: #14202e;
+  --ink-soft: #4f5b6b;
+  --rule: #dfe4ec;
+  --rule-strong: #aab4c2;
 }
 
 body.results main {
@@ -1601,35 +1576,34 @@ button[type="submit"]:hover {
  * month: a hot spell stands out at a glance, which two tinted figures per card
  * did not show. Chosen on 2026-10-16 over a card with the maximum alone in a box.
  *
- * **Blue, green, yellow, orange, red, black**, one step per band, softened to
- * serve as a ground. Chosen on 2026-10-17, in place of a sober blue, cream and
- * red scale (2026-10-16). The ink turns over
- * with the ground: dark up to 35 °C, white on the two hottest bands. Measured
- * on 2026-10-17: full ink 5.45:1 at the weakest (< 5), the softened ink at 85 %
- * 4.54:1 (< 5).
+ * **Deep blue, blue, turquoise, green, yellow, orange, red, burgundy**, one
+ * step per band. Made brighter on 2026-11-04: the softened scale of 2026-10-17
+ * read as faded once the page grew long. The ink turns over with the ground:
+ * white on the coldest band and on the two hottest, dark elsewhere. The legend
+ * under the calendar (band.js) paints its chips from these same tokens.
  */
 body.results [data-band] {
   --tile-ink: #1c1408;
 }
 
-/* < 5 — bleu */
-body.results [data-band="0"] { --tile: #5b8fd0; }
-/* 5 à 10 — bleu clair */
-body.results [data-band="1"] { --tile: #8dbde0; }
-/* 10 à 15 — vert */
-body.results [data-band="2"] { --tile: #8fcca0; }
-/* 15 à 20 — vert-jaune */
-body.results [data-band="3"] { --tile: #c8de7c; }
+/* < 5 — bleu profond */
+body.results [data-band="0"] { --tile: #2b59c3; --tile-ink: #fff; }
+/* 5 à 10 — bleu */
+body.results [data-band="1"] { --tile: #5c95e8; }
+/* 10 à 15 — turquoise */
+body.results [data-band="2"] { --tile: #62c6c4; }
+/* 15 à 20 — vert */
+body.results [data-band="3"] { --tile: #9fd77f; }
 /* 20 à 25 — jaune */
-body.results [data-band="4"] { --tile: #f5de6a; }
+body.results [data-band="4"] { --tile: #f7e15f; }
 /* 25 à 30 — orange clair */
-body.results [data-band="5"] { --tile: #f7b456; }
+body.results [data-band="5"] { --tile: #fdb342; }
 /* 30 à 35 — orange */
-body.results [data-band="6"] { --tile: #ee7c48; }
+body.results [data-band="6"] { --tile: #f26b38; }
 /* 35 à 40 — rouge */
-body.results [data-band="7"] { --tile: #b52d24; --tile-ink: #fff; }
-/* ≥ 40 — noir : la bande qu'aucune journée française de 1981-2010 n'atteint. */
-body.results [data-band="8"] { --tile: #241212; --tile-ink: #fff; }
+body.results [data-band="7"] { --tile: #c81d25; --tile-ink: #fff; }
+/* ≥ 40 — bordeaux : la bande qu'aucune journée française de 1981-2010 n'atteint. */
+body.results [data-band="8"] { --tile: #5a0b2f; --tile-ink: #fff; }
 
 .sep {
   margin-inline: 0.5ch;
@@ -2065,11 +2039,11 @@ body.results [data-band="8"] { --tile: #241212; --tile-ink: #fff; }
   box-shadow: 0 0 0 2px var(--raised), 0 0 0 4px var(--ink);
 }
 
-/* A simulated year: a dashed line inside the tile, in the colour of its year so
-   that it shows on the yellow as on the red. */
+/* A simulated year: a dot in the top right corner, in the colour of its year so
+   that it shows on the white as on the red. A dashed outline until 2026-11-04;
+   on eighty tiles in a row it read as noise. */
 .year-tile.simulated {
-  outline: 1px dashed currentColor;
-  outline-offset: -3px;
+  background-image: radial-gradient(circle at calc(100% - 7px) 7px, currentColor 0 2px, transparent 2.5px);
 }
 
 /* No source serves these dates (2026): hatched, and no colour to read. */
@@ -2085,9 +2059,10 @@ body.results [data-band="8"] { --tile: #241212; --tile-ink: #fff; }
 }
 
 .years-simulated {
-  background: rgb(242 197 61);
-  outline: 1px dashed rgb(0 0 0);
-  outline-offset: -3px;
+  background:
+    radial-gradient(circle at 75% 30%, rgb(20 32 46) 0 2px, transparent 2.5px),
+    rgb(247 247 247);
+  box-shadow: inset 0 0 0 1px rgb(20 32 46 / 20%);
 }
 
 /* The scale, drawn with the five stops matrix.js mixes (STOPS). */
@@ -2098,10 +2073,10 @@ body.results [data-band="8"] { --tile: #241212; --tile-ink: #fff; }
   background: linear-gradient(
     to right,
     rgb(33 102 172),
-    rgb(24 128 56),
-    rgb(242 197 61),
-    rgb(240 124 30),
-    rgb(198 40 40)
+    rgb(146 197 222),
+    rgb(247 247 247),
+    rgb(244 165 130),
+    rgb(178 24 43)
   );
 }
 
@@ -3329,3 +3304,309 @@ body.maps .toggle[aria-pressed="true"] {
   }
 }
 
+
+/* --- results page: the dress of 2026-11-04 ---------------------------------
+ *
+ * The structure is unchanged; this block only dresses it. The header takes the
+ * night sky of the home page across the whole width, so that the two pages read
+ * as one site. Below it, a pale grey ground, and each part of the page (the
+ * calendar, the chart, the climate diagram, the matrix of years) on a white
+ * section with round corners and a soft shadow, in place of the cream boxes and
+ * their brown rules. Section titles in Garamond, like the name of the place.
+ */
+body.results {
+  --ground: #f4f6f9;
+  --section: #ffffff;
+  --section-shadow: 0 1px 2px rgb(20 32 46 / 6%), 0 8px 24px rgb(20 32 46 / 6%);
+  --raised: #ffffff;
+  --warm: #d9480f;
+  --cool: #1d5fb4;
+  --link: #1d5fb4;
+  padding-top: 0;
+  background-color: var(--ground);
+  /* The header bleeds to the edges with a negative margin; this keeps the
+     scrollbar's few pixels from opening a sideways scroll. */
+  overflow-x: clip;
+}
+
+body.results > header.banner {
+  position: relative;
+  width: 100vw;
+  max-width: none;
+  margin-inline: calc(50% - 50vw);
+  padding: calc(var(--space) * 14) calc(var(--space) * 4) calc(var(--space) * 10);
+  background: linear-gradient(180deg, #071a33 0%, #12355e 70%, #2a4a74 100%);
+  color: #f3efe6;
+}
+
+/* The temperature scale of the calendar, as a filet under the sky. */
+body.results > header.banner::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2b59c3, #62c6c4, #f7e15f, #fdb342, #f26b38, #c81d25);
+}
+
+body.results > header.banner h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+body.results > header.banner .tagline {
+  color: #c9d4e3;
+  font-size: 1.05rem;
+}
+
+body.results > header.banner a {
+  color: #fff;
+  text-decoration-color: rgb(255 255 255 / 45%);
+}
+
+/* The warning: one line on a pale ground, the dusk orange of the home page on
+   its edge. Ink at 9:1 on its ground. */
+body.results .warning {
+  max-width: none;
+  margin-top: calc(var(--space) * 7);
+  padding: calc(var(--space) * 3) calc(var(--space) * 4);
+  border: 0;
+  border-left: 3px solid #e0753a;
+  border-radius: 0 8px 8px 0;
+  background: #fff4ec;
+  color: #5b2a10;
+}
+
+body.results .warning p:first-child {
+  color: #5b2a10;
+}
+
+body.results .doc-link {
+  max-width: none;
+  margin-top: calc(var(--space) * 3);
+}
+
+body.results .doc-link a {
+  color: var(--link);
+}
+
+/* The sections. */
+body.results .calendar,
+body.results .climate-section {
+  border: 0;
+  border-radius: 16px;
+  background: var(--section);
+  box-shadow: var(--section-shadow);
+}
+
+body.results .calendar {
+  margin-top: calc(var(--space) * 6);
+  padding: calc(var(--space) * 5) calc(var(--space) * 5.5) calc(var(--space) * 4.5);
+}
+
+body.results .climate-section {
+  margin-top: calc(var(--space) * 6);
+  padding: calc(var(--space) * 6) calc(var(--space) * 6.5);
+}
+
+body.results .climate-title {
+  margin: 0 0 calc(var(--space) * 1.5);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--ink);
+}
+
+/* The control of the normals heads the chart's section: the two share one
+   white block, the control on top. */
+body.results .compare-bar {
+  margin-top: calc(var(--space) * 6);
+  padding: calc(var(--space) * 4) calc(var(--space) * 5.5) calc(var(--space) * 2);
+  border: 0;
+  border-radius: 16px 16px 0 0;
+  background: var(--section);
+}
+
+body.results .compare-bar:not([hidden]) + .chart-panel {
+  padding: calc(var(--space) * 1) calc(var(--space) * 5.5) calc(var(--space) * 4.5);
+  border-radius: 0 0 16px 16px;
+  background: var(--section);
+  box-shadow: var(--section-shadow);
+}
+
+body.results .toggle {
+  padding: calc(var(--space) * 2) calc(var(--space) * 4);
+  border: 1px solid var(--cool);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--cool);
+}
+
+body.results .toggle:hover {
+  background: #eef4fb;
+}
+
+body.results .toggle[aria-pressed="true"] {
+  background: var(--cool);
+  color: #fff;
+}
+
+/* The drawings sit on their section: no frame of their own. */
+body.results .chart {
+  border: 0;
+  background: transparent;
+}
+
+body.results .chart-title {
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+body.results .chart-rule {
+  stroke: #dfe4ec;
+  opacity: 1;
+}
+
+/* The calendar. */
+body.results .band-grid,
+body.results .calendar-weekdays {
+  gap: 6px;
+}
+
+body.results .month-row {
+  justify-content: flex-start;
+  padding: calc(var(--space) * 3.5) 0 calc(var(--space) * 1);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body.results .month-row::before {
+  display: none;
+}
+
+body.results .month-row::after {
+  border-top-color: var(--rule);
+}
+
+body.results .card:not(.card--zoom) {
+  min-height: 72px;
+  padding: calc(var(--space) * 2) calc(var(--space) * 2.5);
+  border: 0;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 6%);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+body.results .card:not(.card--zoom):hover {
+  outline: 0;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(20 32 46 / 18%);
+}
+
+body.results .card:not(.card--zoom):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The first simulated day: a ring in place of the left rule. */
+body.results .card.card--seam:not(.card--zoom) {
+  border-left: 0;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+body.results .card-day {
+  font-family: var(--font);
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+body.results .card--zoom {
+  border: 0;
+  border-radius: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.results .card:not(.card--zoom) {
+    transition: none;
+  }
+
+  body.results .card:not(.card--zoom):hover {
+    transform: none;
+  }
+}
+
+/* The legend under the calendar: one chip per band, painted with the band's
+   own tokens, its bounds written in it. */
+.band-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--space) * 1.5) calc(var(--space) * 3);
+  margin-top: calc(var(--space) * 4);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.band-legend ol {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.band-legend li {
+  min-width: 3.25rem;
+  padding: 3px 4px;
+  background: var(--tile);
+  color: var(--tile-ink);
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The matrix of years. */
+body.results .years-grid {
+  gap: 4px;
+}
+
+body.results .year-tile {
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+body.results .export,
+body.results .provenance {
+  max-width: none;
+  text-align: center;
+}
+
+@media (max-width: 40rem) {
+  body.results .calendar {
+    padding: calc(var(--space) * 2) calc(var(--space) * 2.5) calc(var(--space) * 3.5);
+    border-radius: 12px;
+  }
+
+  body.results .climate-section {
+    padding: calc(var(--space) * 4.5) calc(var(--space) * 3.5);
+  }
+
+  .band-legend li {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .band-legend ol {
+    width: 100%;
+  }
+}

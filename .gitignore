@@ -9,3 +9,6 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Skill de design tierce (UI UX Pro Max, MIT), installée localement.
+.claude/skills/ui-ux-pro-max/

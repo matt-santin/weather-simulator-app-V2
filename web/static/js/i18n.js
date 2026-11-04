@@ -134,6 +134,11 @@ export const texts = {
     // On the first simulated card of the calendar, beside the month name.
     seamCard: "simulation",
     weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
+    // The legend under the calendar: its title, and the bounds of each band.
+    legendTitle: "Température maximale (°C)",
+    legendBelow: (edge) => `< ${edge}`,
+    legendBetween: (low, high) => `${low}-${high}`,
+    legendAbove: (edge) => `≥ ${edge}`,
   },
 
   // The chart says the same days as the strip, in the other reading. Its one

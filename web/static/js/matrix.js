@@ -5,10 +5,11 @@
  * (`/api/years`); this file only turns that into tiles and sentences.
  *
  * **The colour is the anomaly in standard deviations, clamped at three**, on
- * a scale blue, green, yellow (the normal), orange, red. The year is written in
- * white or in dark ink, whichever stands out more on the tile: white on the
- * blues, greens and reds, ink on the yellow and the oranges. At least 4,5:1
- * everywhere.
+ * a diverging scale: blue, pale blue, near white (the normal), salmon, red,
+ * the one of the warming stripes. Chosen on 2026-11-04 in place of blue, green,
+ * yellow, orange, red, where green read as "normal" and yellow as "warm". The
+ * year is written in white or in dark ink, whichever stands out more on the
+ * tile. At least 4,5:1 everywhere.
  */
 
 import { el } from "./dom.js";
@@ -20,10 +21,10 @@ export const CLAMP = 3;
 /** The scale, from -CLAMP to +CLAMP, five stops evenly spaced. */
 export const STOPS = [
   [33, 102, 172], // blue
-  [24, 128, 56], // green
-  [242, 197, 61], // yellow: the normal
-  [240, 124, 30], // orange
-  [198, 40, 40], // red
+  [146, 197, 222], // pale blue
+  [247, 247, 247], // near white: the normal
+  [244, 165, 130], // salmon
+  [178, 24, 43], // red
 ];
 
 /** The tile colour of an anomaly in standard deviations, as [r, g, b]. */
