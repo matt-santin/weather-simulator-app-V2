@@ -13,19 +13,21 @@
  * is exactly what makes it hard to notice when it is not — so submission stays
  * blocked until a candidate has been chosen.
  *
- * **The season mode writes into `debut` and `fin` rather than replacing them.**
- * That is the whole reason the results page did not have to learn anything: the
- * URL is the same five parameters either way, `/api/plan` receives an interval
- * as it always has, and a season is an interval. The two `<select>` elements
- * carry no `name`, so nothing of the mode itself leaves this page.
+ * **Both modes write into `debut` and `fin`, two hidden fields.** That is the
+ * whole reason the results page did not have to learn anything: the URL is the
+ * same five parameters either way, and a season is an interval. The season mode
+ * writes them as the visitor picks; the kind mode on submission, once
+ * `/api/kinds` has ranked the seasons of the place and one year has been drawn
+ * (kinds.js). No `<select>` carries a `name`, so nothing of the modes leaves.
  */
 
-import { geocode, loadConfig, SearchError } from "./fetch.js";
+import { geocode, loadConfig, SearchError, seasonKinds } from "./fetch.js";
 import { periodsText, refuse } from "./bounds.js";
-import { DAY, at, iso, pad } from "./calendar.js";
+import { pad } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
 import { texts } from "./i18n.js";
-import { beforeFinalPunctuation } from "./present.js";
+import { wireHints } from "./hint.js";
+import { KINDS, anyYearOf, draw, epochLabel, kindLabels } from "./kinds.js";
 import { rotate } from "./prompt.js";
 import { rangeOf, seasonOf, yearsFor } from "./season.js";
 
@@ -46,24 +48,28 @@ const to = document.getElementById("fin");
 const status = document.getElementById("status");
 const placeStatus = document.getElementById("place-status");
 const found = document.getElementById("found");
-const datesButton = document.getElementById("mode-dates");
 const seasonButton = document.getElementById("mode-season");
-const datesPanel = document.getElementById("panel-dates");
+const kindButton = document.getElementById("mode-kind");
 const seasonPanel = document.getElementById("panel-season");
+const kindPanel = document.getElementById("panel-kind");
 const seasonPick = document.getElementById("saison");
 const yearPick = document.getElementById("annee");
+const kindSeasonPick = document.getElementById("saison-type");
+const epochPick = document.getElementById("epoque");
+const kindPick = document.getElementById("type");
 const go = document.getElementById("go");
 const coverage = document.getElementById("coverage");
 
 applyTexts();
 markPromise(document.getElementById("promise"));
+// After markPromise, which builds the asterisk this wires.
+wireHints();
 // After applyTexts, which fills every other slot: the heading is the one place
 // the dictionary is read as a list rather than as a single string.
 rotate(document.getElementById("prompt"), texts.home.questions);
-fillDefaultDates();
 fillSeasons();
-// Closed on arrival. The markup ships both panels open so the page works
-// without script; this is the line that turns it into a form that unfolds.
+fillKinds();
+// Closed on arrival: the form asks for a place and offers two ways to go on.
 show(null);
 
 let config = null;
@@ -72,17 +78,12 @@ let config = null;
 // list that no longer has the same ends.
 let chosenYear = null;
 
-// The bounds, served rather than written here. `min` and `max` let the browser
-// refuse an impossible date in its own picker; `refuse()` catches what typing
-// gets past it. The years the season mode offers come from the same two bounds,
-// which is why that list cannot be built until this arrives.
+// The bounds, served rather than written here. The years the season mode
+// offers and the epochs of the kind mode come from them, which is why those
+// lists cannot be built until this arrives.
 loadConfig()
   .then((served) => {
     config = served;
-    for (const field of [from, to]) {
-      field.min = served.coverage_start;
-      field.max = served.coverage_end;
-    }
     // The first words of the note at the foot of the page: the period covered,
     // which only the config knows. The trailing space belongs here rather than
     // in the markup — it separates this from the sentence in the next span, and
@@ -90,46 +91,41 @@ loadConfig()
     // arrives and this slot stays empty.
     coverage.textContent = `${texts.warning.coverage(periodsText(served))} `;
     fillYears();
+    fillEpochs();
   })
   .catch((error) => say(error.message));
 
 // --- choosing the place ------------------------------------------------------
 
 /**
- * Put the footnote call inside the promise, before its full stop.
+ * Break the promise into its lines and put the "?" of the note on the dates
+ * after its last full stop (hint.js shows the note).
  *
- * French typography sets the call ahead of the punctuation, so the sentence has
- * to be cut rather than followed — `beforeFinalPunctuation` decides where, and
- * is tested there because it is arithmetic on a string and this is not.
+ * The same ringed "?" as the one beside "Type" (since 5/11/2026, in place of
+ * an asterisk that read as a footnote call and not as something to touch). The
+ * ring keeps it from reading as a question mark closing the promise.
  *
  * The text is read back off the node rather than out of the dictionary a second
- * time: `applyTexts` has just written it, and reading it twice is the sort of
- * second copy that goes on agreeing with itself while disagreeing with the page.
- *
- * **The mark is not a link, and it is `aria-hidden`.** A link was tried: the
- * note it would have pointed at sits at the foot of a page 960 pixels tall, so
- * a reader on any ordinary window is half a screen from it and the star already
- * says which way to look — the anchor bought nothing and cost a target, a
- * focus stop and a name. Hidden from the accessibility tree for the same
- * reason it is shown to the eye: read aloud, a bare star is "astérisque", which
- * points nowhere. A screen reader gets the whole promise and, further down, the
- * whole note; nothing about the pairing is lost by dropping the mark between
- * them.
- *
- * A span rather than the raw character in the dictionary, because the call is
- * set small and raised, and a substring cannot be styled without an element.
+ * time: `applyTexts` has just written it.
  */
 function markPromise(node) {
-  // One line per "\n", the call on the last of them — however many that turns
-  // out to be. A promise written on a single line gets no break and keeps the
-  // mark, which is what this did before the promise had lines at all.
   const lines = node.textContent.split("\n");
-  const { body, tail } = beforeFinalPunctuation(lines.pop());
   node.replaceChildren(
-    ...lines.flatMap((line) => [el("span", { text: line }), el("br")]),
-    el("span", { text: body }),
-    el("span", { className: "note-ref", text: "*", attrs: { "aria-hidden": "true" } }),
-    el("span", { text: tail }),
+    ...lines.flatMap((line, index) => [
+      ...(index > 0 ? [el("br")] : []),
+      el("span", { text: line }),
+    ]),
+    el("button", {
+      className: "hint promise-hint",
+      text: "?",
+      attrs: {
+        type: "button",
+        "data-hint": "true",
+        "aria-controls": "coverage-note",
+        "aria-expanded": "false",
+        "aria-label": texts.home.noteHint,
+      },
+    }),
   );
 }
 
@@ -226,8 +222,9 @@ function describe(candidate) {
 
 // --- asking for a season instead of two dates --------------------------------
 
-datesButton.addEventListener("click", () => show("dates"));
 seasonButton.addEventListener("click", () => show("season"));
+kindButton.addEventListener("click", () => show("kind"));
+kindSeasonPick.addEventListener("change", fillKinds);
 
 seasonPick.addEventListener("change", fillYears);
 yearPick.addEventListener("change", () => {
@@ -236,36 +233,105 @@ yearPick.addEventListener("change", () => {
 });
 
 /**
- * Which period panel is open: `"dates"`, `"season"`, or none of them.
+ * Which panel is open: `"season"`, `"kind"`, or none of them.
  *
  * **The third state is the one the page opens on**, and it is the whole point
  * of the two buttons being buttons: the form asks for a place and offers two
- * ways to go on, rather than laying out a range nobody asked for. The submit
- * band goes with the panels — left showing, it would run a search on the
- * default fortnight the visitor never saw.
- *
- * Leaving a mode does not put the dates back to their default: the range a
- * season produced is a perfectly good range to adjust by hand, and wiping it
- * would throw away the thing the visitor just asked for.
+ * ways to go on. The submit band goes with the panels: left showing, it would
+ * run a search on dates the visitor never saw.
  */
 function show(mode) {
-  datesPanel.hidden = mode !== "dates";
   seasonPanel.hidden = mode !== "season";
+  kindPanel.hidden = mode !== "kind";
   go.hidden = mode === null;
-  datesButton.setAttribute("aria-pressed", String(mode === "dates"));
   seasonButton.setAttribute("aria-pressed", String(mode === "season"));
+  kindButton.setAttribute("aria-pressed", String(mode === "kind"));
   if (mode === "season") applySeason();
   say("");
 }
 
-/** The four names, from the dictionary, in the order it lists them. */
+/** The four names, from the dictionary, in the order it lists them, in both
+ * panels. */
 function fillSeasons() {
-  seasonPick.replaceChildren(
-    ...Object.entries(texts.season).map(([name, label]) =>
-      el("option", { text: label, attrs: { value: name } }),
+  const now = seasonOf(today(), Number(latitude.value));
+  for (const pick of [seasonPick, kindSeasonPick]) {
+    pick.replaceChildren(
+      ...Object.entries(texts.season).map(([name, label]) =>
+        el("option", { text: label, attrs: { value: name } }),
+      ),
+    );
+    pick.value = now;
+  }
+}
+
+/** The three kinds, named for the season: a winter is cold or mild. The kind
+ * chosen survives a change of season; warm is the default. */
+function fillKinds() {
+  const chosenKind = kindPick.value || "warm";
+  const labels = kindLabels(kindSeasonPick.value);
+  kindPick.replaceChildren(
+    ...KINDS.map((kind) => el("option", { text: labels[kind], attrs: { value: kind } })),
+  );
+  kindPick.value = chosenKind;
+}
+
+/** The epochs, as /api/config serves them. */
+function fillEpochs() {
+  if (!config?.epochs) return;
+  epochPick.replaceChildren(
+    ...config.epochs.map((epoch) =>
+      el("option", { text: epochLabel(epoch), attrs: { value: epoch.id } }),
     ),
   );
-  seasonPick.value = seasonOf(today(), Number(latitude.value));
+  epochPick.value = config.epochs_default;
+}
+
+/**
+ * The kind mode, on submission: rank the seasons of the place, draw a year of
+ * the kind asked for, write its dates, and leave.
+ *
+ * `form.submit()` does not fire the submit event, so the checks of the listener
+ * below are not run twice; the range is still checked against the served
+ * periods before leaving.
+ */
+async function drawSeason(button) {
+  const lat = Number(latitude.value);
+  const season = kindSeasonPick.value;
+  const epoch = config.epochs.find((e) => e.id === epochPick.value);
+  const asked = epoch && rangeOf(season, anyYearOf(epoch, yearsFor(season, lat, config)), lat);
+  if (!asked) {
+    say(texts.form.noYear);
+    return;
+  }
+  button.disabled = true;
+  say(texts.form.drawing);
+  try {
+    const answer = await seasonKinds({
+      latitude: latitude.value,
+      longitude: longitude.value,
+      start: asked.start,
+      end: asked.end,
+    });
+    const ranked = answer.epochs.find((e) => e.id === epoch.id);
+    const year = draw(ranked, kindPick.value);
+    const range = year === null ? null : rangeOf(season, year, lat);
+    if (!range) {
+      say(texts.form.noYear);
+      return;
+    }
+    const reason = refuse(range, config);
+    if (reason) {
+      say(reason);
+      return;
+    }
+    from.value = range.start;
+    to.value = range.end;
+    form.submit();
+  } catch (error) {
+    say(error instanceof SearchError ? error.message : texts.transport.serviceFailed);
+  } finally {
+    button.disabled = false;
+  }
 }
 
 /**
@@ -329,9 +395,8 @@ function defaultYear(years) {
 
 form.addEventListener("submit", (event) => {
   // Enter in the place field submits a form whether or not a submit button is
-  // on screen, and with both panels closed the dates leaving would be the
-  // defaults nobody has seen.
-  if (datesPanel.hidden && seasonPanel.hidden) {
+  // on screen, and with both panels closed there are no dates to send.
+  if (kindPanel.hidden && seasonPanel.hidden) {
     event.preventDefault();
     say(texts.form.periodRequired);
     return;
@@ -341,6 +406,15 @@ form.addEventListener("submit", (event) => {
     say(texts.form.placeRequired);
     place.hidden = false;
     place.focus();
+    return;
+  }
+  if (!kindPanel.hidden) {
+    event.preventDefault();
+    if (!config) {
+      say(texts.transport.serviceFailed);
+      return;
+    }
+    drawSeason(go.querySelector("button"));
     return;
   }
   // Without the config there are no bounds to check against, and inventing
@@ -362,19 +436,6 @@ function say(message) {
 /** What is happening to the place field: shown beside the place field. */
 function aboutPlace(message) {
   placeStatus.textContent = message;
-}
-
-/**
- * A fortnight from today, so the page is usable the moment it loads.
- *
- * Only a default in a form field: nothing is displayed from it, the visitor
- * overwrites it freely, and where the observed stops is still decided by the
- * server's clock and not by this one.
- */
-function fillDefaultDates() {
-  from.value = `${DEFAULT_YEAR}${today().slice(4)}`;
-  // Counted in `calendar.js`, where every other day of this project is counted.
-  to.value = iso(at(from.value) + 13 * DAY);
 }
 
 /**

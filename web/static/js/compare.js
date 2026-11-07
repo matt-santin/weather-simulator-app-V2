@@ -23,3 +23,15 @@ export function alignByDate(days, normals) {
 export function referenceYears(answer) {
   return `${answer.reference_start.slice(0, 4)}-${answer.reference_end.slice(0, 4)}`;
 }
+
+/**
+ * The colour of a gap, in whole degrees. 5 °C is the threshold of DRIAS for an
+ * abnormally hot or cold day (TXND, TNND: normal ± 5 °C, list of 1/12/2023).
+ */
+export function gapTone(gap) {
+  if (gap >= 5) return "much-warm";
+  if (gap > 0) return "warm";
+  if (gap <= -5) return "much-cool";
+  if (gap < 0) return "cool";
+  return "";
+}

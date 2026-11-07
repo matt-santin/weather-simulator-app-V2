@@ -24,7 +24,7 @@
  */
 
 const GROWTH = 1.7;
-const MIN_WIDTH = 240;
+const MIN_WIDTH = 310;
 const MARGIN = 8;
 
 /** Wire the calendar `grid` (the ol of cards) and the box that scrolls it. */

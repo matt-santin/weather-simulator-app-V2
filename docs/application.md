@@ -63,11 +63,12 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `GET /api/normals?latitude&longitude&start&end` | les normales (Tx, Tn, précipitations) aux mêmes dates, `reference` = 1971, 1981 ou 1991 (section 5), mêmes refus |
 | `GET /api/climate?latitude&longitude&start&end&reference` | le diagramme climatique du lieu (section 6), mêmes refus |
 | `GET /api/years?latitude&longitude&start&end&reference` | les mêmes dates chaque année de 1970 à 2100 (section 7), mêmes refus |
+| `GET /api/kinds?latitude&longitude&start&end` | les saisons de chaque époque du formulaire, classées en fraîches, normales et chaudes (section 11), mêmes refus |
 | `/`, `/resultats`, `/documentation` | les pages |
 
 - Le stockage est ouvert au démarrage. Le serveur refuse de démarrer si un groupe ne couvre pas la période servie, si un tableau est incomplet (`built`), si les tableaux CORDEX ne décrivent pas tous la même simulation, si un tableau ne dit pas d'où viennent ses données (`reference`), ou si les températures viennent d'E-OBS sans masque.
 - Le géocodage (nom vers coordonnées) reste fait par le navigateur, auprès d'Open-Meteo : c'est la seule dépendance extérieure.
-- Page de résultats : les journées en calendrier de 7 colonnes (lundi à dimanche), 4 semaines visibles au plus (moins si la fenêtre est trop basse), le reste par défilement vertical calé par semaine ; chaque tuile porte sa date, le pictogramme du ciel et sa Tx, sur un fond teinté selon la classe de cette Tx (9 classes de 5 °C, de moins de 5 °C à 40 °C et plus : bleu profond, bleu, turquoise, vert, jaune, orange clair, orange, rouge, bordeaux ; encre blanche sous 5 °C et au-dessus de 35 °C ; légende chiffrée sous le calendrier, bornes lues dans `/api/config`) ; chaque mois s'ouvre sur une ligne à son nom (« juillet 2044 », entre deux filets), la semaine étant coupée au dernier jour du mois précédent ; le premier jour simulé porte la mention « simulation ». Au survol, au focus ou au toucher, une copie agrandie de la tuile donne le ciel en toutes lettres et un tableau à taille égale : température max., température min., précipitations, humidité relative (moyenne journalière, `hurs`), vent moyen. Une seule tuile dans l'ordre de tabulation, les flèches pour passer d'un jour à l'autre. Sous 60rem de large, une liste d'une ligne par jour avec tout affiché, sans défilement propre ni agrandissement Habillage du 04/11/2026 (`web/static/css/style.css`, fin du fichier) : en-tête bleu nuit de l'accueil sur toute la largeur, fond gris clair, chaque partie (calendrier, graphique, diagramme climatique, matrice des années) sur une carte blanche à coins arrondis, titres en Garamond, encres ardoise communes aux quatre saisons ; matrice des années en échelle divergente bleu, blanc, rouge (écart en écarts-types, saturé à 3, inchangé), années simulées marquées d'un point. Contrastes mesurés : 4,5:1 au moins partout (tuiles du calendrier de 5,7:1 à 13,8:1). Structure, contenu et interactions inchangés (`web/static/js/band.js`, `dayzoom.js`, `matrix.js`).
+- Page de résultats : les journées en calendrier de 7 colonnes (lundi à dimanche), 4 semaines visibles au plus (moins si la fenêtre est trop basse), le reste par défilement vertical calé par semaine ; chaque tuile porte sa date, le pictogramme du ciel et sa Tx, sur un fond teinté selon la classe de cette Tx (9 classes de 5 °C, de moins de 5 °C à 40 °C et plus : bleu profond, bleu, turquoise, vert, jaune, orange clair, orange, rouge, bordeaux ; encre blanche sous 5 °C et au-dessus de 35 °C ; légende chiffrée sous le calendrier, bornes lues dans `/api/config`) ; chaque mois s'ouvre sur une ligne à son nom (« juillet 2044 », entre deux filets), la semaine étant coupée au dernier jour du mois précédent ; le premier jour simulé porte la mention « simulation ». Au survol, au focus ou au toucher, une copie agrandie de la tuile donne le ciel en toutes lettres et un tableau à taille égale : température max., température min., précipitations, humidité relative (moyenne journalière, `hurs`), vent moyen. Une seule tuile dans l'ordre de tabulation, les flèches pour passer d'un jour à l'autre. Sous 60rem de large, une liste d'une ligne par jour avec tout affiché, sans défilement propre ni agrandissement Habillage du 04/11/2026 (`web/static/css/style.css`, fin du fichier) : en-tête sur toute la largeur, au dégradé de sa saison depuis le 05/11/2026 (bleu l'hiver, vert-jaune au printemps, orange-rouge l'été, orange-brun l'automne, partie colorée des dégradés d'avant le 17/10, encre sombre de la saison à 5:1 au moins ; bleu nuit de l'accueil du 04/11 au 05/11), fond gris clair, chaque partie (calendrier, graphique, diagramme climatique, matrice des années) sur une carte blanche à coins arrondis, titres en Garamond, encres ardoise communes aux quatre saisons ; matrice des années en échelle divergente bleu, blanc, rouge (écart en écarts-types, saturé à 3, inchangé), années simulées marquées d'un point. Contrastes mesurés : 4,5:1 au moins partout (tuiles du calendrier de 5,7:1 à 13,8:1). Structure, contenu et interactions inchangés (`web/static/js/band.js`, `dayzoom.js`, `matrix.js`).
 
 | Fichier | Rôle |
 |---|---|
@@ -77,8 +78,11 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `src/app/api/normals.py` | normales de saison |
 | `src/app/api/climate.py` | diagramme climatique |
 | `src/app/api/years.py` | matrice des années |
+| `src/app/api/kinds.py` | types de saison du formulaire |
 | `src/app/domain/` | règles d'affichage (V1) |
 | `web/` | pages, feuille de style, modules JavaScript (V1, adaptés) |
+
+Réorganisation du 05/11/2026 (lot 1 des pistes de sensibilisation) : ordre calendrier, matrice des années, graphique, diagramme climatique (le 06/11 : synthèse, calendrier, graphique, matrice, diagramme ; lien « Voir cette saison parmi toutes les années » dans la synthèse) ; l'avertissement n'est plus un encadré orange mais une ligne « Simulation : une météo plausible, pas une prévision. » avec un « ? » qui donne le détail ; normales affichées d'office sur le graphique (le bouton les retire) ; l'année affichée entourée dans la matrice ; méthode des normales, seuils de la matrice et critère de Bagnouls et Gaussen derrière un « ? » (`web/static/js/hint.js`) ; diagramme titré « Le climat du lieu, mois par mois ».
 
 ## 5. Normales de saison
 
@@ -166,3 +170,43 @@ Après la reconstruction sur E-OBS, contre le serveur local :
 ## 10. Tests
 
 `python -m pytest` (162 tests au 13/10/2026) : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages) et suite JavaScript (`node --test`, si `node` est installé).
+
+## 11. Formulaire : une année ou un type de saison
+
+Depuis le 04/11/2026, l'accueil propose, sous l'étiquette « Période », deux modes après le lieu : « Choisir une année » (une saison et une année ; « Saison entière » jusqu'au 05/11/2026) et « Choisir un type de saison », qui remplace la plage de dates. Les deux écrivent `debut` et `fin`, champs cachés : l'adresse de la page de résultats ne change pas, et une adresse écrite à la main avec d'autres dates fonctionne toujours.
+
+« Type de saison » : une saison, une époque (trois depuis le 05/11/2026, quatre fenêtres de 30 ans le 04/11), un type. À l'envoi, le navigateur demande `/api/kinds`, tire une année au hasard parmi celles du type demandé (`web/static/js/kinds.js`), écrit ses dates et part sur la page de résultats.
+
+| Époque | Années | Source |
+|---|---|---|
+| Ancien climat | 1970-2010 | données passées (E-OBS pour les températures) |
+| Nouveau climat | 2011-2050 | données passées 2011-2025, puis CORDEX corrigé 2027-2050 |
+| Climat futur | 2051-2100 | CORDEX corrigé |
+
+- Critère : moyenne de `tasmax` sur les dates de la saison, au lieu (mêmes mailles que la série), valeurs brutes. Chaque époque est classée seule ; sur 40 ou 50 ans, la tendance pèse dans le classement (une saison chaude du climat futur tombe plutôt en fin de siècle) : simplification acceptée le 05/11/2026, le classement sur l'écart à la tendance de l'époque reste possible.
+- Le nouveau climat mélange deux sources, et le modèle corrigé est plus frais que les données passées sur 2015-2025 (section 9) : son classement mêle variabilité et cette marche, jusqu'à l'ajustement sur la TRACC. `/api/kinds` lui donne une origine nulle.
+- Découpage : les 20 % les plus fraîches, les 60 % du milieu, les 20 % les plus chaudes (`round(0,2 × n)` à chaque bout : 8 sur 41, 10 sur 50).
+- Une saison dont les dates sortent d'une période servie est écartée : 2026, l'hiver 2025 (jusqu'en mars 2026), l'hiver 2100.
+- Accueil allégé (05/11/2026) : la note « Dates disponibles… Pour les dates futures, la météo affichée n'est pas une prévision, mais une simulation. » ne s'affiche plus en bas de page, mais au survol, au focus ou au toucher du « ? » rond placé après « N'importe quand. » (le même que celui de « Type » ; un astérisque le 05/11 au matin) ; le second paragraphe, devenu « La météo dans le futur est simulée et n'est pas le temps qu'il fera… », et le lien vers la documentation remontent sous le formulaire, en encre claire avec un halo bleu nuit diffus sous les lettres, sans encadré (contraste sous les lettres de 9,3:1 au moins, mesuré sur ordinateur, petit et grand écran, mobile, panneaux ouverts ou fermés).
+- La méthode s'affiche derrière un « ? » à côté de « Type » : au survol, au focus clavier ou au toucher, refermée par Échap ou un clic ailleurs (`web/static/js/hint.js`, réutilisable pour les autres notes).
+- Libellés : Frais, Normal, Chaud ; en hiver Froid, Normal, Doux. Époque par défaut : nouveau climat ; type par défaut : chaud.
+- Époques servies par `/api/config` (`epochs`, `epochs_default`), définies dans `src/app/api/kinds.py`. Choix du projet (04 et 05/11/2026), pas une norme.
+- Exemple, Lyon, été, moyenne des Tx : 25,6 °C (ancien climat, 41 étés), 27,6 °C (nouveau, 39), 29,0 °C (futur, 50). Étés chauds du nouveau climat : 2018, 2020, 2022, 2023, 2030, 2041, 2049, 2050 ; frais : 2011, 2013, 2014, 2021, 2028, 2029, 2033, 2039. Réponse en 0,07 s en local.
+
+## 12. Synthèse en tête des résultats
+
+Depuis le 05/11/2026, une carte en tête de la page de résultats (« Été 2063 à Lyon ») donne quelques chiffres des dates affichées, chacun avec sa normale : sa moyenne sur les mêmes dates des années de la période de référence choisie (1991-2020 par défaut), au même lieu, données passées (E-OBS pour les températures, ERA5), mêmes mailles que la série.
+
+| Saison | Chiffres |
+|---|---|
+| Été | écart de la Tx moyenne ; jours à Tx ≥ 35 °C (« dont N à 40 °C ou plus » s'il y en a) ; nuits tropicales (Tn > 20 °C) ; écart de pluie à la normale en % (« −19 % ») |
+| Hiver | écart de la température moyenne ; jours de gel (Tn < 0 °C) ; écart de pluie à la normale en % |
+| Printemps, automne | écart de la Tx moyenne ; journées estivales (Tx > 25 °C) ; jours de gel ; écart de pluie à la normale en % |
+
+- Seuils et inégalités de DRIAS (Météo-France, liste des indicateurs du 01/12/2023 : TX35, TR, SD, TNFD) ; 40 °C est un seuil propre au site. Décidé le 05/11/2026.
+- Un jour manquant ne compte ni sous ni au-dessus d'un seuil : le comptage est ramené à la longueur de la période, comme la pluie.
+- L'écart de température prend l'encre chaude ou froide du graphique au-delà d'un demi-degré.
+- La méthode s'affiche derrière un « ? » ; la page de documentation (section « La comparaison aux normales », 06/11/2026) explique la normale d'une date, l'écart du jour et ses couleurs, la synthèse et ses seuils. La tuile agrandie du calendrier donne aussi, dans un petit encadré blanc à droite de la Tx et de la Tn du jour, leur écart à la normale (« +9 °C », arrondi au degré, sur les valeurs non arrondies). Couleur : gris à 0, rouge au-dessus, bleu en dessous, rouge foncé ou bleu foncé à 5 °C d'écart ou plus (seuil DRIAS d'un jour anormalement chaud ou froid, TXND et TNND) ; `gapTone` dans `web/static/js/compare.js`. Tuile agrandie (06/11/2026) : 310 px au moins, chiffres du tableau agrandis (1,19 rem, unités plus petites) ; la ligne de chaleur humide, réservée sur toutes les tuiles d'une période qui en compte, n'y apparaît que pour un jour qui en a, sans hauteur réservée ; le ciel et la chaleur humide dans l'encre de la tuile.
+- `GET /api/summary?latitude&longitude&start&end&reference` (`src/app/api/summary.py`) calcule tous les chiffres (`tasmax_mean`, `tas_mean`, `hot_35`, `hot_40`, `tropical_nights`, `summer_days`, `frost_days`, `precipitation`), la page choisit selon la saison (`web/static/js/summary.js`).
+- Exemples : Lyon, été 2063 : Tx moyenne 31,2 °C (normale 26,7), 19 jours à 35 °C ou plus (3,2), 38 nuits tropicales (3,5), pluie 73 % de la normale. Grenoble, hiver 2080-2081 : +1,2 °C, 57 jours de gel (57,6).
+

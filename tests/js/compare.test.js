@@ -9,7 +9,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { alignByDate, referenceYears } from "../../web/static/js/compare.js";
+import { gapTone, alignByDate, referenceYears } from "../../web/static/js/compare.js";
 
 const day = (date) => ({ date });
 
@@ -43,5 +43,16 @@ describe("the normals of the days drawn", () => {
   it("names the reference period from the answer", () => {
     const answer = { reference_start: "1991-01-01", reference_end: "2020-12-31" };
     assert.equal(referenceYears(answer), "1991-2020");
+  });
+});
+
+describe("gapTone", () => {
+  it("is red when warmer, blue when cooler, darker from 5 degrees (DRIAS)", () => {
+    assert.equal(gapTone(0), "");
+    assert.equal(gapTone(1), "warm");
+    assert.equal(gapTone(4), "warm");
+    assert.equal(gapTone(5), "much-warm");
+    assert.equal(gapTone(-1), "cool");
+    assert.equal(gapTone(-5), "much-cool");
   });
 });

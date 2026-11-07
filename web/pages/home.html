@@ -42,14 +42,11 @@
     <header class="banner">
       <h1 id="prompt" class="prompt"></h1>
       <!--
-        The promise, and the asterisk that qualifies it.
+        The promise, and the "?" that opens its note on the dates.
 
-        **The slot is declared here and the mark is placed by script**, which is
-        not the arrangement the rest of the page uses and has one reason. The
-        call goes *before* the full stop — « N'importe quand*. » — so it falls
-        inside the sentence, and a node written here could only ever follow it.
-        `home.js` cuts the filled text where `beforeFinalPunctuation` says and
-        puts the three pieces back.
+        **The slot is declared here and the lines and the "?" are placed by
+        script** (`markPromise` in `home.js`): the promise is one string with
+        line breaks, and the "?" follows its last full stop.
 
         The `data-text` stays all the same: it is what `pages.test.js` checks the
         dictionary against, and it is what shows if the enhancement above it ever
@@ -57,6 +54,14 @@
         back to.
       -->
       <p class="tagline" id="promise" data-text="home.promise"></p>
+      <!--
+        The note the "?" of the promise refers to, shown on hover, focus or
+        tap of that "?" (hint.js): it used to open the footer, and weighed
+        on the page there. The periods covered come from /api/config.
+      -->
+      <p id="coverage-note" class="hint-text coverage-note" role="tooltip" hidden
+        ><span id="coverage"></span><span data-text="warning.note"></span
+      ></p>
     </header>
 
     <main>
@@ -99,8 +104,10 @@
         <input type="hidden" id="lon" name="lon" />
 
         <!--
-          Two ways of asking for one period, and neither panel showing until
-          one of them is picked.
+          Two ways of asking for a season, and neither panel showing until one
+          of them is picked: by its year, or by its kind (cool, normal, warm) in
+          an epoch, the year then drawn at random among those of that kind
+          (kinds.js, /api/kinds).
 
           **Buttons, not a group of radios.** Radios only group by sharing a
           `name`, and a name is what a GET form puts in the URL: the address
@@ -108,22 +115,11 @@
           carry `type="button"`, so they are never submitted and never
           accidentally submit the form either.
 
-          **The markup opens on the dates panel, and script closes it.** Left
-          the other way round, a visitor without JavaScript would meet a form
-          with no period at all and no way to reveal one. Here the page still
-          degrades to exactly what it was before the season existed.
-
-          **The season comes first, and the order is the markup's own.** It is
-          the question the site exists to answer — an été à Montpellier en 2050
-          — where two dates are the way out for someone who wants a fortnight in
-          particular. Reordering with CSS would leave the reading order and the
-          tab order on the old arrangement, which is the arrangement nobody sees
-          any more; a screen reader and a keyboard have to meet them in the same
-          order an eye does. The panels below are left as they are: only one is
-          ever open, so their order is not read, and the one showing when there
-          is no script has to stay the one the markup does not hide.
+          Named "Période" above them, as "Lieu" names the place field: the
+          group takes that line as its accessible name.
         -->
-        <div class="modes" role="group" data-attr-aria-label="form.modeLabel">
+        <p id="period-label" class="field-label" data-text="form.periodLabel"></p>
+        <div class="modes" role="group" aria-labelledby="period-label">
           <button
             type="button"
             id="mode-season"
@@ -134,34 +130,26 @@
           ></button>
           <button
             type="button"
-            id="mode-dates"
+            id="mode-kind"
             class="mode"
-            aria-pressed="true"
-            aria-controls="panel-dates"
-            data-text="form.modeDates"
+            aria-pressed="false"
+            aria-controls="panel-kind"
+            data-text="form.modeKind"
           ></button>
         </div>
 
-        <div class="dates" id="panel-dates">
-          <p class="field">
-            <label for="debut" data-text="form.from"></label>
-            <input type="date" id="debut" name="debut" required />
-          </p>
-          <p class="field">
-            <label for="fin" data-text="form.to"></label>
-            <input type="date" id="fin" name="fin" required />
-          </p>
-        </div>
+        <!--
+          What leaves: two dates, written by either panel. The results page
+          therefore needs to know nothing about seasons, kinds or epochs, and
+          the URL is the same five parameters it has always been.
+        -->
+        <input type="hidden" id="debut" name="debut" />
+        <input type="hidden" id="fin" name="fin" />
 
         <!--
-          The season panel writes into the two date fields above; it does not
-          replace them. **Neither select carries a `name`**, so neither is
-          submitted: `debut` and `fin` stay the only things that leave, hidden
-          or not, and the URL is the same five parameters it has always been.
-          The results page therefore needs to know nothing about seasons.
-
-          Both lists are built by script — the season names come from the
-          dictionary, and the years from what the API says it covers.
+          Neither select carries a `name`, so neither is submitted. Both lists
+          are built by script: the season names come from the dictionary, the
+          years from what the API says it covers.
         -->
         <div class="dates" id="panel-season" hidden>
           <p class="field">
@@ -175,10 +163,42 @@
         </div>
 
         <!--
-          Hidden by script until a period has been asked for, and visible here
-          for the same reason the dates panel is: with no script, this is the
-          form as it always was. Left showing before a mode is picked, it would
-          run a search on default dates the visitor never saw.
+          A season of a kind, in an epoch. The epochs come from /api/config; the
+          year is drawn on submission, once the server has ranked the seasons of
+          the place.
+        -->
+        <div id="panel-kind" class="kind-panel" hidden>
+          <div class="dates kinds">
+            <p class="field">
+              <label for="saison-type" data-text="form.season"></label>
+              <select id="saison-type"></select>
+            </p>
+            <p class="field epoch">
+              <label for="epoque" data-text="form.epoch"></label>
+              <select id="epoque"></select>
+            </p>
+            <p class="field">
+              <span class="label-row">
+                <label for="type" data-text="form.kind"></label>
+                <!-- The method, behind a "?": shown on hover, focus or tap (hint.js). -->
+                <button
+                  type="button"
+                  class="hint"
+                  data-hint
+                  aria-expanded="false"
+                  aria-controls="kind-note"
+                  data-attr-aria-label="form.kindHint"
+                >?</button>
+              </span>
+              <select id="type"></select>
+            </p>
+          </div>
+          <p id="kind-note" class="hint-text" role="tooltip" data-text="form.kindNote" hidden></p>
+        </div>
+
+        <!--
+          Hidden by script until a mode has been picked: left showing before,
+          it would run a search on dates the visitor never saw.
         -->
         <p id="go"><button type="submit" data-text="form.submit"></button></p>
 
@@ -192,19 +212,6 @@
       that means should not have to run a search first to find out.
     -->
     <footer class="banner">
-      <!--
-        The note the asterisk above refers to.
-
-        The mark is `aria-hidden`: it is a visual back-reference and nothing
-        else. Read aloud it would be "astérisque" in front of a sentence that
-        already stands on its own — the pairing is for the eye, and the eye is
-        what it is left to.
-      -->
-      <p class="tagline">
-        <span class="note-mark" aria-hidden="true">*</span
-        ><span id="coverage"></span
-        ><span data-text="warning.note"></span>
-      </p>
       <p class="tagline" data-text="warning.noteMeaning"></p>
       <p class="doc-link">
         <a href="/documentation" data-text="site.documentation"></a>

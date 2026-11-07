@@ -613,8 +613,27 @@ body.home {
   padding-bottom: calc(var(--space) * 20);
 }
 
+/* The note sits under the form since 5/11/2026, no longer pushed to the foot
+   of the page. Where it lands depends on the panel open and on the window:
+   blue, mauve or peach. So the pale ink of the page, held by a halo under the
+   letters (below), at 9.3:1 or more under the glyphs (measured). */
 body.home > footer.banner {
-  margin-top: auto;
+  width: auto;
+  max-width: calc(var(--column) + var(--space) * 10);
+  margin-top: calc(var(--space) * 4);
+  padding: calc(var(--space) * 4) calc(var(--space) * 5);
+}
+
+body.home footer .tagline,
+body.home footer .doc-link {
+  color: var(--ink);
+  /* No box: a diffuse night-blue halo under the letters holds the pale ink on
+     the peach band, where it would fall to 1.9:1 bare. */
+  text-shadow:
+    0 0 1px rgb(6 20 42 / 95%),
+    0 0 3px rgb(6 20 42 / 90%),
+    0 0 7px rgb(6 20 42 / 75%),
+    0 0 14px rgb(6 20 42 / 55%);
 }
 
 .banner,
@@ -768,17 +787,16 @@ h1 {
  * promise would gain a couple of pixels of height and the form under it would
  * shift down, on the one page whose vertical placement is measured in `vh`.
  */
-.note-ref,
-.note-mark {
-  font-size: 0.68em;
-  vertical-align: super;
-  line-height: 0;
+/* The "?" after the promise: the ring of the "?" beside "Type", set off from
+   the full stop and centred on the line. */
+.promise-hint {
+  margin-left: 0.5em;
+  vertical-align: 0.15em;
 }
 
-/* The mark precedes the note rather than following it, so the gap goes on the
-   right. Set in `em` so it tracks the glyph and not the page. */
-.note-mark {
-  margin-right: 0.35em;
+.promise-hint:hover,
+.promise-hint[aria-expanded="true"] {
+  color: #fff;
 }
 
 #count:not(:empty)::before {
@@ -825,6 +843,7 @@ footer.banner {
 /* --- the register that only names things ---------------------------------- */
 
 .field label,
+.field-label,
 .card-measures dt,
 .card-month,
 .card-sky,
@@ -897,6 +916,12 @@ body.home .field label {
 }
 
 .field label {
+  color: var(--ink-soft);
+}
+
+/* The name over the two period buttons, set as the label of a field. */
+.field-label {
+  margin: 0 0 calc(var(--space) * 2);
   color: var(--ink-soft);
 }
 
@@ -1070,6 +1095,120 @@ select:focus {
 
 .dates .field {
   flex: 1 1 14ch;
+}
+
+/* The kind mode: the epoch carries its years, so it gets the room. Widths in
+   rem, measured on the longest options (Printemps, Nouveau climat (2011-2050),
+   Normal); under about 30rem the fields wrap. */
+.dates.kinds {
+  gap: calc(var(--space) * 6);
+}
+
+.dates.kinds .field {
+  flex: 1 1 7rem;
+}
+
+.dates.kinds .field.epoch {
+  flex: 3 1 17.5rem;
+}
+
+.dates.kinds .field:last-child {
+  flex-basis: 5.5rem;
+}
+
+/* A label and its "?" on one line. */
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+}
+
+/* The "?" of a note (hint.js): a small ring in the ink of the labels. */
+.hint {
+  display: inline-grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: help;
+}
+
+.hint:hover,
+.hint:focus-visible,
+.hint[aria-expanded="true"] {
+  color: var(--ink);
+}
+
+/* The note, over what follows: a pale card, dark ink (13:1). */
+.kind-panel,
+body.home > header.banner {
+  position: relative;
+}
+
+.hint-text {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: calc(100% + var(--space) * 2);
+  margin: 0;
+  padding: calc(var(--space) * 3) calc(var(--space) * 4);
+  border-radius: 6px;
+  background: #fbfaf7;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+  color: #14202e;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* In the kind panel, the fields carry a bottom margin: the note closes it. */
+.kind-panel > .hint-text {
+  top: calc(100% - var(--space) * 5);
+}
+
+/* The notes of the results page: under a title, the warning or the normals
+   bar, as wide as a line of reading at most. */
+.title-row,
+.warning,
+.compare-bar {
+  position: relative;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 3);
+}
+
+.title-row > .hint-text,
+.warning > .hint-text,
+.compare-bar > .hint-text {
+  right: auto;
+  width: min(36rem, 100%);
+  font-family: var(--font);
+}
+
+.compare-row .hint {
+  margin-right: auto;
+}
+
+/* The note on the dates, under the promise, centred on the column. */
+.coverage-note {
+  top: calc(100% - var(--space) * 2);
+  left: 50%;
+  right: auto;
+  width: min(30rem, 100% - var(--space) * 8);
+  transform: translateX(-50%);
+  font-family: var(--font);
+  text-align: left;
 }
 
 /* A band the sky passes through, not a slab laid over it.
@@ -2039,6 +2178,13 @@ body.results [data-band="8"] { --tile: #5a0b2f; --tile-ink: #fff; }
   box-shadow: 0 0 0 2px var(--raised), 0 0 0 4px var(--ink);
 }
 
+/* The year on screen, ringed in the ink. */
+.year-tile.current {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+  font-weight: 700;
+}
+
 /* A simulated year: a dot in the top right corner, in the colour of its year so
    that it shows on the white as on the red. A dashed outline until 2026-11-04;
    on eighty tiles in a row it read as noise. */
@@ -2712,25 +2858,53 @@ body.results .card--zoom .card-detail {
 }
 
 body.results .card--zoom .card-detail dt {
+  align-self: center;
+  white-space: nowrap;
   text-align: left;
   font-family: var(--font);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
 }
 
+/* The figures larger than their words since 6/11/2026: they are what the
+   enlarged tile is opened for. */
 body.results .card--zoom .card-detail dd {
   margin: 0;
   text-align: right;
   white-space: nowrap;
   font-family: var(--font);
-  font-size: 0.875rem;
+  font-size: 1.1875rem;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
-/* Same size as the figure: the table is read line by line, not at a glance. */
+/* The unit smaller than its figure. */
 body.results .card--zoom .card-detail .unit {
-  margin-left: 0.25em;
-  font-size: inherit;
+  margin-left: 0.2em;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+/* The humid-heat line is reserved on every small card of a strip that has one
+   (band.js); in the enlarged tile it shows only on a day that has it, and
+   without the reserved height: an empty band between two rules otherwise. */
+body.results .card--zoom .card-humid:not([data-humid]) {
+  display: none;
+}
+
+body.results .card--zoom .card-humid {
+  min-height: 0;
+  margin-top: calc(var(--space) * 2);
+  padding-top: calc(var(--space) * 2);
+}
+
+/* The sky's word and the humid-heat line in the ink of the tile: the soft grey
+   and the orange of the page vanish on the red and dark tiles. */
+body.results .card--zoom .card-sky,
+body.results .card--zoom .card-humid,
+body.results .card--zoom .card-humid[data-humid],
+body.results .card--zoom .card-humid * {
+  color: inherit;
 }
 
 body.results .unit {
@@ -3307,9 +3481,9 @@ body.maps .toggle[aria-pressed="true"] {
 
 /* --- results page: the dress of 2026-11-04 ---------------------------------
  *
- * The structure is unchanged; this block only dresses it. The header takes the
- * night sky of the home page across the whole width, so that the two pages read
- * as one site. Below it, a pale grey ground, and each part of the page (the
+ * The structure is unchanged; this block only dresses it. The header runs
+ * across the whole width on the gradient of its season (since 2026-11-05, in
+ * place of the night sky of the home page). Below it, a pale grey ground, and each part of the page (the
  * calendar, the chart, the climate diagram, the matrix of years) on a white
  * section with round corners and a soft shadow, in place of the cream boxes and
  * their brown rules. Section titles in Garamond, like the name of the place.
@@ -3335,11 +3509,38 @@ body.results > header.banner {
   max-width: none;
   margin-inline: calc(50% - 50vw);
   padding: calc(var(--space) * 14) calc(var(--space) * 4) calc(var(--space) * 10);
-  background: linear-gradient(180deg, #071a33 0%, #12355e 70%, #2a4a74 100%);
-  color: #f3efe6;
+  background: var(--banner);
+  color: var(--banner-ink);
 }
 
-/* The temperature scale of the calendar, as a filet under the sky. */
+/*
+ * The season's gradient, as the page carried it before 2026-10-17 (blue, green,
+ * orange to red, orange to brown), cut to its coloured middle: the dark foot of
+ * the old gradients is left out so that one dark ink reads on the whole band.
+ * The season's own ink of that time, at 5:1 at least on every stop (summer
+ * 5,1:1 on #fd3a0c, autumn 5,5:1 on #d07a2c, winter 6,0:1, spring 7,8:1).
+ */
+body.results[data-season="winter"] {
+  --banner: linear-gradient(180deg, #dbeaf7 0%, #b3d0e8 40%, #8fb6dc 70%, #6f9dc9 100%);
+  --banner-ink: #0b1c30;
+}
+
+body.results[data-season="spring"] {
+  --banner: linear-gradient(180deg, #eaf3c8 0%, #d8e894 40%, #c8d94a 70%, #a9c23c 100%);
+  --banner-ink: #17280c;
+}
+
+body.results[data-season="summer"] {
+  --banner: linear-gradient(180deg, #fbbe7f 0%, #fe9e52 30%, #ff7b30 55%, #fd5816 80%, #fd3a0c 100%);
+  --banner-ink: #21100a;
+}
+
+body.results[data-season="autumn"] {
+  --banner: linear-gradient(180deg, #fae2bd 0%, #f3bb72 40%, #e08a35 75%, #d07a2c 100%);
+  --banner-ink: #2a1206;
+}
+
+/* The temperature scale of the calendar, as a filet under the band. */
 body.results > header.banner::after {
   content: "";
   position: absolute;
@@ -3349,37 +3550,42 @@ body.results > header.banner::after {
 }
 
 body.results > header.banner h1 {
-  color: #fff;
+  color: var(--banner-ink);
   font-size: clamp(2.4rem, 5vw, 3.6rem);
   font-weight: 500;
   letter-spacing: -0.01em;
 }
 
 body.results > header.banner .tagline {
-  color: #c9d4e3;
+  color: var(--banner-ink);
   font-size: 1.05rem;
 }
 
 body.results > header.banner a {
-  color: #fff;
-  text-decoration-color: rgb(255 255 255 / 45%);
+  color: var(--banner-ink);
+  text-decoration-color: currentColor;
 }
 
 /* The warning: one line on a pale ground, the dusk orange of the home page on
    its edge. Ink at 9:1 on its ground. */
+/* The warning, since 5/11/2026: one quiet line and a "?", no longer an orange
+   box ahead of the first figure. */
 body.results .warning {
   max-width: none;
-  margin-top: calc(var(--space) * 7);
-  padding: calc(var(--space) * 3) calc(var(--space) * 4);
+  margin-top: calc(var(--space) * 6);
+  padding: 0;
   border: 0;
-  border-left: 3px solid #e0753a;
-  border-radius: 0 8px 8px 0;
-  background: #fff4ec;
-  color: #5b2a10;
+  background: none;
+  color: var(--ink-soft);
 }
 
-body.results .warning p:first-child {
-  color: #5b2a10;
+body.results .warning-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
 }
 
 body.results .doc-link {
@@ -3610,3 +3816,109 @@ body.results .provenance {
     width: 100%;
   }
 }
+
+/* --- results page: the summary card (5/11/2026) ----------------------------
+ * A few figures beside their normal, first on the page. The figure large, in
+ * the display face; its words under it; the normal last, in the soft ink. The
+ * gap in temperature takes the warm or cool ink of the chart past half a degree.
+ */
+.summary-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: calc(var(--space) * 4) calc(var(--space) * 6);
+  margin: calc(var(--space) * 4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-figure p {
+  margin: 0;
+}
+
+.summary-value {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.summary-figure.warm .summary-value {
+  color: var(--warm);
+}
+
+.summary-figure.cool .summary-value {
+  color: var(--cool);
+}
+
+.summary-label {
+  margin-top: calc(var(--space) * 1) !important;
+  font-family: var(--font);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.summary-normal {
+  margin-top: calc(var(--space) * 1) !important;
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* The gap of the day's maximum and minimum to their normal, in a small white
+   box to the right of the figure in the enlarged tile. Red warmer, blue cooler,
+   darker from 5 °C (the DRIAS threshold of an abnormal day). Inks measured on
+   white: #c62828 5.6:1, #7a0b0b 11.2:1, #1d5fb4 6.3:1, #0b2a6b 13.5:1. */
+.card-gap {
+  display: inline-block;
+  min-width: 3.4em;
+  margin-left: calc(var(--space) * 2);
+  padding: 0 calc(var(--space) * 1.5);
+  border-radius: 4px;
+  background: #fff;
+  color: #4f5b6b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.6;
+  text-align: center;
+  vertical-align: 0.1em;
+}
+
+.card-gap.warm {
+  color: #c62828;
+}
+
+.card-gap.much-warm {
+  color: #7a0b0b;
+}
+
+.card-gap.cool {
+  color: #1d5fb4;
+}
+
+.card-gap.much-cool {
+  color: #0b2a6b;
+}
+
+/* The way down to the matrix of years, under the figures of the summary. */
+.summary-more {
+  margin: calc(var(--space) * 4) 0 0;
+  font-family: var(--font);
+  font-size: 0.875rem;
+}
+
+.summary-more a {
+  color: var(--link);
+}
+
+/* The link of the summary glides down to the matrix, unless motion is reduced. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(body.results) {
+    scroll-behavior: smooth;
+  }
+}
+
+body.results #years {
+  scroll-margin-top: calc(var(--space) * 4);
+}
+

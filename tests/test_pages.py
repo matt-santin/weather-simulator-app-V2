@@ -155,13 +155,14 @@ def test_the_footnote_has_both_of_its_marks() -> None:
     so falls inside a sentence the page never spells out; the note is a line of
     markup in the footer. Drop either and the other goes on rendering, which is
     exactly the failure a reader would not know to report — a star pointing at
-    nothing, or a sentence nothing points at.
+    nothing, or a sentence nothing points at. Since 5/11/2026 the call is a
+    ringed "?" that shows the note (hint.js), and the note sits under the promise.
     """
     script = (WEB / "static/js/home.js").read_text()
     html = (WEB / "pages/home.html").read_text()
 
-    assert '"note-ref"' in script
-    assert 'class="note-mark"' in html
+    assert '"aria-controls": "coverage-note"' in script
+    assert 'id="coverage-note"' in html
     assert 'data-text="warning.note"' in html
 
 

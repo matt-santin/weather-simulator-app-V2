@@ -37,8 +37,42 @@
         more alarming than it is costs the same trust as one that is missing.
         `test_pages.py` keeps the statement on the page that explains it.
       -->
+      <!--
+        The summary: a few figures of the dates shown beside their normal, the
+        season choosing which (summary.js). First on the page: it is the frame
+        the days below are read in. Filled by results.js; hidden until it is.
+      -->
+      <section id="summary" class="climate-section summary" hidden>
+        <div class="title-row">
+          <h2 id="summary-title" class="climate-title"></h2>
+          <button
+            type="button"
+            class="hint"
+            data-hint
+            aria-expanded="false"
+            aria-controls="summary-method"
+            data-attr-aria-label="summary.hint"
+          >?</button>
+          <p id="summary-method" class="hint-text" role="tooltip" hidden></p>
+        </div>
+        <ul id="summary-figures" class="summary-figures"></ul>
+        <p class="summary-more"><a href="#years" data-text="summary.more"></a></p>
+        <p id="summary-status" class="compare-note" aria-live="polite"></p>
+      </section>
+
       <aside id="warning" class="warning" hidden>
-        <p data-text="warning.notAForecast"></p>
+        <p class="warning-line">
+          <span data-text="warning.notAForecast"></span>
+          <button
+            type="button"
+            class="hint"
+            data-hint
+            aria-expanded="false"
+            aria-controls="warning-note"
+            data-attr-aria-label="warning.hint"
+          >?</button>
+        </p>
+        <p id="warning-note" class="hint-text" role="tooltip" data-text="warning.detail" hidden></p>
       </aside>
 
       <!--
@@ -111,13 +145,21 @@
             aria-pressed="false"
             data-text="compare.open"
           ></button>
+          <button
+            type="button"
+            class="hint"
+            data-hint
+            aria-expanded="false"
+            aria-controls="compare-method"
+            data-attr-aria-label="compare.hint"
+          >?</button>
           <p class="compare-field">
             <label for="compare-reference" data-text="compare.reference"></label>
             <select id="compare-reference"></select>
           </p>
         </div>
         <p id="compare-status" class="compare-note" aria-live="polite"></p>
-        <p id="compare-method" class="compare-note" hidden></p>
+        <p id="compare-method" class="hint-text" role="tooltip" hidden></p>
         <p id="compare-failure" class="failure" role="alert" hidden></p>
       </div>
 
@@ -130,34 +172,23 @@
       <div id="chart-panel" class="chart-panel" hidden></div>
 
       <!--
-        The climate diagram: twelve months over the 15 years around the year
-        searched, and the reference period of the normals in grey. Filled by
-        results.js and climate.js; hidden until it is.
-      -->
-      <section id="climate" class="climate-section" hidden>
-        <h2 class="climate-title" data-text="climate.title"></h2>
-        <p id="climate-subtitle" class="compare-note"></p>
-        <div id="climate-panel" class="chart-panel"></div>
-        <ul class="climate-legend">
-          <li><span class="climate-swatch line" aria-hidden="true"></span><span id="climate-legend-temperature"></span></li>
-          <li><span class="climate-swatch bar" aria-hidden="true"></span><span id="climate-legend-rain"></span></li>
-          <li><span class="climate-swatch past" aria-hidden="true"></span><span id="climate-legend-reference"></span></li>
-          <li><span class="climate-swatch dry" aria-hidden="true"></span><span data-text="climate.legendDry"></span></li>
-        </ul>
-        <p id="climate-summary" class="compare-note"></p>
-        <p id="climate-summary-reference" class="compare-note"></p>
-        <p class="compare-note" data-text="climate.criterion"></p>
-        <p id="climate-status" class="compare-note" aria-live="polite"></p>
-        <p id="climate-failure" class="failure" role="alert" hidden></p>
-      </section>
-
-      <!--
         Every year from 1970 to 2100: the dates of the search in each, one tile
         per year, coloured by the anomaly to the reference period. Filled by
         results.js and matrix.js; hidden until it is.
       -->
       <section id="years" class="climate-section" hidden>
-        <h2 id="years-title" class="climate-title"></h2>
+        <div class="title-row">
+          <h2 id="years-title" class="climate-title"></h2>
+          <button
+            type="button"
+            class="hint"
+            data-hint
+            aria-expanded="false"
+            aria-controls="years-thresholds"
+            data-attr-aria-label="years.hint"
+          >?</button>
+          <p id="years-thresholds" class="hint-text" role="tooltip" data-text="years.thresholds" hidden></p>
+        </div>
         <p id="years-intro" class="compare-note"></p>
         <div id="years-grid" class="years-grid"></div>
         <ul class="climate-legend">
@@ -165,7 +196,6 @@
           <li><span class="climate-swatch years-simulated" aria-hidden="true"></span><span data-text="years.legendSimulated"></span></li>
           <li><span class="climate-swatch years-none" aria-hidden="true"></span><span data-text="years.legendNone"></span></li>
         </ul>
-        <p class="compare-note" data-text="years.thresholds"></p>
         <p id="years-status" class="compare-note" aria-live="polite"></p>
         <p id="years-failure" class="failure" role="alert" hidden></p>
 
@@ -183,6 +213,39 @@
           <p><a id="years-link" href="/"></a></p>
         </div>
       </section>
+
+      <!--
+        The climate diagram: twelve months over the 15 years around the year
+        searched, and the reference period of the normals in grey. Filled by
+        results.js and climate.js; hidden until it is.
+      -->
+      <section id="climate" class="climate-section" hidden>
+        <div class="title-row">
+          <h2 class="climate-title" data-text="climate.title"></h2>
+          <button
+            type="button"
+            class="hint"
+            data-hint
+            aria-expanded="false"
+            aria-controls="climate-criterion"
+            data-attr-aria-label="climate.hint"
+          >?</button>
+          <p id="climate-criterion" class="hint-text" role="tooltip" data-text="climate.criterion" hidden></p>
+        </div>
+        <p id="climate-subtitle" class="compare-note"></p>
+        <div id="climate-panel" class="chart-panel"></div>
+        <ul class="climate-legend">
+          <li><span class="climate-swatch line" aria-hidden="true"></span><span id="climate-legend-temperature"></span></li>
+          <li><span class="climate-swatch bar" aria-hidden="true"></span><span id="climate-legend-rain"></span></li>
+          <li><span class="climate-swatch past" aria-hidden="true"></span><span id="climate-legend-reference"></span></li>
+          <li><span class="climate-swatch dry" aria-hidden="true"></span><span data-text="climate.legendDry"></span></li>
+        </ul>
+        <p id="climate-summary" class="compare-note"></p>
+        <p id="climate-summary-reference" class="compare-note"></p>
+        <p id="climate-status" class="compare-note" aria-live="polite"></p>
+        <p id="climate-failure" class="failure" role="alert" hidden></p>
+      </section>
+
 
       <!--
         The days on screen, as a file.

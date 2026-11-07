@@ -181,3 +181,39 @@ class Years(BaseModel):
     temperature_sigma: float = Field(description="interannual standard deviation, degrees")
     precipitation_normal: float = Field(description="mean of the reference years, millimetres")
     years: list[YearSummary]
+
+
+class SummaryFigure(BaseModel):
+    """One figure of the summary, and its normal (mean over the reference years)."""
+
+    value: float | None = None
+    normal: float | None = None
+
+
+class Summary(BaseModel):
+    """The figures of the dates of a search beside the reference period (summary.py):
+    tasmax_mean, tas_mean, hot_35, hot_40, tropical_nights, summer_days,
+    frost_days, precipitation."""
+
+    reference_start: date
+    reference_end: date
+    figures: dict[str, SummaryFigure]
+
+
+class KindsEpoch(BaseModel):
+    """The years of one epoch, sorted into cool, normal and warm seasons."""
+
+    id: str
+    first: int
+    last: int
+    origin: Origin | None = Field(description="null when the epoch mixes past data and simulation")
+    cool: list[int]
+    normal: list[int]
+    warm: list[int]
+    values: dict[int, float] = Field(description="mean tasmax of each year, degrees Celsius")
+
+
+class Kinds(BaseModel):
+    """The epochs of the home form (kinds.EPOCHS), ranked at one place."""
+
+    epochs: list[KindsEpoch]

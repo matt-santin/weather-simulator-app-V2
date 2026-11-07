@@ -30,19 +30,22 @@ import {
   normals,
   search,
   SearchError,
+  summaryOf,
   years as everyYear,
 } from "./fetch.js";
 import { legend, sources, strip } from "./band.js";
 import { chart } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
 import { diagram, summary, years as yearsOf } from "./climate.js";
-import { alignByDate, referenceYears } from "./compare.js";
+import { alignByDate, gapTone, referenceYears } from "./compare.js";
 import { toCsv, fileName } from "./csv.js";
 import { applyTexts, el } from "./dom.js";
+import { wireHints } from "./hint.js";
 import { decimal, detail, tiles } from "./matrix.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
 import { dominantSeason } from "./season.js";
+import { figures as summaryFigures, heading as summaryHeading } from "./summary.js";
 
 const place = document.getElementById("place");
 const range = document.getElementById("range");
@@ -90,10 +93,17 @@ const yearsLink = document.getElementById("years-link");
 const yearsStatus = document.getElementById("years-status");
 const yearsFailure = document.getElementById("years-failure");
 
+const summarySection = document.getElementById("summary");
+const summaryTitle = document.getElementById("summary-title");
+const summaryMethod = document.getElementById("summary-method");
+const summaryList = document.getElementById("summary-figures");
+const summaryStatus = document.getElementById("summary-status");
+
 const exportBlock = document.getElementById("export");
 const exportButton = document.getElementById("export-button");
 
 applyTexts();
+wireHints();
 
 /**
  * The constants the API serves, asked for at once and waited on at the end.
@@ -247,6 +257,7 @@ async function show(series) {
     chartPanel.append(drawn);
     chartPanel.hidden = false;
     offer(series, config);
+    showSummary();
     showClimate();
     showYears();
   }
@@ -277,10 +288,14 @@ function offer(series, config) {
   // the colours of the matrix share their period.
   compareReference.addEventListener("change", () => {
     if (shown()) lay(series);
+    showSummary();
     showClimate();
     showYears();
   });
   compare.hidden = false;
+  // The normals are drawn from the start since 5/11/2026: they are the yardstick
+  // a day is read against. The button now takes them off.
+  toggle(series);
 }
 
 /** Whether the normals are on the chart: the state of the button. */
@@ -319,9 +334,11 @@ async function lay(series) {
 
     const answer = kept.get(reference);
     const years = referenceYears(answer);
-    redraw(series, alignByDate(series.days, answer.days), texts.compare.legend(years));
+    const aligned = alignByDate(series.days, answer.days);
+    redraw(series, aligned, texts.compare.legend(years));
+    markNormals(series.days, aligned);
+    // Shown by its "?" (hint.js), not here.
     compareMethod.textContent = texts.compare.method(years, answer.window_days);
-    compareMethod.hidden = false;
   } catch (error) {
     if (turn !== asking) return;
     // The normals failing is not the page failing: the days the visitor came
@@ -337,6 +354,75 @@ async function lay(series) {
 }
 
 /** The climate diagrams, one fetch per reference period at most. */
+/**
+ * The gap of each day's maximum and minimum to their normal, in a small box to
+ * the right of each figure in the table the enlarged tile shows (dayzoom.js
+ * copies the card, so the boxes go on the card itself). Replaced when the
+ * reference period changes. Coloured by gapTone.
+ */
+function markNormals(days, aligned) {
+  const cards = band.querySelectorAll(".card");
+  cards.forEach((card, index) => {
+    // The first two lines of the table: maximum, then minimum (band.js).
+    const [high, low] = card.querySelectorAll(".card-detail dd");
+    for (const [cell, name] of [[high, "temperature_max"], [low, "temperature_min"]]) {
+      if (!cell) continue;
+      cell.querySelector(".card-gap")?.remove();
+      const normal = aligned[index]?.[name];
+      const value = days[index]?.[name];
+      if (normal === null || normal === undefined || value === null || value === undefined) continue;
+      const gap = Math.round(value - normal);
+      cell.append(
+        el("span", {
+          className: `card-gap ${gapTone(gap)}`,
+          text: texts.detail.gap(GAP.format(gap)),
+          attrs: { title: texts.detail.gapTitle },
+        }),
+      );
+    }
+  });
+}
+
+const GAP = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0, signDisplay: "exceptZero" });
+
+// --- the summary card ----------------------------------------------------------
+
+const summaries = new Map();
+let summaryTurn = 0;
+
+async function showSummary() {
+  const reference = compareReference.value;
+  const turn = (summaryTurn += 1);
+  try {
+    if (!summaries.has(reference)) {
+      summaryStatus.textContent = texts.summary.loading;
+      summaries.set(reference, await summaryOf(asked, reference));
+    }
+    if (turn !== summaryTurn) return;
+    const answer = summaries.get(reference);
+    const shownSeason = document.body.dataset.season;
+    summaryTitle.textContent = summaryHeading(shownSeason, asked.start, asked.end, asked.place);
+    summaryMethod.textContent = texts.summary.method(
+      `${answer.reference_start.slice(0, 4)}-${answer.reference_end.slice(0, 4)}`,
+    );
+    summaryList.replaceChildren(
+      ...summaryFigures(answer, shownSeason).map((figure) =>
+        el("li", { className: `summary-figure${figure.tone ? ` ${figure.tone}` : ""}` }, [
+          el("p", { className: "summary-value", text: figure.value }),
+          el("p", { className: "summary-label", text: figure.label }),
+          el("p", { className: "summary-normal", text: figure.normal }),
+        ]),
+      ),
+    );
+    summarySection.hidden = false;
+  } catch {
+    // The summary failing is not the page failing: the days are on screen.
+    if (turn === summaryTurn) summarySection.hidden = true;
+  } finally {
+    if (turn === summaryTurn) summaryStatus.textContent = "";
+  }
+}
+
 const climates = new Map();
 let climateTurn = 0;
 
@@ -432,6 +518,12 @@ async function showYears() {
       describe(answer, year, tile, options);
     };
     const made = tiles(answer, pick);
+    // The year on screen, ringed: the matrix says where it falls among the others.
+    const searched = answer.years.findIndex((year) => year.year === Number(asked.start.slice(0, 4)));
+    if (searched >= 0) {
+      made[searched].classList.add("current");
+      made[searched].setAttribute("aria-current", "true");
+    }
     yearsGrid.replaceChildren(...made);
     // A window open before a change of reference stays open, on the new tiles,
     // without taking the focus from the menu.

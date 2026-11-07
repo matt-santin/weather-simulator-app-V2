@@ -152,6 +152,18 @@ export function years(asked, reference) {
   return ask("/api/years", asked, { reference });
 }
 
+/** The years of each epoch of the home form, sorted into cool, normal and warm
+ * seasons over the same dates (src/app/api/kinds.py). */
+export function seasonKinds(asked) {
+  return ask("/api/kinds", asked);
+}
+
+/** A few figures of the same dates beside their normal over `reference`
+ * (src/app/api/summary.py). */
+export function summaryOf(asked, reference) {
+  return ask("/api/summary", asked, { reference });
+}
+
 /** The seasonal normals of the same dates, at the same place, over the 30 years
  * starting in `reference` (one of those /api/config serves). */
 export function normals(asked, reference) {

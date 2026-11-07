@@ -79,6 +79,8 @@ export const texts = {
     // Nothing is lost if that script never runs: HTML collapses a newline to a
     // space, so the `data-text` slot falls back to the whole promise on one
     // flowing line — which is the right thing to fall back to.
+    // The name of the asterisk of the promise, read aloud: it opens the note.
+    noteHint: "Dates disponibles et simulation",
     promise:
       "Simulez la météo du futur.\n" +
       "Consultez celle du passé.\n" +
@@ -99,18 +101,36 @@ export const texts = {
     notFound: "Aucun lieu ne correspond à ce nom.",
     placeRequired: "Choisissez un lieu dans la liste.",
 
-    // Two ways of asking for the same thing — a start and an end — so the
-    // switch names the shape of the question, not what it will show. "Saison
-    // entière" and not "Une saison" : the point is that none of it is missing.
-    modeLabel: "Comment indiquer la période",
-    modeDates: "Plage de dates",
-    modeSeason: "Saison entière",
+    // Two ways of asking for a season: by its year, or by its kind in an
+    // epoch, the year then drawn at random (kinds.js). Both give a whole
+    // season; the names say what the visitor picks: a year, or a kind.
+    periodLabel: "Période",
+    modeSeason: "Choisir une année",
+    modeKind: "Choisir un type de saison",
     season: "Saison",
     year: "Année",
+    epoch: "Époque",
+    kind: "Type",
+    epochs: {
+      old: "Ancien climat",
+      new: "Nouveau climat",
+      future: "Climat futur",
+    },
+    epochOption: (label, first, last) => `${label} (${first}-${last})`,
+    // Seasons are masculine in French: un été frais, un hiver doux.
+    kinds: { cool: "Frais", normal: "Normal", warm: "Chaud" },
+    kindsWinter: { cool: "Froid", normal: "Normal", warm: "Doux" },
+    kindHint: "Comment le type est choisi",
+    kindNote:
+      "Une saison tirée au hasard parmi celles de l'époque, classées par la moyenne " +
+      "des températures maximales au lieu choisi : les 20\u00a0% les plus fraîches, les " +
+      "60\u00a0% du milieu ou les 20\u00a0% les plus chaudes.",
+    drawing: "Tirage d'une année…",
+    noYear: "Aucune année de ce type pour cette époque.",
     // The submit band is hidden until a panel is open, so this is only ever
-    // reached by pressing Enter in the place field — which submits a form
+    // reached by pressing Enter in the place field, which submits a form
     // whether or not it has a button on screen.
-    periodRequired: "Choisissez une plage de dates ou une saison entière.",
+    periodRequired: "Choisissez une année ou un type de saison.",
 
     // Caught while the form is being filled in, so they are worded as
     // corrections rather than as refusals of a search that was really made.
@@ -170,8 +190,34 @@ export const texts = {
   },
 
   // The seasonal normals of the temperatures.
+  // The summary card at the top of the results page (summary.js).
+  summary: {
+    heading: (season, years, place) => `${season} ${years}${place ? ` à ${place}` : ""}`,
+    hint: "Comment ces chiffres sont calculés",
+    method: (reference) =>
+      `Chaque chiffre est comparé à sa normale : sa moyenne sur les mêmes dates des années ` +
+      `${reference}, au même lieu (période de référence choisie au-dessus du graphique). ` +
+      "Seuils de DRIAS (Météo-France) : 35\u00a0°C pour les jours de très forte chaleur, " +
+      "20\u00a0°C pour les nuits tropicales, 25\u00a0°C pour les journées estivales, 0\u00a0°C pour le " +
+      "gel. Le seuil de 40\u00a0°C est propre au site.",
+    normal: (reference, value) => `normale ${reference} : ${value}`,
+    tasmax_mean: (value) => `température maximale moyenne : ${value}\u00a0°C`,
+    tas_mean: (value) => `température moyenne : ${value}\u00a0°C`,
+    hot_35: (n, forty) =>
+      `${n < 2 ? "jour" : "jours"} à 35\u00a0°C ou plus` +
+      (forty ? `, dont ${forty} à 40\u00a0°C ou plus` : ""),
+    tropical_nights: (n) =>
+      `${n < 2 ? "nuit tropicale" : "nuits tropicales"} (minimale au-dessus de 20\u00a0°C)`,
+    summer_days: (n) => `${n < 2 ? "journée" : "journées"} au-dessus de 25\u00a0°C`,
+    frost_days: (n) => `${n < 2 ? "jour" : "jours"} de gel (minimale sous 0\u00a0°C)`,
+    precipitation: (total) => `de pluie par rapport à la normale (${total}\u00a0mm)`,
+    loading: "Calcul de la synthèse…",
+    more: "Voir cette saison parmi toutes les années",
+  },
+
   compare: {
     open: "Comparer aux normales de saison",
+    hint: "Comment les normales sont calculées",
     reference: "Période de référence",
     loading: "Calcul des normales…",
     legend: (years) => `Normales ${years}`,
@@ -183,7 +229,8 @@ export const texts = {
   // The climate diagram, under the chart. Its window is said with its source,
   // and a simulated one says so: rule 1 holds for twelve means as for a day.
   climate: {
-    title: "Diagramme climatique",
+    title: "Le climat du lieu, mois par mois",
+    hint: "Comment lire le diagramme",
     months: ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"],
     subtitle: (years, source, simulated) =>
       `Moyennes mensuelles ${years}, ${source}` +
@@ -219,6 +266,7 @@ export const texts = {
     intro: (from, to, reference, normal) =>
       `Du ${from} au ${to}, chaque année de 1970 à 2100. Couleur : écart de la température ` +
       `moyenne à celle de ${reference} (${normal} °C). Cliquez sur une année.`,
+    hint: "Seuils des commentaires",
     legendCold: "Plus froid",
     legendNear: "Normale",
     legendWarm: "Plus chaud",
@@ -463,12 +511,14 @@ export const texts = {
     // fourth sentence: the first says where the boundary falls, this says what
     // is on the far side of it. Two questions, two paragraphs.
     noteMeaning:
-      "Cette météo simulée n'est pas le temps qu'il fera, mais le temps qu'il " +
-      "pourrait faire, compte tenu du climat futur, du lieu et de la saison.",
+      "La météo dans le futur est simulée et n'est pas le temps qu'il fera, mais le " +
+      "temps qu'il pourrait faire, compte tenu du climat futur, du lieu et de la saison.",
 
-    notAForecast:
-      "Simulation, pas une prévision. La date situe la journée dans une saison, " +
-      "elle n'engage rien sur ce jour-là.",
+    hint: "Ce que cela veut dire",
+    detail:
+      "La date situe chaque journée dans une saison et dans le climat de son " +
+      "époque ; elle n'engage rien sur ce jour-là.",
+    notAForecast: "Simulation : une météo plausible, pas une prévision.",
   },
 
   // The four names, in the order the form offers them, which is the order a
@@ -558,6 +608,9 @@ export const texts = {
   // The table of the enlarged card: every reading, one line each, the word
   // shown this time since the card has the room.
   detail: {
+    // The box beside the maximum of the enlarged tile: its gap to the normal.
+    gap: (value) => `${value}\u00a0°C`,
+    gapTitle: "Écart à la normale de saison (5 °C ou plus : jour anormalement chaud ou froid, DRIAS)",
     high: "Température max.",
     low: "Température min.",
     precipitation: "Précipitations",

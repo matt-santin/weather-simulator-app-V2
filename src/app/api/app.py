@@ -1,4 +1,4 @@
-"""The HTTP layer: seven endpoints and four pages, no state.
+"""The HTTP layer: ten endpoints and four pages, no state.
 
     uvicorn src.app.api.app:app --port 8000
 
@@ -8,7 +8,8 @@ reads one series from the store and returns the classified days;
 ``/api/normals`` serves the seasonal normals of the same dates (1971-2000,
 1981-2010 or 1991-2020). ``/api/climate`` serves the climate diagram
 of the place around the year searched. ``/api/years`` serves the same dates in every
-year from 1970 to 2100. ``/api/map/cells`` and ``/api/map/{name}`` serve the
+year from 1970 to 2100; ``/api/kinds`` sorts the seasons of each epoch of the
+home form into cool, normal and warm. ``/api/map/cells`` and ``/api/map/{name}`` serve the
 maps of the page /cartes (src.app.maps), when the map store is there.
 
 The store is opened at start-up, not on the first visit: a missing or
@@ -36,8 +37,8 @@ from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
 from src.app import maps
-from src.app.api import climate, errors, normals, pipeline, validation, years
-from src.app.api.contract import Climate, Normals, Series, Years
+from src.app.api import climate, errors, kinds, normals, pipeline, summary, validation, years
+from src.app.api.contract import Climate, Kinds, Normals, Series, Summary, Years
 from src.app.domain import thresholds
 from src.app.maps import MapStore
 from src.app.store import PERIODS, Simulation, Store
@@ -85,6 +86,12 @@ class Reference(BaseModel):
     label: str
 
 
+class EpochInfo(BaseModel):
+    id: str
+    first: int
+    last: int
+
+
 class SimulationInfo(BaseModel):
     """The CORDEX run served from 2027, as the store describes it."""
 
@@ -109,6 +116,8 @@ class Config(BaseModel):
     normals_default: int
     temperature_band_edges: list[float]
     temperature_band_step: float
+    epochs: list[EpochInfo]
+    epochs_default: str
     simulation: SimulationInfo
 
 
@@ -132,6 +141,8 @@ def config(store: StoreDep) -> Config:
         normals_default=normals.DEFAULT,
         temperature_band_edges=list(thresholds.TEMPERATURE_BAND_EDGES),
         temperature_band_step=thresholds.TEMPERATURE_BAND_STEP_C,
+        epochs=[EpochInfo(id=e.id, first=e.first, last=e.last) for e in kinds.EPOCHS],
+        epochs_default=kinds.DEFAULT,
         simulation=SimulationInfo(
             model=sim.model,
             source=sim.source,
@@ -225,6 +236,34 @@ def every_year(
     reference period (years.run)."""
     search, cell = located(store, latitude, longitude, start, end, reference)
     return years.run(store, cell, search.start, search.end, reference)
+
+
+@app.get("/api/summary", response_model=Summary)
+def search_summary(
+    store: StoreDep,
+    latitude: Annotated[float, Query()],
+    longitude: Annotated[float, Query()],
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+    reference: Annotated[int, Query()] = normals.DEFAULT,
+) -> Summary:
+    """A few figures of the dates of the search beside their normal (summary.run)."""
+    search, cell = located(store, latitude, longitude, start, end, reference)
+    return summary.run(store, cell, search.start, search.end, reference)
+
+
+@app.get("/api/kinds", response_model=Kinds)
+def season_kinds(
+    store: StoreDep,
+    latitude: Annotated[float, Query()],
+    longitude: Annotated[float, Query()],
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+) -> Kinds:
+    """The years of each epoch of the home form, sorted into cool, normal and
+    warm seasons over the dates of the search (kinds.run)."""
+    search, cell = located(store, latitude, longitude, start, end, normals.DEFAULT)
+    return kinds.run(store, cell, search.start, search.end)
 
 
 # --- the maps ----------------------------------------------------------------

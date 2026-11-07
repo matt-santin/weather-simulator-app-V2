@@ -308,6 +308,59 @@ def test_a_winter_running_into_2026_has_no_values(client: TestClient) -> None:
     assert by_year[2024]["temperature_mean"] is not None
 
 
+def test_kinds_split_20_60_20() -> None:
+    from src.app.api import kinds
+    values = {1996 + i: float(v) for i, v in enumerate([5, 3, 9, 1, 7, 2, 8, 4, 6, 0])}
+    cool, normal, warm = kinds.split(values)
+    assert cool == [1999, 2005]  # 1 and 0
+    assert warm == [1998, 2002]  # 9 and 8
+    assert len(normal) == 6
+    assert [len(part) for part in kinds.split({y: float(y) for y in range(30)})] == [6, 18, 6]
+    assert [len(part) for part in kinds.split({y: float(y) for y in range(29)})] == [6, 17, 6]
+
+
+def test_the_seasons_of_each_epoch_are_ranked_by_tasmax(client: TestClient) -> None:
+    response = client.get("/api/kinds", params={**GRENOBLE, "start": "2030-06-21", "end": "2030-09-20"})
+    assert response.status_code == 200
+    epochs = {e["id"]: e for e in response.json()["epochs"]}
+    assert list(epochs) == ["old", "new", "future"]
+    today, later = epochs["old"], epochs["future"]
+    assert today["origin"] == "observed" and later["origin"] == "simulated"
+    assert epochs["new"]["origin"] is None  # 2011-2025 past, 2027-2050 simulated
+    assert sorted(today["cool"] + today["normal"] + today["warm"]) == list(range(1970, 2011))
+    assert (len(today["cool"]), len(today["warm"])) == (8, 8)
+    new = epochs["new"]["cool"] + epochs["new"]["normal"] + epochs["new"]["warm"]
+    assert 2026 not in new and len(new) == 39
+    values = {int(y): v for y, v in today["values"].items()}
+    assert max(values[y] for y in today["cool"]) <= min(values[y] for y in today["normal"])
+    assert max(values[y] for y in today["normal"]) <= min(values[y] for y in today["warm"])
+
+    # By brute force on the small store: tasmax from the 0.1 deg cell.
+    def mean(source, year):
+        days = [date(year, 6, 21) + timedelta(days=k) for k in range(92)]
+        return sum(expected(source, d, "tasmax", fine=True) for d in days) / len(days)
+
+    assert values[2010] == pytest.approx(mean("era5", 2010), abs=0.051)
+    assert {int(y): v for y, v in later["values"].items()}[2070] == pytest.approx(
+        mean("cordex", 2070), abs=0.051)
+
+
+def test_the_winters_running_into_2026_or_2101_are_left_out(client: TestClient) -> None:
+    answer = client.get("/api/kinds", params={**GRENOBLE, "start": "2030-12-21", "end": "2031-03-20"}).json()
+    epochs = {e["id"]: e for e in answer["epochs"]}
+    new = epochs["new"]["cool"] + epochs["new"]["normal"] + epochs["new"]["warm"]
+    assert 2025 not in new and 2026 not in new and 2024 in new and 2027 in new
+    end = epochs["future"]["cool"] + epochs["future"]["normal"] + epochs["future"]["warm"]
+    assert 2100 not in end and 2099 in end
+
+
+def test_the_config_serves_the_epochs(client: TestClient) -> None:
+    config = client.get("/api/config").json()
+    assert [(e["id"], e["first"], e["last"]) for e in config["epochs"]] == [
+        ("old", 1970, 2010), ("new", 2011, 2050), ("future", 2051, 2100)]
+    assert config["epochs_default"] == "new"
+
+
 @pytest.fixture
 def map_client(store_path, map_store_path) -> TestClient:
     from src.app.api.app import get_map_store
@@ -510,3 +563,30 @@ def test_the_smoothing_keeps_a_flat_or_sloping_field_and_its_gaps() -> None:
     gap[0, 0] = np.nan
     out = smooth(gap)
     assert np.isnan(out[0, 0]) and np.allclose(out[~np.isnan(out)], 1013.0)
+
+
+def test_the_summary_counts_days_and_their_normal(client: TestClient) -> None:
+    response = client.get("/api/summary", params={**GRENOBLE, "start": "2044-07-01", "end": "2044-07-10"})
+    assert response.status_code == 200
+    answer = response.json()
+    figures = answer["figures"]
+    assert set(figures) == {"tasmax_mean", "tas_mean", "hot_35", "hot_40", "tropical_nights",
+                            "summer_days", "frost_days", "precipitation"}
+
+    # By brute force on the small store: tasmax from the 0.1 deg cell.
+    days = [date(2044, 7, d) for d in range(1, 11)]
+    tx = [expected("cordex", d, "tasmax", fine=True) for d in days]
+    assert figures["tasmax_mean"]["value"] == pytest.approx(sum(tx) / 10, abs=0.051)
+    assert figures["hot_35"]["value"] == sum(t >= 35 for t in tx)
+    assert figures["summer_days"]["value"] == sum(t > 25 for t in tx)
+
+    def year_tx(year):
+        return [expected("era5", date(year, 7, d), "tasmax", fine=True) for d in range(1, 11)]
+    normal = sum(sum(t > 25 for t in year_tx(y)) for y in range(1991, 2021)) / 30
+    assert figures["summer_days"]["normal"] == pytest.approx(normal, abs=0.051)
+    assert answer["reference_start"] == "1991-01-01"
+
+
+def test_the_summary_of_a_winter_reads_the_year_after_the_reference(client: TestClient) -> None:
+    answer = client.get("/api/summary", params={**GRENOBLE, "start": "2044-12-21", "end": "2045-03-20"}).json()
+    assert answer["figures"]["frost_days"]["normal"] is not None
