@@ -9,11 +9,16 @@
  * (VARIABLES). Everything drawn is read from those; the arithmetic is in
  * mapview.js, this file is the wiring: the period chosen, the map, the panel,
  * the timeline and the player.
+ *
+ * The way to the results page and back (links.js): a place in the URL (from
+ * the results page) is marked, its value of the day is in the panel with a link
+ * back to its results; a cell clicked opens a card with the town it is near
+ * (/api/place) and a link to the results of that point, on the season shown.
  */
 
 import { DAY, at, iso } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
-import { loadConfig, mapCells, mapDays, mapIsobars, outlines, SearchError } from "./fetch.js";
+import { loadConfig, mapCells, mapDays, mapIsobars, nearestPlace, outlines, SearchError } from "./fetch.js";
 import { texts } from "./i18n.js";
 import {
   FILL,
@@ -34,10 +39,15 @@ import {
   zoomAt,
 } from "./mapview.js";
 import * as present from "./present.js";
+import { insideMap, MAP_LATITUDE, resultsHref } from "./links.js";
 import { rangeOf, yearsFor } from "./season.js";
 
 /** Europe is northern: the seasons are read at this latitude. */
-const LATITUDE = 50;
+const LATITUDE = MAP_LATITUDE;
+/** A press that moves less than this (pixels) is a click, not a drag. */
+const CLICK = 5;
+/** Country names in French, from their ISO codes (GeoNames gives codes). */
+const COUNTRIES = new Intl.DisplayNames(["fr"], { type: "region" });
 const SEASONS = ["spring", "summer", "autumn", "winter"];
 const DEFAULT = { variable: "tasmax", season: "summer", year: 2100 };
 const SPEEDS = [1, 3, 8];
@@ -74,6 +84,16 @@ const prevButton = document.getElementById("maps-prev");
 const nextButton = document.getElementById("maps-next");
 const speedField = document.getElementById("maps-speed");
 const timeline = document.getElementById("maps-timeline");
+const pickCard = document.getElementById("maps-pick");
+const pickClose = document.getElementById("maps-pick-close");
+const pickValue = document.getElementById("maps-pick-value");
+const pickName = document.getElementById("maps-pick-name");
+const pickWhere = document.getElementById("maps-pick-where");
+const pickLink = document.getElementById("maps-pick-link");
+const here = document.getElementById("maps-here");
+const hereLabel = document.getElementById("maps-here-label");
+const hereValue = document.getElementById("maps-here-value");
+const hereLink = document.getElementById("maps-here-link");
 
 applyTexts();
 
@@ -107,6 +127,9 @@ const state = {
   zoom: WHOLE,
   image: null, // { values, canvas, hottest }: the cells of the day on screen
   asking: 0,
+  place: null, // { name, latitude, longitude, k }: from the results page, marked
+  pick: null, // { latitude, longitude, k, label, turn }: the cell clicked
+  picking: 0,
 };
 
 boot();
@@ -133,6 +156,7 @@ async function boot() {
   }
   fillSpeeds();
   const asked = fromUrl();
+  state.place = asked.place;
   fillVariables(asked.variable);
   fillPeriod(asked);
   variableField.addEventListener("change", () => {
@@ -162,7 +186,29 @@ function fromUrl() {
   const variable = offered.includes(query.get("grandeur")) ? query.get("grandeur") : DEFAULT.variable;
   const season = SEASONS.includes(query.get("saison")) ? query.get("saison") : DEFAULT.season;
   const year = Number(query.get("annee")) || DEFAULT.year;
-  return { variable, season, year, isobars: query.get("isobares") === "1" };
+  return { variable, season, year, isobars: query.get("isobares") === "1", place: placeOf(query) };
+}
+
+/**
+ * The place of the URL (lieu, lat, lon), the one the results page sent, or
+ * null; `k` is its cell, undefined over the sea.
+ */
+function placeOf(query) {
+  const name = query.get("lieu");
+  const latitude = Number(query.get("lat"));
+  const longitude = Number(query.get("lon"));
+  if (!name || !query.has("lat") || !query.has("lon")) return null;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (!insideMap(state.box, latitude, longitude)) return null;
+  return { name, latitude, longitude, k: cellAt(longitude, latitude) };
+}
+
+/** The index of the land cell holding a point, or undefined. */
+function cellAt(lon, lat) {
+  const g = state.geometry;
+  const row = Math.floor((g.north - lat) / g.step);
+  const col = Math.floor((lon - g.west) / g.step);
+  return row >= 0 && col >= 0 && col < g.cols ? g.index.get(row * g.cols + col) : undefined;
 }
 
 /** The variables the server has, in the order of VARIABLES. */
@@ -241,7 +287,14 @@ async function load() {
   const isobars = isobarsField.checked;
   const query = { grandeur: variable, saison: season, annee: String(year) };
   if (isobars) query.isobares = "1";
+  if (state.place) {
+    query.lieu = state.place.name;
+    query.lat = String(state.place.latitude);
+    query.lon = String(state.place.longitude);
+  }
   history.replaceState(null, "", `?${new URLSearchParams(query)}`);
+  linkHere(season, year);
+  if (state.pick) linkPick();
   title.textContent = texts.maps.title(texts.maps.variables[variable], texts.season[season], year);
   document.title = `${title.textContent} · ${texts.maps.pageTitle}`;
   failure.hidden = true;
@@ -317,6 +370,23 @@ function redraw() {
   if (!state.season || stage.hidden) return;
   draw();
   drawTimeline();
+}
+
+/**
+ * A point marked on the map: a light ring on a dark one, legible on every
+ * colour, the same size at any zoom.
+ */
+function mark(context, view, z, point) {
+  const [x, y] = view.project(point.longitude, point.latitude);
+  context.save();
+  for (const [width, colour] of [[4.5, "rgba(11, 28, 48, 0.85)"], [2, "#faf7f0"]]) {
+    context.lineWidth = width / z.scale;
+    context.strokeStyle = colour;
+    context.beginPath();
+    context.arc(x, y, 6 / z.scale, 0, 2 * Math.PI);
+    context.stroke();
+  }
+  context.restore();
 }
 
 /**
@@ -454,6 +524,9 @@ function draw() {
   if (isobarsField.checked && state.pressure) drawIsobars(context, view, z);
 
   state.view = view;
+  if (state.place) mark(context, view, z, state.place);
+  if (state.pick) mark(context, view, z, state.pick);
+  placePick();
   zoomOut.disabled = z.scale <= 1;
   zoomWhole.disabled = z.scale <= 1;
   zoomIn.disabled = z.scale >= MAX_ZOOM;
@@ -549,9 +622,12 @@ function wireMap() {
     zoomBy(2, x, y);
   });
 
+  // A press that barely moved, one finger only, is a click: the cell is picked.
+  let pressed = null;
   mapCanvas.addEventListener("pointerdown", (event) => {
     pointers.set(event.pointerId, at(event));
     mapCanvas.setPointerCapture(event.pointerId);
+    pressed = pointers.size === 1 ? at(event) : null;
   });
 
   mapCanvas.addEventListener("pointermove", (event) => {
@@ -580,14 +656,25 @@ function wireMap() {
   });
 
   const release = (event) => {
+    const was = pointers.get(event.pointerId);
     pointers.delete(event.pointerId);
     if (pointers.size < 2) pinch = null;
+    if (event.type === "pointerup" && pressed && was && state.view) {
+      const [x, y] = at(event);
+      if (Math.hypot(x - pressed[0], y - pressed[1]) < CLICK) pick(x, y);
+    }
+    pressed = null;
   };
   mapCanvas.addEventListener("pointerup", release);
   mapCanvas.addEventListener("pointercancel", release);
   mapCanvas.addEventListener("pointerleave", () => {
     state.hover = null;
     tip.hidden = true;
+  });
+
+  pickClose.addEventListener("click", unpick);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.pick) unpick();
   });
 
   zoomIn.addEventListener("click", () => zoomBy(2));
@@ -598,18 +685,27 @@ function wireMap() {
   });
 }
 
+/** The longitude and latitude under a point of the canvas, zoom undone. */
+function pointAt(x, y) {
+  return state.view.unproject(...unzoom(state.zoom, x, y, state.view.width, state.view.height));
+}
+
+/** Where a longitude and a latitude are on the canvas, zoomed. */
+function screenOf(lon, lat) {
+  const [x, y] = state.view.project(lon, lat);
+  const z = state.zoom;
+  return [x * z.scale + z.x * state.view.width, y * z.scale + z.y * state.view.height];
+}
+
 /** The value under the pointer, or nothing over the sea. */
 function tooltip([x, y]) {
   if (!state.view || !state.season) return;
   const g = state.geometry;
-  const [lon, lat] = state.view.unproject(
-    ...unzoom(state.zoom, x, y, state.view.width, state.view.height),
-  );
-  const row = Math.floor((g.north - lat) / g.step);
-  const col = Math.floor((lon - g.west) / g.step);
-  const k = row >= 0 && col >= 0 && col < g.cols ? g.index.get(row * g.cols + col) : undefined;
+  const [lon, lat] = pointAt(x, y);
+  const k = cellAt(lon, lat);
   const value = k === undefined ? FILL : day(state.season.values, state.season.cells, state.current)[k];
-  if (value === FILL) {
+  // The cell picked already has its card: no second label over it.
+  if (value === FILL || k === state.pick?.k) {
     tip.hidden = true;
     return;
   }
@@ -620,6 +716,96 @@ function tooltip([x, y]) {
   tip.style.left = `${x}px`;
   tip.style.top = `${y}px`;
   tip.hidden = false;
+}
+
+// --- the way to the results ---------------------------------------------------
+
+/** The value of the day on screen at cell `k`, with its unit, or "". */
+function valueAt(k) {
+  if (k === undefined || !state.season) return "";
+  const value = day(state.season.values, state.season.cells, state.current)[k];
+  return value === FILL ? "" : measure(value / 10);
+}
+
+/** The place the visitor came from: its label and the link back to its results. */
+function linkHere(season, year) {
+  const place = state.place;
+  here.hidden = !place;
+  if (!place) return;
+  hereLabel.textContent = texts.maps.here(place.name);
+  hereLink.textContent = texts.maps.hereLink(place.name);
+  hereLink.href = resultsHref({ ...place, place: place.name, season, year });
+}
+
+/**
+ * Pick the land cell under (x, y): the card opens at once with its value and
+ * coordinates; the name of the town near it follows from the server. Over the
+ * sea, nothing.
+ */
+async function pick(x, y) {
+  const [lon, lat] = pointAt(x, y);
+  const k = cellAt(lon, lat);
+  if (k === undefined || valueAt(k) === "") {
+    unpick();
+    return;
+  }
+  const turn = (state.picking += 1);
+  const coordinates = where(lat, lon);
+  state.pick = { latitude: lat, longitude: lon, k, label: coordinates, turn };
+  tip.hidden = true;
+  pickValue.textContent = valueAt(k);
+  pickName.textContent = texts.maps.pick.searching;
+  pickWhere.textContent = coordinates;
+  linkPick();
+  pickCard.hidden = false;
+  draw();
+  try {
+    const near = await nearestPlace(Math.round(lat * 1e4) / 1e4, Math.round(lon * 1e4) / 1e4);
+    if (turn !== state.picking) return;
+    if (near.name) {
+      const country = near.country ? COUNTRIES.of(near.country) : "";
+      // Within 3 km the point is the town; farther, it is near it.
+      pickName.textContent = near.distance_km <= 3
+        ? texts.maps.pick.at(near.name, country)
+        : texts.maps.pick.near(near.name, country);
+      state.pick.label = near.name;
+    } else {
+      pickName.textContent = "";
+    }
+  } catch {
+    if (turn === state.picking) pickName.textContent = "";
+  }
+  if (turn === state.picking) linkPick();
+}
+
+function unpick() {
+  state.picking += 1;
+  state.pick = null;
+  pickCard.hidden = true;
+  if (state.view) draw();
+}
+
+/** The link of the card: the results of the point, on the season shown. */
+function linkPick() {
+  const p = state.pick;
+  pickLink.href = resultsHref({
+    place: p.label,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    season: seasonField.value,
+    year: Number(yearField.value),
+  });
+}
+
+/** The card over its point; hidden when the point is out of the frame. */
+function placePick() {
+  const p = state.pick;
+  if (!p || !state.view) return;
+  const [x, y] = screenOf(p.longitude, p.latitude);
+  const out = x < 0 || y < 0 || x > state.view.width || y > state.view.height;
+  pickCard.hidden = out;
+  pickCard.style.left = `${x}px`;
+  pickCard.style.top = `${y}px`;
 }
 
 // --- the panel ----------------------------------------------------------------
@@ -667,6 +853,8 @@ function panel() {
   secondLabel.textContent = second.label;
   secondValue.textContent = second.value;
   cellsLine.textContent = texts.maps.cells(s.cells);
+  hereValue.textContent = valueAt(state.place?.k);
+  if (state.pick) pickValue.textContent = valueAt(state.pick.k);
   const most = Math.max(...s.counts);
   const rows = [...bandList.children].reverse();
   s.counts.forEach((count, b) => {

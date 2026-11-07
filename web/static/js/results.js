@@ -44,10 +44,12 @@ import { wireHints } from "./hint.js";
 import { decimal, detail, tiles } from "./matrix.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
+import { insideMap, mapHref, seasonYear } from "./links.js";
 import { dominantSeason } from "./season.js";
 import { figures as summaryFigures, heading as summaryHeading } from "./summary.js";
 
 const place = document.getElementById("place");
+const summaryMap = document.getElementById("summary-map");
 const range = document.getElementById("range");
 const count = document.getElementById("count");
 const warning = document.getElementById("warning");
@@ -414,6 +416,7 @@ async function showSummary() {
         ]),
       ),
     );
+    await offerMap(shownSeason);
     summarySection.hidden = false;
   } catch {
     // The summary failing is not the page failing: the days are on screen.
@@ -421,6 +424,21 @@ async function showSummary() {
   } finally {
     if (turn === summaryTurn) summaryStatus.textContent = "";
   }
+}
+
+/**
+ * The link to the map of the same season, the place marked on it: only when the
+ * server has maps, the place is in their frame and the dates are one season's.
+ */
+async function offerMap(shownSeason) {
+  const config = await settings;
+  const year = shownSeason ? seasonYear(shownSeason, asked.start, asked.end) : null;
+  if (!config || year === null || !insideMap(config.map_box, asked.latitude, asked.longitude)) {
+    summaryMap.hidden = true;
+    return;
+  }
+  summaryMap.href = mapHref({ ...asked, season: shownSeason, year });
+  summaryMap.hidden = false;
 }
 
 const climates = new Map();

@@ -213,6 +213,7 @@ export const texts = {
     precipitation: (total) => `de pluie par rapport à la normale (${total}\u00a0mm)`,
     loading: "Calcul de la synthèse…",
     more: "Voir cette saison parmi toutes les années",
+    mapLink: "Voir cette saison sur la carte d'Europe",
   },
 
   compare: {
@@ -366,11 +367,23 @@ export const texts = {
         ? "Isobares : pression au niveau de la mer, une ligne tous les 5 hPa, sur une " +
           "grille de 0,5°, lissée. "
         : "") +
-      "Contours : Natural Earth.",
+      "Contours : Natural Earth. Noms des lieux : GeoNames (CC BY 4.0).",
     north: "N",
     south: "S",
     east: "E",
     west: "O",
+    // The place the visitor came from (the results page), marked on the map.
+    here: (place) => `À ${place}`,
+    hereLink: (place) => `Voir la saison à ${place}`,
+    // A cell clicked: its value, the town it is near, the way to its results.
+    pick: {
+      searching: "Recherche du lieu…",
+      near: (name, country) => `Près de ${name}${country ? ` (${country})` : ""}`,
+      at: (name, country) => `${name}${country ? ` (${country})` : ""}`,
+      link: "Voir cette saison ici",
+      close: "Fermer",
+      hint: "Cliquez sur une maille pour voir sa saison en détail.",
+    },
   },
 
   // The file the visitor takes away, and the words written in it.

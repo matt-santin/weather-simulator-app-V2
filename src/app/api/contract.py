@@ -217,3 +217,12 @@ class Kinds(BaseModel):
     """The epochs of the home form (kinds.EPOCHS), ranked at one place."""
 
     epochs: list[KindsEpoch]
+
+
+class Place(BaseModel):
+    """The town nearest a point of the map (places.py), or no name when none of
+    the list is within places.MAX_KM."""
+
+    name: str | None
+    country: str | None
+    distance_km: float | None

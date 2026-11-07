@@ -590,3 +590,59 @@ def test_the_summary_counts_days_and_their_normal(client: TestClient) -> None:
 def test_the_summary_of_a_winter_reads_the_year_after_the_reference(client: TestClient) -> None:
     answer = client.get("/api/summary", params={**GRENOBLE, "start": "2044-12-21", "end": "2045-03-20"}).json()
     assert answer["figures"]["frost_days"]["normal"] is not None
+
+
+# --- the place nearest a point of the map ------------------------------------
+
+PLACES = (
+    "name\tlatitude\tlongitude\tcountry\tpopulation\n"
+    "Lyon\t45.7485\t4.8467\tFR\t522969\n"
+    "Grenoble\t45.1787\t5.7148\tFR\t158198\n"
+    "Vienne\t48.2085\t16.3721\tAT\t1691468\n"
+)
+
+
+@pytest.fixture
+def places_client(client: TestClient, tmp_path) -> TestClient:
+    from src.app.api.app import get_places
+    from src.app.api.places import Places
+    path = tmp_path / "places.tsv"
+    path.write_text(PLACES, encoding="utf-8")
+    found = Places(path)
+    app.dependency_overrides[get_places] = lambda: found
+    return client
+
+
+def test_a_point_is_named_after_the_nearest_town(places_client: TestClient) -> None:
+    near = places_client.get("/api/place", params={"latitude": 45.3, "longitude": 5.6}).json()
+    assert near["name"] == "Grenoble" and near["country"] == "FR"
+    assert 10 < near["distance_km"] < 20
+    assert places_client.get("/api/place", params={"latitude": 48.2, "longitude": 16.4}).json()["name"] == "Vienne"
+
+
+def test_a_point_far_from_every_town_has_no_name(places_client: TestClient) -> None:
+    far = places_client.get("/api/place", params={"latitude": 46.0, "longitude": -10.0}).json()
+    assert far == {"name": None, "country": None, "distance_km": None}
+
+
+def test_a_place_needs_a_point_on_the_earth(places_client: TestClient) -> None:
+    assert places_client.get("/api/place", params={"latitude": 95, "longitude": 5}).status_code == 422
+    assert places_client.get("/api/place", params={"latitude": 45}).status_code == 422
+
+
+def test_without_a_list_of_places_the_server_says_so(client: TestClient) -> None:
+    from src.app.api.app import get_places
+    app.dependency_overrides[get_places] = lambda: None
+    response = client.get("/api/place", params={"latitude": 45.3, "longitude": 5.6})
+    assert response.status_code == 503
+    assert response.json()["message"] == "La liste des lieux n'est pas disponible sur ce serveur."
+
+
+def test_the_config_gives_the_frame_of_the_maps_when_there_are_maps(client: TestClient, map_store_path) -> None:
+    from src.app.api.app import get_map_store
+    from src.app.maps import MapStore
+    app.dependency_overrides[get_map_store] = lambda: None
+    assert client.get("/api/config").json()["map_box"] is None
+    found = MapStore(map_store_path)
+    app.dependency_overrides[get_map_store] = lambda: found
+    assert client.get("/api/config").json()["map_box"] == {"west": -25.0, "east": 45.0, "south": 34.0, "north": 72.0}

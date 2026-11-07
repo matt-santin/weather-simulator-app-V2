@@ -222,6 +222,15 @@ export async function mapIsobars(start, end) {
   };
 }
 
+/**
+ * The town nearest a point of the map (/api/place): `{ name, country,
+ * distance_km }`, the three null when no town of the list is near.
+ */
+export function nearestPlace(latitude, longitude) {
+  const query = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) });
+  return getJson(`/api/place?${query}`, SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
+}
+
 /** The country outlines, a static file. */
 export function outlines() {
   return getJson("/static/geo/europe.json", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });

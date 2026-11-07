@@ -12,7 +12,9 @@
     The map page: one variable over Europe, a season day after day. Every
     sentence is filled from the dictionary; the variable, season and year travel
     in the URL (?grandeur=tasmax&saison=summer&annee=2100) so that a map can be
-    shared.
+    shared. A place may come with them (&lieu&lat&lon, from the results page):
+    it is marked, and the panel leads back to its results. A cell clicked leads
+    to the results of its own place (links.js).
 
     Three columns on a computer screen: the controls on the left, the map in the
     middle at the full height of the window (it is about as wide as it is tall,
@@ -67,6 +69,15 @@
           <div class="maps-map">
             <canvas id="map" data-attr-aria-label="maps.mapLabel" role="img"></canvas>
             <div id="maps-tip" class="maps-tip" hidden></div>
+            <!-- A cell clicked: its value, the town it is near, the way to its
+                 results. Stays until closed, follows the day on screen. -->
+            <div id="maps-pick" class="maps-pick" role="dialog" aria-labelledby="maps-pick-value" hidden>
+              <button type="button" id="maps-pick-close" class="maps-pick-close" data-attr-aria-label="maps.pick.close"><span aria-hidden="true">×</span></button>
+              <strong id="maps-pick-value" class="maps-pick-value"></strong>
+              <span id="maps-pick-name" class="maps-pick-name"></span>
+              <span id="maps-pick-where" class="maps-pick-where"></span>
+              <a id="maps-pick-link" class="maps-pick-link" data-text="maps.pick.link"></a>
+            </div>
             <div class="maps-zoom">
               <button type="button" id="maps-zoom-in" data-attr-aria-label="maps.zoomIn" data-attr-title="maps.zoomIn"><span aria-hidden="true">+</span></button>
               <button type="button" id="maps-zoom-out" data-attr-aria-label="maps.zoomOut" data-attr-title="maps.zoomOut"><span aria-hidden="true">−</span></button>
@@ -82,6 +93,13 @@
           <span class="maps-home-icon" aria-hidden="true"></span>
           <span class="maps-home-text" data-text="maps.back"></span>
         </a>
+        <!-- The place the visitor came from (?lieu&lat&lon): its value of the day
+             and the way back to its results, on the season shown here. -->
+        <div id="maps-here" class="maps-here" hidden>
+          <p id="maps-here-label" class="maps-label"></p>
+          <p class="maps-here-line"><span id="maps-here-value" class="maps-value"></span></p>
+          <a id="maps-here-link" class="maps-here-link"></a>
+        </div>
         <p id="maps-warning" class="maps-warning" hidden></p>
         <p id="maps-date" class="maps-date"></p>
         <p id="maps-day" class="maps-note"></p>
@@ -97,6 +115,7 @@
         </dl>
         <p class="maps-label" data-text="maps.distribution"></p>
         <ul id="maps-bands" class="maps-bands"></ul>
+        <p class="maps-note" data-text="maps.pick.hint"></p>
         <p id="maps-source" class="maps-note maps-source"></p>
       </aside>
     </main>

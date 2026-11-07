@@ -71,6 +71,15 @@ class MapsUnavailable(ApiError):
         super().__init__("no map store", "Les cartes ne sont pas disponibles sur ce serveur.")
 
 
+class PlacesUnavailable(ApiError):
+    """No list of places on this server (src.app.api.places)."""
+
+    status_code = 503
+
+    def __init__(self) -> None:
+        super().__init__("no places", "La liste des lieux n'est pas disponible sur ce serveur.")
+
+
 class UnknownMapVariable(ApiError):
     status_code = 404
 

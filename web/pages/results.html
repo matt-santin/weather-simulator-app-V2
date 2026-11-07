@@ -56,7 +56,12 @@
           <p id="summary-method" class="hint-text" role="tooltip" hidden></p>
         </div>
         <ul id="summary-figures" class="summary-figures"></ul>
-        <p class="summary-more"><a href="#years" data-text="summary.more"></a></p>
+        <p class="summary-more">
+          <a href="#years" data-text="summary.more"></a>
+          <!-- To the map of the same season, the place marked: shown by results.js
+               when the server has maps and the place is in their frame. -->
+          <a id="summary-map" class="summary-map" hidden data-text="summary.mapLink"></a>
+        </p>
         <p id="summary-status" class="compare-note" aria-live="polite"></p>
       </section>
 

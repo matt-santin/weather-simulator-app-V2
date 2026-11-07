@@ -1,4 +1,4 @@
-"""The HTTP layer: ten endpoints and four pages, no state.
+"""The HTTP layer: eleven endpoints and four pages, no state.
 
     uvicorn src.app.api.app:app --port 8000
 
@@ -10,7 +10,8 @@ reads one series from the store and returns the classified days;
 of the place around the year searched. ``/api/years`` serves the same dates in every
 year from 1970 to 2100; ``/api/kinds`` sorts the seasons of each epoch of the
 home form into cool, normal and warm. ``/api/map/cells`` and ``/api/map/{name}`` serve the
-maps of the page /cartes (src.app.maps), when the map store is there.
+maps of the page /cartes (src.app.maps), when the map store is there;
+``/api/place`` names the town nearest a point clicked on a map (places.py).
 
 The store is opened at start-up, not on the first visit: a missing or
 unfinished array stops the boot rather than failing on a visitor. Geocoding
@@ -37,10 +38,11 @@ from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
 from src.app import maps
-from src.app.api import climate, errors, kinds, normals, pipeline, summary, validation, years
-from src.app.api.contract import Climate, Kinds, Normals, Series, Summary, Years
+from src.app.api import climate, errors, kinds, normals, pipeline, places, summary, validation, years
+from src.app.api.contract import Climate, Kinds, Normals, Place, Series, Summary, Years
 from src.app.domain import thresholds
 from src.app.maps import MapStore
+from src.store import outlines
 from src.app.store import PERIODS, Simulation, Store
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -60,6 +62,7 @@ StoreDep = Annotated[Store, Depends(get_store)]
 async def lifespan(app: FastAPI):
     get_store()
     get_map_store()
+    get_places()
     yield
 
 
@@ -119,10 +122,25 @@ class Config(BaseModel):
     epochs: list[EpochInfo]
     epochs_default: str
     simulation: SimulationInfo
+    # The frame of the map page (outlines.BOX), or None without a map store: the
+    # results page links to the map only where it shows the place.
+    map_box: dict[str, float] | None
+
+
+@lru_cache(maxsize=1)
+def get_map_store() -> MapStore | None:
+    found = maps.open_store()
+    if found is not None and found.simulation != get_store().simulation:
+        raise RuntimeError(f"{maps.STORE}: simulation {found.simulation.model}, "
+                           f"le site sert {get_store().simulation.model}")
+    return found
+
+
+MapStoreDep = Annotated[MapStore | None, Depends(get_map_store)]
 
 
 @app.get("/api/config", response_model=Config)
-def config(store: StoreDep) -> Config:
+def config(store: StoreDep, map_store: MapStoreDep) -> Config:
     sim = store.simulation
     return Config(
         geocoding_url=GEOCODING_URL,
@@ -143,6 +161,7 @@ def config(store: StoreDep) -> Config:
         temperature_band_step=thresholds.TEMPERATURE_BAND_STEP_C,
         epochs=[EpochInfo(id=e.id, first=e.first, last=e.last) for e in kinds.EPOCHS],
         epochs_default=kinds.DEFAULT,
+        map_box=dict(outlines.BOX) if map_store is not None else None,
         simulation=SimulationInfo(
             model=sim.model,
             source=sim.source,
@@ -268,16 +287,29 @@ def season_kinds(
 
 # --- the maps ----------------------------------------------------------------
 
+
+
 @lru_cache(maxsize=1)
-def get_map_store() -> MapStore | None:
-    found = maps.open_store()
-    if found is not None and found.simulation != get_store().simulation:
-        raise RuntimeError(f"{maps.STORE}: simulation {found.simulation.model}, "
-                           f"le site sert {get_store().simulation.model}")
-    return found
+def get_places() -> places.Places | None:
+    return places.open_places()
 
 
-MapStoreDep = Annotated[MapStore | None, Depends(get_map_store)]
+PlacesDep = Annotated[places.Places | None, Depends(get_places)]
+
+
+@app.get("/api/place", response_model=Place)
+def nearest_place(
+    found: PlacesDep,
+    latitude: Annotated[float, Query(ge=-90, le=90)],
+    longitude: Annotated[float, Query(ge=-180, le=180)],
+) -> Place:
+    """The town nearest a point, for the map page: a cell clicked is given its name."""
+    if found is None:
+        raise errors.PlacesUnavailable()
+    near = found.nearest(latitude, longitude)
+    if near is None:
+        return Place(name=None, country=None, distance_km=None)
+    return Place(name=near["name"], country=near["country"], distance_km=near["distance_km"])
 
 
 @app.get("/api/map/cells")
