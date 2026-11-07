@@ -14,6 +14,8 @@
  * the results page) is marked, its value of the day is in the panel with a link
  * back to its results; a cell clicked opens a card with the town it is near
  * (/api/place) and a link to the results of that point, on the season shown.
+ * Both links carry the day on screen (`jour`), and so does the URL while the
+ * player is stopped: a map comes back, or is shared, on its day.
  */
 
 import { DAY, at, iso } from "./calendar.js";
@@ -129,6 +131,7 @@ const state = {
   asking: 0,
   place: null, // { name, latitude, longitude, k }: from the results page, marked
   pick: null, // { latitude, longitude, k, label, turn }: the cell clicked
+  wanted: null, // the day of the URL (?jour), shown once its season is loaded
   picking: 0,
 };
 
@@ -157,6 +160,7 @@ async function boot() {
   fillSpeeds();
   const asked = fromUrl();
   state.place = asked.place;
+  state.wanted = asked.day;
   fillVariables(asked.variable);
   fillPeriod(asked);
   variableField.addEventListener("change", () => {
@@ -186,7 +190,8 @@ function fromUrl() {
   const variable = offered.includes(query.get("grandeur")) ? query.get("grandeur") : DEFAULT.variable;
   const season = SEASONS.includes(query.get("saison")) ? query.get("saison") : DEFAULT.season;
   const year = Number(query.get("annee")) || DEFAULT.year;
-  return { variable, season, year, isobars: query.get("isobares") === "1", place: placeOf(query) };
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(query.get("jour") ?? "") ? query.get("jour") : null;
+  return { variable, season, year, isobars: query.get("isobares") === "1", place: placeOf(query), day };
 }
 
 /**
@@ -293,8 +298,7 @@ async function load() {
     query.lon = String(state.place.longitude);
   }
   history.replaceState(null, "", `?${new URLSearchParams(query)}`);
-  linkHere(season, year);
-  if (state.pick) linkPick();
+  linkHere();
   title.textContent = texts.maps.title(texts.maps.variables[variable], texts.season[season], year);
   document.title = `${title.textContent} · ${texts.maps.pageTitle}`;
   failure.hidden = true;
@@ -318,6 +322,11 @@ async function load() {
     warning.hidden = answer.origin !== "simulated";
     stage.hidden = false;
     player.hidden = false;
+    if (state.wanted) {
+      const index = Math.round((at(state.wanted) - at(answer.start)) / DAY);
+      if (index >= 0 && index < answer.days) state.current = index;
+      state.wanted = null;
+    }
     show(Math.min(state.current, answer.days - 1));
   } catch (error) {
     if (turn !== state.asking) return;
@@ -339,6 +348,8 @@ function show(index) {
   state.current = Math.max(0, Math.min(index, season.days - 1));
   draw();
   panel();
+  relink();
+  keepDay();
   drawTimeline();
 }
 
@@ -728,13 +739,38 @@ function valueAt(k) {
 }
 
 /** The place the visitor came from: its label and the link back to its results. */
-function linkHere(season, year) {
+function linkHere() {
   const place = state.place;
   here.hidden = !place;
-  if (!place) return;
-  hereLabel.textContent = texts.maps.here(place.name);
-  hereLink.textContent = texts.maps.hereLink(place.name);
-  hereLink.href = resultsHref({ ...place, place: place.name, season, year });
+  if (place) {
+    hereLabel.textContent = texts.maps.here(place.name);
+    hereLink.textContent = texts.maps.hereLink(place.name);
+  }
+  relink();
+}
+
+/** The season and year chosen, and the day on screen when it is of them. */
+function shownPeriod() {
+  return {
+    season: seasonField.value,
+    year: Number(yearField.value),
+    day: state.season ? dateOf(state.current) : null,
+  };
+}
+
+/** Both links to the results, on the season chosen and the day on screen. */
+function relink() {
+  const place = state.place;
+  if (place) hereLink.href = resultsHref({ ...place, place: place.name, ...shownPeriod() });
+  if (state.pick) linkPick();
+}
+
+/** The day on screen in the URL, when the player is stopped. */
+function keepDay() {
+  if (!state.season || state.playing) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("jour", dateOf(state.current));
+  history.replaceState(null, "", url);
 }
 
 /**
@@ -792,8 +828,7 @@ function linkPick() {
     place: p.label,
     latitude: p.latitude,
     longitude: p.longitude,
-    season: seasonField.value,
-    year: Number(yearField.value),
+    ...shownPeriod(),
   });
 }
 
@@ -912,6 +947,7 @@ function play(on) {
       show(state.current + 1 >= state.season.days ? 0 : state.current + 1);
     }, 1000 / Number(speedField.value));
   }
+  if (!on) keepDay();
   playButton.setAttribute("aria-pressed", String(Boolean(on)));
   playButton.textContent = on ? texts.maps.pause : texts.maps.play;
 }

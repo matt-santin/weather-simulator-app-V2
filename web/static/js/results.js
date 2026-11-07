@@ -44,8 +44,8 @@ import { wireHints } from "./hint.js";
 import { decimal, detail, tiles } from "./matrix.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
-import { insideMap, mapHref, seasonYear } from "./links.js";
-import { dominantSeason } from "./season.js";
+import { insideMap, MAP_LATITUDE, mapHref, seasonOfDay, seasonYear } from "./links.js";
+import { dominantSeason, yearsFor } from "./season.js";
 import { figures as summaryFigures, heading as summaryHeading } from "./summary.js";
 
 const place = document.getElementById("place");
@@ -237,7 +237,7 @@ async function show(series) {
   count.textContent = texts.results.count(series.days.length);
   band.append(...strip(series.days, series.humid_heat_peak));
   calendar.hidden = false;
-  attachZoom(band, bandScroll);
+  attachZoom(band, bandScroll, dayToMap);
   fitCalendar();
   document.fonts?.ready.then(fitCalendar);
   window.addEventListener("resize", fitCalendar);
@@ -259,10 +259,14 @@ async function show(series) {
     chartPanel.append(drawn);
     chartPanel.hidden = false;
     offer(series, config);
-    showSummary();
+    // The summary card sits above the calendar: the day is sought once it is
+    // laid, so that it does not push the day away.
+    showSummary().finally(() => goToDay(query.get("jour")));
     showClimate();
     showYears();
   }
+
+  if (!config) goToDay(query.get("jour"));
 
   const pairs = sources(series.grid);
   if (pairs.length === 0) {
@@ -271,6 +275,48 @@ async function show(series) {
     provenanceGrid.append(...pairs);
   }
   provenance.hidden = false;
+}
+
+/**
+ * A day of the calendar leads to the map of Europe on that day, the place
+ * marked: only when the server has maps, the place is in their frame and the
+ * map offers the season of that day. Until the config arrives, nowhere.
+ */
+const dayToMap = {
+  hint: texts.results.dayOnMap,
+  config: null,
+  accepts(card) {
+    const config = this.config;
+    if (!config || !card.dataset.date) return false;
+    if (!insideMap(config.map_box, asked.latitude, asked.longitude)) return false;
+    const { season, year } = seasonOfDay(card.dataset.date);
+    return year !== null && yearsFor(season, MAP_LATITUDE, config).includes(year);
+  },
+  go(card) {
+    const day = card.dataset.date;
+    window.location.assign(mapHref({ ...asked, ...seasonOfDay(day), day }));
+  },
+};
+settings.then((config) => {
+  dayToMap.config = config;
+});
+
+/**
+ * The day the map sent the visitor back to (?jour): its card in view, outlined
+ * and enlarged. A day outside the dates shown is ignored.
+ */
+function goToDay(day) {
+  if (!day) return;
+  const card = band.querySelector(`.card[data-date="${CSS.escape(day)}"]`);
+  if (!card) return;
+  card.classList.add("is-target");
+  // The week of the day at the top of the calendar's box, the calendar at the
+  // top of the window. At once, not gliding: the focus would stop a smooth
+  // scroll halfway.
+  const top = card.getBoundingClientRect().top - bandScroll.getBoundingClientRect().top;
+  bandScroll.scrollTo({ top: bandScroll.scrollTop + top, behavior: "instant" });
+  calendar.scrollIntoView({ block: "start", behavior: "instant" });
+  card.focus({ preventScroll: true });
 }
 
 /**

@@ -147,6 +147,8 @@ export const texts = {
   results: {
     range: (from, to) => `du ${from} au ${to}`,
     count: (n) => (n === 1 ? "1 journée" : `${n} journées`),
+    // The last line of an enlarged day: a click on it opens the map of that day.
+    dayOnMap: "Voir ce jour sur la carte d'Europe ›",
     loading: "Récupération des données…",
     back: "Nouvelle recherche",
     bandLabel: "Les journées, semaine par semaine, du lundi au dimanche. Flèches pour passer d'un jour à l'autre.",

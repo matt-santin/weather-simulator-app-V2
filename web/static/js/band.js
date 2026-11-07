@@ -126,6 +126,8 @@ export function card(day, namesMonth, reservesHumidHeat = false, opensSimulation
     className,
     attrs: {
       title: day.source,
+      // The day, for what a card leads to (the map of that day, dayzoom.js).
+      "data-date": day.date,
       "data-band": band === null || band === undefined ? undefined : String(band),
     },
   }, [

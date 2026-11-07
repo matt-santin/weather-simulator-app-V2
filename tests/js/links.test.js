@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { insideMap, mapHref, resultsHref, seasonYear } from "../../web/static/js/links.js";
+import { insideMap, mapHref, resultsHref, seasonOfDay, seasonYear } from "../../web/static/js/links.js";
 
 const BOX = { west: -25, east: 45, south: 34, north: 72 };
 
@@ -37,4 +37,21 @@ test("results and map send each other the same season at the same place", () => 
   });
   const back = Object.fromEntries(results.searchParams);
   assert.equal(seasonYear("winter", back.debut, back.fin), 2080);
+});
+
+test("a day is in the season of the map that holds it", () => {
+  assert.deepEqual(seasonOfDay("2063-07-14"), { season: "summer", year: 2063 });
+  assert.deepEqual(seasonOfDay("2081-01-10"), { season: "winter", year: 2080 });
+  assert.deepEqual(seasonOfDay("2080-12-25"), { season: "winter", year: 2080 });
+});
+
+test("a day travels with the season, when the season holds it", () => {
+  const asked = { season: "summer", year: 2063, place: "Lyon", latitude: 45.75, longitude: 4.85 };
+  const map = new URL(mapHref({ ...asked, day: "2063-07-14" }), "http://x");
+  assert.equal(map.searchParams.get("jour"), "2063-07-14");
+  const results = new URL(resultsHref({ ...asked, day: "2063-07-14" }), "http://x");
+  assert.equal(results.searchParams.get("jour"), "2063-07-14");
+  const outside = new URL(resultsHref({ ...asked, day: "2063-12-01" }), "http://x");
+  assert.equal(outside.searchParams.get("jour"), null);
+  assert.equal(new URL(mapHref(asked), "http://x").searchParams.get("jour"), null);
 });

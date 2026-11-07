@@ -4011,3 +4011,30 @@ body.results #years {
   scroll-margin-top: calc(var(--space) * 4);
 }
 
+
+/* The card leads to the map of its day (dayzoom.js): a last line on the
+   enlarged copy, in the ink of the card, the only part that takes a click. */
+body.results .card--zoom .card-action {
+  grid-column: 1 / -1;
+  margin: calc(var(--space) * 2) 0 0;
+  padding-top: calc(var(--space) * 2);
+  border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body.results .card--zoom.is-live {
+  pointer-events: auto;
+}
+
+body.results .card--zoom.is-live .card-action {
+  cursor: pointer;
+}
+
+/* The day the visitor came back to from the map. */
+body.results .card.is-target {
+  outline: 3px solid var(--link);
+  outline-offset: 2px;
+}

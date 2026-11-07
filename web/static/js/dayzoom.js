@@ -21,18 +21,31 @@
  *
  * On the list a narrow window shows, every card already carries everything,
  * and no copy is drawn.
+ *
+ * **A card can lead somewhere** (`action`, the map of that day since
+ * 7/11/2026): the copy says so on a last line, and the card goes there on a
+ * click or a tap on that line, or on Enter. The copy is then live: the
+ * pointer may leave the card for the copy, larger than it, and reach its last
+ * line; it closes when the pointer leaves both. The wheel over it still scrolls
+ * the calendar. Calendar only: the list has no copy to say it.
  */
 
 const GROWTH = 1.7;
 const MIN_WIDTH = 310;
 const MARGIN = 8;
 
-/** Wire the calendar `grid` (the ol of cards) and the box that scrolls it. */
-export function attachZoom(grid, scroller) {
+/**
+ * Wire the calendar `grid` (the ol of cards) and the box that scrolls it.
+ * `action`, when given: `{ hint, accepts(card), go(card) }`, where a card leads.
+ */
+export function attachZoom(grid, scroller, action = null) {
   const cards = () => [...grid.querySelectorAll(".card")];
   const isCalendar = () => getComputedStyle(grid).gridTemplateColumns.split(" ").length >= 7;
   let zoom = null;
   let shown = null;
+  // How the last press came: "mouse", "touch" or "pen".
+  let pointer = null;
+  const leads = (card) => Boolean(action && isCalendar() && action.accepts(card));
 
   const first = cards()[0];
   if (first) first.tabIndex = 0;
@@ -53,6 +66,35 @@ export function attachZoom(grid, scroller) {
     copy.removeAttribute("tabindex");
     copy.removeAttribute("title");
     copy.setAttribute("aria-hidden", "true");
+    if (leads(card)) {
+      const hint = document.createElement("p");
+      hint.className = "card-action";
+      hint.textContent = action.hint;
+      copy.append(hint);
+      copy.classList.add("is-live");
+      const opened = performance.now();
+      copy.addEventListener("pointerdown", (event) => {
+        pointer = event.pointerType;
+        event.preventDefault();
+      });
+      // Keeps the focus on the card: a blur would close the copy before its click.
+      copy.addEventListener("mousedown", (event) => event.preventDefault());
+      copy.addEventListener("click", (event) => {
+        // The last line alone leads; the rest of the copy is read, not clicked.
+        if (!event.target.closest(".card-action")) return;
+        // Not the tap that opened it: its click lands on the copy too.
+        if (pointer !== "mouse" && performance.now() - opened < 350) return;
+        action.go(card);
+      });
+      copy.addEventListener("pointerout", (event) => {
+        if (event.pointerType !== "mouse" || copy.contains(event.relatedTarget)) return;
+        if (!card.contains(event.relatedTarget)) close();
+      });
+      copy.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        scroller.scrollBy({ top: event.deltaY, behavior: "instant" });
+      }, { passive: false });
+    }
     const width = Math.max(tile.width * GROWTH, MIN_WIDTH);
     copy.style.width = `${width}px`;
     document.body.append(copy);
@@ -89,14 +131,21 @@ export function attachZoom(grid, scroller) {
     next.focus();
   }
 
+  grid.addEventListener("pointerdown", (event) => {
+    pointer = event.pointerType;
+  });
+
   // The mouse alone: a touch fires `pointerout` as soon as the finger lifts,
   // and is served by the focus below.
   grid.addEventListener("pointerover", (event) => {
     const card = event.target.closest(".card");
+    if (card && card === shown && zoom) return;
     if (event.pointerType === "mouse" && card && !card.contains(event.relatedTarget)) open(card);
   });
   grid.addEventListener("pointerout", (event) => {
     const card = event.target.closest(".card");
+    // Onto its own copy, when the copy is live: still open.
+    if (zoom && zoom.contains(event.relatedTarget)) return;
     if (event.pointerType === "mouse" && card && !card.contains(event.relatedTarget)) close();
   });
 
@@ -124,6 +173,9 @@ export function attachZoom(grid, scroller) {
       move(card, targets[event.key]());
     } else if (event.key === "Escape") {
       close();
+    } else if (event.key === "Enter" && leads(card)) {
+      event.preventDefault();
+      action.go(card);
     }
   });
 
