@@ -15,6 +15,20 @@
   <body class="results" data-season="summer">
     <a class="skip" href="#days" data-text="site.skipToDays"></a>
 
+    <!-- The bar shared by the results and the map (nav.js): home, the season
+         both pages show, a tab for each page carrying it. -->
+    <nav class="site-nav" data-attr-aria-label="nav.label">
+      <a class="site-nav-home" href="/">
+        <span class="site-nav-icon" aria-hidden="true"></span>
+        <span class="site-nav-name" data-text="nav.home"></span>
+      </a>
+      <p id="nav-context" class="site-nav-context"></p>
+      <ul class="site-nav-tabs">
+        <li><a id="nav-place" class="site-nav-tab" hidden></a></li>
+        <li><a id="nav-map" class="site-nav-tab" data-text="nav.map" hidden></a></li>
+      </ul>
+    </nav>
+
     <header class="banner">
       <h1 id="place"></h1>
       <!-- The separator lives in the stylesheet, so a refusal — which never

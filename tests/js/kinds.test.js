@@ -6,17 +6,21 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { KINDS, anyYearOf, draw, epochLabel, kindLabels } from "../../web/static/js/kinds.js";
+import { KINDS, anyYearOf, dayOf, draw, epochLabel, kindLabels, kindsOf, record } from "../../web/static/js/kinds.js";
 import { texts } from "../../web/static/js/i18n.js";
 
 describe("kindLabels", () => {
   it("names every kind, a winter cold or mild", () => {
     for (const season of Object.keys(texts.season)) {
       const labels = kindLabels(season);
-      assert.deepEqual(Object.keys(labels).sort(), [...KINDS].sort());
+      assert.deepEqual(Object.keys(labels).sort(), [...kindsOf(season)].sort());
     }
     assert.equal(kindLabels("winter").warm, "Doux");
     assert.equal(kindLabels("summer").warm, "Chaud");
+    assert.equal(kindLabels("summer").record, "Record de chaleur");
+    assert.equal(kindLabels("winter").record, "Record de douceur");
+    assert.equal(kindLabels("winter").coldRecord, "Record de froid");
+    assert.equal(kindLabels("summer").coldRecord, "Record de fraîcheur");
   });
 });
 
@@ -46,8 +50,39 @@ describe("draw", () => {
     assert.equal(draw(ranked, "cool", () => 0.6), 2005);
   });
 
+  it("gives the record without drawing: the highest mean, the later year on a tie", () => {
+    const epoch = { ...ranked, values: { 2001: 24.1, 2003: 29.8, 2004: 27.0, 2010: 29.8 } };
+    assert.equal(record(epoch), 2010);
+    assert.equal(draw(epoch, "record", () => 0), 2010);
+    assert.equal(draw({ values: { 2003: 29.8, 2004: 27.0 } }, "record"), 2003);
+    assert.equal(record({ values: {} }), null);
+    assert.equal(draw(epoch, "coldRecord"), 2001);
+    assert.equal(record({ values: { 2001: 20, 2002: 20 } }, -1), 2002);
+  });
+
   it("answers null when there is none", () => {
     assert.equal(draw({ cool: [] }, "cool"), null);
     assert.equal(draw(undefined, "warm"), null);
+  });
+});
+
+describe("the extreme days", () => {
+  const ranked = {
+    hottest: { year: 2087, date: "2087-07-12", value: 43.1 },
+    coldest: { year: 2056, date: "2057-01-08", value: -14.2 },
+  };
+
+  it("are offered one per season: the hottest day, the coldest in winter", () => {
+    assert.deepEqual(kindsOf("summer"), [...KINDS, "hottestDay"]);
+    assert.deepEqual(kindsOf("winter"), [...KINDS, "coldestDay"]);
+  });
+
+  it("give their season and the day it opens on", () => {
+    assert.equal(draw(ranked, "hottestDay"), 2087);
+    assert.equal(dayOf(ranked, "hottestDay"), "2087-07-12");
+    assert.equal(draw(ranked, "coldestDay"), 2056);
+    assert.equal(dayOf(ranked, "coldestDay"), "2057-01-08");
+    assert.equal(dayOf(ranked, "warm"), null);
+    assert.equal(draw({}, "hottestDay"), null);
   });
 });

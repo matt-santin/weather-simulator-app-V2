@@ -73,6 +73,13 @@ CLOUDY_PERCENT = 30.0
 # not display. The top band is therefore the one the reference climate never
 # reaches and the simulated future does.
 #
+# **Ten bands since 7/11/2026, from 0 °C** (decided by the project owner): the
+# colours moved one band colder, a new band under 0 °C (a maximum below 0 °C is
+# an ice day, TXFD of DRIAS: Tx < 0 °C) and a black one for 40 °C and above. The
+# colours fall again where they were meant to: yellow on 15-20, orange on 20-30,
+# red from 30. The text below is the reasoning of the first scale, nine bands
+# from 5 °C, kept for the measurements it carries.
+#
 # **Nine bands, at five degrees.** Measured on the same data, over a 47-day
 # search — the length of a typical one — a step of 10 °C shows 1.9 to 2.8 distinct
 # colours and the strip reads as one flat wash; a step of 5 °C shows 2.7 to 4.0.
@@ -92,7 +99,7 @@ CLOUDY_PERCENT = 30.0
 # "overcast" are. Measurement says what falls either side of a line; it cannot
 # say where to draw it.
 TEMPERATURE_BAND_STEP_C = 5.0
-TEMPERATURE_BAND_EDGES = tuple(5.0 + TEMPERATURE_BAND_STEP_C * step for step in range(8))
+TEMPERATURE_BAND_EDGES = tuple(0.0 + TEMPERATURE_BAND_STEP_C * step for step in range(9))
 
 # Humid heat: two levels on the daily mean wet-bulb temperature, in degrees
 # Celsius. Settled by the project owner on 2026-09-07, on the measurements below.

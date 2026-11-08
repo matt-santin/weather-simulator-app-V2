@@ -17,21 +17,27 @@ the corrected simulation; the new climate mixes both (2011-2025, then
 whose dates fall outside one served period (2026, a winter running into 2026
 or 2101) is left out. Epochs, share and criterion are choices of this project
 (4 and 5/11/2026).
+
+Each epoch also names its two extreme days over the same dates (7/11/2026): the
+hottest day (highest tasmax) and the coldest night (lowest tasmin), with their
+date, for "the hottest day" and "the coldest day" of the form. The later one on
+a tie.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 import numpy as np
 
-from src.app.api.contract import Kinds, KindsEpoch
+from src.app.api.contract import Kinds, KindsEpoch, Peak
 from src.app.api.years import shifted
 from src.app.domain.records import Origin
 from src.app.store import PERIODS, Cell, Store
 
 NAME = "tasmax"
+COLD = "tasmin"  # the coldest night
 SHARE = 0.2  # coolest and warmest share of the years of an epoch
 
 
@@ -65,17 +71,41 @@ def split(values: dict[int, float]) -> tuple[list[int], list[int], list[int]]:
 def run(store: Store, cell: Cell, start: date, end: date) -> Kinds:
     series = {}
     for period in PERIODS:
-        values = store.series(period.source, cell, period.start, period.end, (NAME,))
-        series[period.source] = (period, np.array(values[NAME], dtype=float))
+        values = store.series(period.source, cell, period.start, period.end, (NAME, COLD))
+        series[period.source] = (period, {n: np.array(values[n], dtype=float) for n in (NAME, COLD)})
 
-    def measure(year: int) -> tuple[str, float] | None:
+    def chunks(year: int):
+        """The source, the first day and both series of the season of `year`."""
         first, last = shifted(start, end, year)
         for period, values in series.values():
             if period.holds(first, last):
-                chunk = values[(first - period.start).days:(last - period.start).days + 1]
-                if np.isfinite(chunk).any():
-                    return period.source, float(np.nanmean(chunk))
+                k0, k1 = (first - period.start).days, (last - period.start).days + 1
+                return period.source, first, {n: v[k0:k1] for n, v in values.items()}
         return None
+
+    def measure(year: int) -> tuple[str, float] | None:
+        found = chunks(year)
+        if found is None or not np.isfinite(found[2][NAME]).any():
+            return None
+        return found[0], float(np.nanmean(found[2][NAME]))
+
+    def peak(years, name: str, sign: int) -> Peak | None:
+        """The day of the highest (sign 1) or lowest (sign -1) value of `name`."""
+        best = None
+        for year in years:
+            found = chunks(year)
+            if found is None:
+                continue
+            _, first, values = found
+            v = sign * values[name]
+            if not np.isfinite(v).any():
+                continue
+            k = int(np.nanargmax(v))
+            if best is None or v[k] >= best[0]:
+                best = (float(v[k]), year, first + timedelta(days=k))
+        if best is None:
+            return None
+        return Peak(year=best[1], date=best[2], value=round(sign * best[0], 1))
 
     epochs = []
     for epoch in EPOCHS:
@@ -94,5 +124,7 @@ def run(store: Store, cell: Cell, start: date, end: date) -> Kinds:
             normal=normal,
             warm=warm,
             values={y: round(v, 1) for y, v in sorted(values.items())},
+            hottest=peak(sorted(values), NAME, 1),
+            coldest=peak(sorted(values), COLD, -1),
         ))
     return Kinds(epochs=epochs)

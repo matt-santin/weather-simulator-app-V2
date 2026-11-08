@@ -21,15 +21,19 @@
 
 /** One colour per band of temperature, from below the first edge to above the last. */
 export const COLORS = [
-  "#123a72",
-  "#5aa9de",
-  "#8bc94a",
-  "#f2ce1b",
-  "#f0902a",
-  "#e9634a",
-  "#b01712",
-  "#6b0a0a",
-  "#16100c",
+  // The colours of the calendar of the results (style.css, data-band), since
+  // 7/11/2026: one scale on both pages. The top one is hatched on the map, so
+  // that black reads on its dark ground.
+  "#2b59c3",
+  "#5c95e8",
+  "#62c6c4",
+  "#9fd77f",
+  "#f7e15f",
+  "#fdb342",
+  "#f26b38",
+  "#c81d25",
+  "#5a0b2f",
+  "#1a1a1a",
 ];
 
 /** The minima: 12 colours for 11 edges, violet in the deep cold, blue to 0 °C. */
@@ -51,9 +55,7 @@ export const MINIMA_COLORS = [
 
 /**
  * What each variable is drawn with. `edges: null` means the edges served by
- * /api/config for the temperatures. `first` and `second` are the two figures of
- * the panel: the highest or the lowest cell, the median, or the share of cells
- * in the first band (dry, clear). `timeline` is what each day's bar shows.
+ * /api/config for the temperatures. `timeline` is what each day's bar shows.
  */
 export const VARIABLES = {
   tasmax: {
@@ -62,8 +64,6 @@ export const VARIABLES = {
     colors: COLORS,
     edges: null,
     hatchTop: true,
-    first: "max",
-    second: "median",
     timeline: "median",
   },
   tasmin: {
@@ -72,8 +72,6 @@ export const VARIABLES = {
     colors: MINIMA_COLORS,
     edges: MINIMA_EDGES,
     hatchTop: false,
-    first: "min",
-    second: "median",
     timeline: "median",
   },
   pr: {
@@ -82,8 +80,6 @@ export const VARIABLES = {
     colors: ["#4a4136", "#bfe0f5", "#6aaed6", "#2b7bba", "#7b4fa8", "#e05fb0"],
     edges: [1, 5, 10, 20, 50],
     hatchTop: false,
-    first: "max",
-    second: "share",
     timeline: "mean",
   },
   clt: {
@@ -92,8 +88,6 @@ export const VARIABLES = {
     colors: ["#f2ce1b", "#d6c27a", "#a8a596", "#7f7f86", "#5d5f69"],
     edges: [20, 40, 60, 80],
     hatchTop: false,
-    first: "median",
-    second: "share",
     timeline: "median",
   },
 };

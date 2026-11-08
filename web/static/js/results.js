@@ -45,6 +45,7 @@ import { decimal, detail, tiles } from "./matrix.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
 import { insideMap, MAP_LATITUDE, mapHref, seasonOfDay, seasonYear } from "./links.js";
+import { fillNav } from "./nav.js";
 import { dominantSeason, yearsFor } from "./season.js";
 import { figures as summaryFigures, heading as summaryHeading } from "./summary.js";
 
@@ -138,6 +139,16 @@ const asked = {
 // carries a season of its own, and that is the one fallback.
 const season = dominantSeason(asked);
 if (season) document.body.dataset.season = season;
+
+// The bar: this page's tab now, the map's once the config says there are maps.
+const navSeason = {
+  current: "place",
+  season,
+  year: season ? seasonYear(season, asked.start, asked.end) : null,
+  place: asked.place,
+  placeHref: `${window.location.pathname}${window.location.search}`,
+};
+fillNav(navSeason);
 
 // textContent, never innerHTML: the name came from the query string, which is
 // to say from outside.
@@ -485,6 +496,7 @@ async function offerMap(shownSeason) {
   }
   summaryMap.href = mapHref({ ...asked, season: shownSeason, year });
   summaryMap.hidden = false;
+  fillNav({ ...navSeason, mapHref: summaryMap.href });
 }
 
 const climates = new Map();

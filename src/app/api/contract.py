@@ -200,6 +200,14 @@ class Summary(BaseModel):
     figures: dict[str, SummaryFigure]
 
 
+class Peak(BaseModel):
+    """One day of an epoch: the hottest (tasmax) or the coldest night (tasmin)."""
+
+    year: int = Field(description="the year of the season that holds the day")
+    date: date
+    value: float = Field(description="degrees Celsius")
+
+
 class KindsEpoch(BaseModel):
     """The years of one epoch, sorted into cool, normal and warm seasons."""
 
@@ -211,6 +219,8 @@ class KindsEpoch(BaseModel):
     normal: list[int]
     warm: list[int]
     values: dict[int, float] = Field(description="mean tasmax of each year, degrees Celsius")
+    hottest: Peak | None = Field(default=None, description="the day of the highest tasmax")
+    coldest: Peak | None = Field(default=None, description="the night of the lowest tasmin")
 
 
 class Kinds(BaseModel):

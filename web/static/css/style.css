@@ -1112,8 +1112,9 @@ select:focus {
   flex: 3 1 17.5rem;
 }
 
+/* Room for "Record de douceur", the longest kind. */
 .dates.kinds .field:last-child {
-  flex-basis: 5.5rem;
+  flex-basis: 10rem;
 }
 
 /* A label and its "?" on one line. */
@@ -1703,7 +1704,7 @@ button[type="submit"]:hover {
 }
 
 /*
- * The temperature scale: nine steps of five degrees, from under 5 to 40 and over.
+ * The temperature scale: ten steps of five degrees, from under 0 to 40 and over.
  *
  * **The band is decided by the server**; this is only what it looks like. The
  * step numbers here are the ones `domain/temperature.py` hands out, and the
@@ -1725,24 +1726,28 @@ body.results [data-band] {
   --tile-ink: #1c1408;
 }
 
-/* < 5 — bleu profond */
+/* Since 7/11/2026 the colours sit one band colder, from 0 °C, and 40 °C and
+   over is black (src/app/domain/thresholds.py). */
+/* < 0 — bleu profond : jour sans dégel (Tx < 0 °C, DRIAS) */
 body.results [data-band="0"] { --tile: #2b59c3; --tile-ink: #fff; }
-/* 5 à 10 — bleu */
+/* 0 à 5 — bleu */
 body.results [data-band="1"] { --tile: #5c95e8; }
-/* 10 à 15 — turquoise */
+/* 5 à 10 — turquoise */
 body.results [data-band="2"] { --tile: #62c6c4; }
-/* 15 à 20 — vert */
+/* 10 à 15 — vert */
 body.results [data-band="3"] { --tile: #9fd77f; }
-/* 20 à 25 — jaune */
+/* 15 à 20 — jaune */
 body.results [data-band="4"] { --tile: #f7e15f; }
-/* 25 à 30 — orange clair */
+/* 20 à 25 — orange clair */
 body.results [data-band="5"] { --tile: #fdb342; }
-/* 30 à 35 — orange */
+/* 25 à 30 — orange */
 body.results [data-band="6"] { --tile: #f26b38; }
-/* 35 à 40 — rouge */
+/* 30 à 35 — rouge */
 body.results [data-band="7"] { --tile: #c81d25; --tile-ink: #fff; }
-/* ≥ 40 — bordeaux : la bande qu'aucune journée française de 1981-2010 n'atteint. */
+/* 35 à 40 — bordeaux */
 body.results [data-band="8"] { --tile: #5a0b2f; --tile-ink: #fff; }
+/* ≥ 40 — noir doux : la bande qu'aucune journée française de 1981-2010 n'atteint. */
+body.results [data-band="9"] { --tile: #1a1a1a; --tile-ink: #fff; }
 
 .sep {
   margin-inline: 0.5ch;
@@ -3080,7 +3085,7 @@ body.maps {
   gap: clamp(16px, 2vw, 28px);
   align-items: start;
   max-width: none;
-  height: 100vh;
+  height: calc(100vh - var(--nav-height));
   box-sizing: border-box;
   padding: calc(var(--space) * 4) clamp(12px, 1.6vw, 24px);
 }
@@ -3090,7 +3095,7 @@ body.maps {
   display: flex;
   flex-direction: column;
   gap: calc(var(--space) * 4);
-  max-height: calc(100vh - var(--space) * 8);
+  max-height: calc(100vh - var(--nav-height) - var(--space) * 8);
   overflow-y: auto;
 }
 
@@ -3106,34 +3111,6 @@ body.maps {
     max-height: none;
     overflow: visible;
   }
-}
-
-/* Back to the site, at the top of the right column, against its right edge:
-   the same outline drawing as the link to the maps on the home page. */
-.maps-home {
-  display: flex;
-  align-items: center;
-  align-self: flex-end;
-  gap: calc(var(--space) * 2);
-  color: var(--ink);
-  font-size: var(--label-size);
-  letter-spacing: var(--label-tracking);
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.maps-home-icon {
-  width: 2.25rem;
-  aspect-ratio: 1;
-  background: currentColor;
-  -webkit-mask: url("/static/icons/weather.svg") center / contain no-repeat;
-  mask: url("/static/icons/weather.svg") center / contain no-repeat;
-}
-
-.maps-home:hover .maps-home-text,
-.maps-home:focus-visible .maps-home-text {
-  text-decoration: underline;
-  text-underline-offset: 4px;
 }
 
 .maps-label,
@@ -3193,6 +3170,7 @@ body.maps {
 
 /* In the panel, over the date. */
 .maps-warning {
+  position: relative;
   margin: 0;
   padding-block: calc(var(--space) * 2);
   border-block: 1px solid var(--rule-strong);
@@ -4037,4 +4015,281 @@ body.results .card--zoom.is-live .card-action {
 body.results .card.is-target {
   outline: 3px solid var(--link);
   outline-offset: 2px;
+}
+
+
+/* --- the bar of the results and the map (nav.js) ----------------------------
+   The map page's dark ground on both, full width, above the season's band on
+   the results. Ink 14:1 on the ground, the soft ink 8:1. */
+:root {
+  --nav-height: 3.25rem;
+}
+
+.site-nav {
+  --nav-ground: #17140f;
+  --nav-ink: #ece7dd;
+  --nav-soft: #b8b0a2;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 4);
+  box-sizing: border-box;
+  height: var(--nav-height);
+  padding: 0 clamp(12px, 1.6vw, 24px);
+  border-bottom: 1px solid #332e26;
+  background: var(--nav-ground);
+  color: var(--nav-ink);
+  font-family: var(--font);
+}
+
+body.results > .site-nav {
+  width: 100vw;
+  max-width: none;
+  margin-inline: calc(50% - 50vw);
+}
+
+.site-nav-home {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  color: var(--nav-ink);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.site-nav-icon {
+  width: 1.9rem;
+  aspect-ratio: 1;
+  background: currentColor;
+  -webkit-mask: url("/static/icons/weather.svg") center / contain no-repeat;
+  mask: url("/static/icons/weather.svg") center / contain no-repeat;
+}
+
+.site-nav-home:hover .site-nav-name,
+.site-nav-home:focus-visible .site-nav-name {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.site-nav-context {
+  margin: 0 0 0 auto;
+  color: var(--nav-soft);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.site-nav-tabs {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav-tabs li:has(> [hidden]) {
+  display: none;
+}
+
+.site-nav-tab {
+  display: block;
+  padding: 0.3rem 0.95rem;
+  border: 1px solid #5a5245;
+  color: var(--nav-ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-nav-tabs li:first-child:not(:has(> [hidden])) .site-nav-tab {
+  border-radius: 999px 0 0 999px;
+}
+
+.site-nav-tabs li:last-child .site-nav-tab {
+  border-radius: 0 999px 999px 0;
+}
+
+.site-nav-tabs li:has(> [hidden]) + li .site-nav-tab {
+  border-radius: 999px;
+}
+
+.site-nav-tabs li + li .site-nav-tab {
+  margin-left: -1px;
+}
+
+.site-nav-tab:hover {
+  background: rgb(236 231 221 / 10%);
+}
+
+.site-nav-tab[aria-current="page"] {
+  border-color: var(--nav-ink);
+  background: var(--nav-ink);
+  color: var(--nav-ground);
+}
+
+/* A phone: the sun alone for home, no season (the page says it). */
+@media (max-width: 560px) {
+  .site-nav-name,
+  .site-nav-context {
+    display: none;
+  }
+
+  .site-nav-tabs {
+    margin-left: auto;
+  }
+}
+
+.maps-warning[hidden] {
+  display: none;
+}
+
+.maps-warning .warning-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  margin: 0;
+}
+
+/* --- the map in the words of the results (7/11/2026) -------------------------
+   Same figures (Garamond, the unit small beside), same bubbles (the pale card
+   of the "?" notes), same pill buttons, same title size; the dark ground kept. */
+body.maps .maps-title {
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+body.maps .maps-value,
+body.maps .maps-pick-value,
+body.maps .maps-figure {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+body.maps .maps-value {
+  font-size: 2.25rem;
+}
+
+body.maps .maps-pick-value {
+  font-size: 1.6rem;
+}
+
+body.maps .maps-figure {
+  font-size: 1.15rem;
+}
+
+body.maps .unit {
+  color: inherit;
+  opacity: 0.75;
+}
+
+body.maps .maps-tip,
+body.maps .maps-pick {
+  border: 0;
+  border-radius: 6px;
+  background: #fbfaf7;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 35%);
+  color: #14202e;
+}
+
+body.maps .maps-tip {
+  padding: 6px 10px;
+}
+
+body.maps .maps-pick-where,
+body.maps .maps-tip span {
+  color: #4f5b6b;
+}
+
+body.maps .maps-pick-link {
+  color: #1d5fb4;
+}
+
+body.maps .maps-pick-close {
+  color: #4f5b6b;
+}
+
+body.maps .maps-pick-close:hover,
+body.maps .maps-pick-close:focus-visible {
+  color: #14202e;
+}
+
+body.maps .toggle {
+  padding: calc(var(--space) * 2) calc(var(--space) * 4);
+}
+
+/* The steps: circles of the size of play, outlined in the same ink. */
+body.maps .maps-step {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 0;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  color: var(--ink);
+}
+
+body.maps .maps-step:hover {
+  background: rgb(236 231 221 / 12%);
+}
+
+body.maps .maps-step:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.maps-step-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Play and pause: a filled round button in the ink of the page, the sign
+   inside; the arrows beside it stay outlined. */
+.maps-play {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.maps-play:hover {
+  background: #ffffff;
+}
+
+.maps-play:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.maps-play-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}
+
+.maps-play .pause,
+.maps-play.is-playing .play {
+  display: none;
+}
+
+.maps-play.is-playing .pause {
+  display: inline;
 }

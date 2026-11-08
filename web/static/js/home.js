@@ -27,7 +27,7 @@ import { pad } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
 import { texts } from "./i18n.js";
 import { wireHints } from "./hint.js";
-import { KINDS, anyYearOf, draw, epochLabel, kindLabels } from "./kinds.js";
+import { anyYearOf, dayOf, draw, epochLabel, kindLabels, kindsOf } from "./kinds.js";
 import { rotate } from "./prompt.js";
 import { rangeOf, seasonOf, yearsFor } from "./season.js";
 
@@ -45,6 +45,7 @@ const latitude = document.getElementById("lat");
 const longitude = document.getElementById("lon");
 const from = document.getElementById("debut");
 const to = document.getElementById("fin");
+const dayField = document.getElementById("jour");
 const status = document.getElementById("status");
 const placeStatus = document.getElementById("place-status");
 const found = document.getElementById("found");
@@ -270,9 +271,15 @@ function fillKinds() {
   const chosenKind = kindPick.value || "warm";
   const labels = kindLabels(kindSeasonPick.value);
   kindPick.replaceChildren(
-    ...KINDS.map((kind) => el("option", { text: labels[kind], attrs: { value: kind } })),
+    ...kindsOf(kindSeasonPick.value).map((kind) =>
+      el("option", { text: labels[kind], attrs: { value: kind } }),
+    ),
   );
-  kindPick.value = chosenKind;
+  // The extreme day changes with the season: the hottest day becomes the
+  // coldest in winter, and the other way round.
+  const day = { hottestDay: "coldestDay", coldestDay: "hottestDay" };
+  const offered = [...kindPick.options].map((option) => option.value);
+  kindPick.value = offered.includes(chosenKind) ? chosenKind : (day[chosenKind] ?? "warm");
 }
 
 /** The epochs, as /api/config serves them. */
@@ -326,6 +333,9 @@ async function drawSeason(button) {
     }
     from.value = range.start;
     to.value = range.end;
+    const day = dayOf(ranked, kindPick.value);
+    dayField.value = day ?? "";
+    dayField.disabled = !day;
     form.submit();
   } catch (error) {
     say(error instanceof SearchError ? error.message : texts.transport.serviceFailed);

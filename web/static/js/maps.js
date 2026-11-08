@@ -20,6 +20,7 @@
 
 import { DAY, at, iso } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
+import { wireHints } from "./hint.js";
 import { loadConfig, mapCells, mapDays, mapIsobars, nearestPlace, outlines, SearchError } from "./fetch.js";
 import { texts } from "./i18n.js";
 import {
@@ -42,6 +43,7 @@ import {
 } from "./mapview.js";
 import * as present from "./present.js";
 import { insideMap, MAP_LATITUDE, resultsHref } from "./links.js";
+import { fillNav } from "./nav.js";
 import { rangeOf, yearsFor } from "./season.js";
 
 /** Europe is northern: the seasons are read at this latitude. */
@@ -61,6 +63,7 @@ const yearField = document.getElementById("maps-year");
 const isobarsField = document.getElementById("maps-isobars");
 const isobarsBox = document.getElementById("maps-isobars-field");
 const warning = document.getElementById("maps-warning");
+const warningNote = document.getElementById("maps-warning-note");
 const sourceNote = document.getElementById("maps-source");
 const status = document.getElementById("maps-status");
 const failure = document.getElementById("maps-failure");
@@ -74,12 +77,6 @@ const zoomOut = document.getElementById("maps-zoom-out");
 const zoomWhole = document.getElementById("maps-zoom-whole");
 const dateLine = document.getElementById("maps-date");
 const dayLine = document.getElementById("maps-day");
-const firstLabel = document.getElementById("maps-first-label");
-const firstValue = document.getElementById("maps-first");
-const firstWhere = document.getElementById("maps-first-where");
-const secondLabel = document.getElementById("maps-second-label");
-const secondValue = document.getElementById("maps-second");
-const cellsLine = document.getElementById("maps-cells");
 const bandList = document.getElementById("maps-bands");
 const playButton = document.getElementById("maps-play");
 const prevButton = document.getElementById("maps-prev");
@@ -98,10 +95,19 @@ const hereValue = document.getElementById("maps-here-value");
 const hereLink = document.getElementById("maps-here-link");
 
 applyTexts();
+wireHints();
 
 const ONE_DECIMAL = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const WHOLE_NUMBER = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 const PERCENT = new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 0 });
+/**
+ * A value as the results page writes it: the figure, its unit smaller beside
+ * it (the `.unit` of the calendar).
+ */
+const measureNodes = (value) => [
+  document.createTextNode((state.spec.decimals ? ONE_DECIMAL : WHOLE_NUMBER).format(value)),
+  el("span", { className: "unit", text: state.spec.unit }),
+];
 /** A value of the variable on screen, with its unit: "27,2 °C", "12,4 mm", "60 %". */
 const measure = (value) =>
   `${(state.spec.decimals ? ONE_DECIMAL : WHOLE_NUMBER).format(value)} ${state.spec.unit}`;
@@ -141,7 +147,7 @@ async function boot() {
   try {
     const [config, cells, shapes] = await Promise.all([loadConfig(), mapCells(), outlines()]);
     state.config = config;
-    warning.textContent = texts.maps.simulated(config.simulation);
+    warningNote.textContent = texts.maps.simulated(config.simulation);
     sourceNote.textContent = texts.maps.source(config.simulation, cells.isobars);
     state.cells = cells;
     state.geometry = grid(cells);
@@ -721,7 +727,7 @@ function tooltip([x, y]) {
     return;
   }
   tip.replaceChildren(
-    el("strong", { text: measure(value / 10) }),
+    el("strong", { className: "maps-figure" }, measureNodes(value / 10)),
     el("span", { text: where(g.latitude(k), g.longitude(k)) }),
   );
   tip.style.left = `${x}px`;
@@ -732,6 +738,13 @@ function tooltip([x, y]) {
 // --- the way to the results ---------------------------------------------------
 
 /** The value of the day on screen at cell `k`, with its unit, or "". */
+/** The same, as nodes for the page (nothing over the sea). */
+function nodesAt(k) {
+  const text = valueAt(k);
+  if (!text) return [];
+  return measureNodes(day(state.season.values, state.season.cells, state.current)[k] / 10);
+}
+
 function valueAt(k) {
   if (k === undefined || !state.season) return "";
   const value = day(state.season.values, state.season.cells, state.current)[k];
@@ -758,11 +771,20 @@ function shownPeriod() {
   };
 }
 
-/** Both links to the results, on the season chosen and the day on screen. */
+/** Both links to the results, on the season chosen and the day on screen, and the bar. */
 function relink() {
   const place = state.place;
   if (place) hereLink.href = resultsHref({ ...place, place: place.name, ...shownPeriod() });
   if (state.pick) linkPick();
+  fillNav({
+    current: "map",
+    season: seasonField.value,
+    year: Number(yearField.value),
+    place: place?.name ?? null,
+    // The tab leads to the top of the results; the link of the panel, to the day.
+    placeHref: place ? resultsHref({ ...place, place: place.name, ...shownPeriod(), day: null }) : null,
+    mapHref: `${window.location.pathname}${window.location.search}`,
+  });
 }
 
 /** The day on screen in the URL, when the player is stopped. */
@@ -789,7 +811,7 @@ async function pick(x, y) {
   const coordinates = where(lat, lon);
   state.pick = { latitude: lat, longitude: lon, k, label: coordinates, turn };
   tip.hidden = true;
-  pickValue.textContent = valueAt(k);
+  pickValue.replaceChildren(...nodesAt(k));
   pickName.textContent = texts.maps.pick.searching;
   pickWhere.textContent = coordinates;
   linkPick();
@@ -845,51 +867,12 @@ function placePick() {
 
 // --- the panel ----------------------------------------------------------------
 
-/**
- * One figure of the panel: the highest or the lowest cell (and where), the
- * median, or the share of cells in the first band (dry, clear), as VARIABLES
- * says.
- */
-function figure(kind, s) {
-  const g = state.geometry;
-  if (kind === "min") {
-    return {
-      label: texts.maps.figures.min[state.variable],
-      value: s.coldest === null ? "" : measure(s.coldest),
-      where: s.coldAt < 0 ? "" : where(g.latitude(s.coldAt), g.longitude(s.coldAt)),
-    };
-  }
-  if (kind === "max") {
-    return {
-      label: texts.maps.figures.max[state.variable],
-      value: s.hottest === null ? "" : measure(s.hottest),
-      where: s.at < 0 ? "" : where(g.latitude(s.at), g.longitude(s.at)),
-    };
-  }
-  if (kind === "share") {
-    return {
-      label: texts.maps.figures.share[state.variable],
-      value: s.cells ? PERCENT.format(s.counts[0] / s.cells) : "",
-      where: "",
-    };
-  }
-  return { label: texts.maps.figures.median, value: s.median === null ? "" : measure(s.median), where: "" };
-}
-
 function panel() {
   const s = state.summaries[state.current];
   dateLine.textContent = present.fullDate(dateOf(state.current));
   dayLine.textContent = texts.maps.dayOf(state.current + 1, state.season.days);
-  const first = figure(state.spec.first, s);
-  const second = figure(state.spec.second, s);
-  firstLabel.textContent = first.label;
-  firstValue.textContent = first.value;
-  firstWhere.textContent = first.where;
-  secondLabel.textContent = second.label;
-  secondValue.textContent = second.value;
-  cellsLine.textContent = texts.maps.cells(s.cells);
-  hereValue.textContent = valueAt(state.place?.k);
-  if (state.pick) pickValue.textContent = valueAt(state.pick.k);
+  hereValue.replaceChildren(...nodesAt(state.place?.k));
+  if (state.pick) pickValue.replaceChildren(...nodesAt(state.pick.k));
   const most = Math.max(...s.counts);
   const rows = [...bandList.children].reverse();
   s.counts.forEach((count, b) => {
@@ -948,8 +931,11 @@ function play(on) {
     }, 1000 / Number(speedField.value));
   }
   if (!on) keepDay();
-  playButton.setAttribute("aria-pressed", String(Boolean(on)));
-  playButton.textContent = on ? texts.maps.pause : texts.maps.play;
+  // The sign and the name say what a press will do: pause while it plays.
+  const name = on ? texts.maps.pause : texts.maps.play;
+  playButton.classList.toggle("is-playing", Boolean(on));
+  playButton.setAttribute("aria-label", name);
+  playButton.title = name;
 }
 
 function wirePlayer() {

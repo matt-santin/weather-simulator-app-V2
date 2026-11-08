@@ -1,4 +1,4 @@
-"""The temperature band: one degree reading turned into one of nine steps.
+"""The temperature band: one degree reading turned into one of ten steps.
 
 One function for the maximum and the minimum, on one shared scale, so that
 12 degC is the same colour on both. The band is a rule and travels in the
@@ -16,9 +16,9 @@ BAND_COUNT = len(thresholds.TEMPERATURE_BAND_EDGES) + 1
 
 
 def band(temperature: float | None) -> int | None:
-    """Which of the nine bands a temperature falls in, or ``None`` for a gap.
+    """Which of the ten bands a temperature falls in, or ``None`` for a gap.
 
-    Band 0 is everything below the first edge and band 8 everything at or above
+    Band 0 is everything below the first edge and band 9 everything at or above
     the last. A value sitting exactly on an edge falls in the warmer of the two
     bands, the same convention the cloud thresholds use.
 

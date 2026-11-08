@@ -27,14 +27,16 @@ import {
   zoomAt,
 } from "../../web/static/js/mapview.js";
 
-const EDGES = [5, 10, 15, 20, 25, 30, 35, 40];
+// The site's edges since 7/11/2026 (/api/config, thresholds.py).
+const EDGES = [0, 5, 10, 15, 20, 25, 30, 35, 40];
 
 describe("the bands", () => {
   it("follow the site's edges, an edge belonging to the band above", () => {
     assert.equal(band(-3, EDGES), 0);
-    assert.equal(band(5, EDGES), 1);
-    assert.equal(band(39.9, EDGES), 7);
-    assert.equal(band(40, EDGES), 8);
+    assert.equal(band(0, EDGES), 1);
+    assert.equal(band(5, EDGES), 2);
+    assert.equal(band(39.9, EDGES), 8);
+    assert.equal(band(40, EDGES), 9);
     assert.equal(COLORS.length, EDGES.length + 1);
   });
 });
@@ -91,9 +93,9 @@ describe("the summary of a day", () => {
     assert.equal(s.at, 1);
     assert.equal(s.median, 25);
     assert.equal(s.cells, 3);
-    assert.equal(s.counts[2], 1); // 12,3
-    assert.equal(s.counts[5], 1); // 25,0
-    assert.equal(s.counts[8], 1); // 40,5
+    assert.equal(s.counts[3], 1); // 12,3
+    assert.equal(s.counts[6], 1); // 25,0
+    assert.equal(s.counts[9], 1); // 40,5
   });
 });
 
@@ -132,7 +134,6 @@ describe("the scales of each variable", () => {
     assert.ok(edges.includes(0) && edges.includes(20));
     assert.equal(band(-0.1, edges), 4);
     assert.equal(band(0, edges), 5);
-    assert.equal(VARIABLES.tasmin.first, "min");
   });
 });
 

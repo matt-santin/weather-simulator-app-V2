@@ -31,6 +31,15 @@ export const texts = {
     documentation: "Tout comprendre sur les données affichées",
   },
 
+  // The bar of the results and the map (nav.js).
+  nav: {
+    label: "Navigation entre le lieu et la carte",
+    home: "Weather Simulator",
+    map: "Europe",
+    placeTitle: (place) => `La saison à ${place}, jour par jour`,
+    mapTitle: "La même saison sur la carte d'Europe",
+  },
+
   // The banner asks before it explains. A site name at the top said what the
   // thing is called and nothing about what it is for; a question says both at
   // once, and the promise underneath settles it.
@@ -118,13 +127,31 @@ export const texts = {
     },
     epochOption: (label, first, last) => `${label} (${first}-${last})`,
     // Seasons are masculine in French: un été frais, un hiver doux.
-    kinds: { cool: "Frais", normal: "Normal", warm: "Chaud" },
-    kindsWinter: { cool: "Froid", normal: "Normal", warm: "Doux" },
+    kinds: {
+      coldRecord: "Record de fraîcheur",
+      cool: "Frais",
+      normal: "Normal",
+      warm: "Chaud",
+      record: "Record de chaleur",
+      hottestDay: "Jour le plus chaud",
+    },
+    kindsWinter: {
+      coldRecord: "Record de froid",
+      cool: "Froid",
+      normal: "Normal",
+      warm: "Doux",
+      record: "Record de douceur",
+      coldestDay: "Jour le plus froid",
+    },
     kindHint: "Comment le type est choisi",
     kindNote:
       "Une saison tirée au hasard parmi celles de l'époque, classées par la moyenne " +
       "des températures maximales au lieu choisi : les 20\u00a0% les plus fraîches, les " +
-      "60\u00a0% du milieu ou les 20\u00a0% les plus chaudes.",
+      "60\u00a0% du milieu ou les 20\u00a0% les plus chaudes. Les records sont la saison " +
+      "la plus chaude et la plus fraîche de l'époque (la plus douce et la plus froide en " +
+      "hiver), toujours les mêmes. Le jour le plus chaud ouvre la saison de la journée " +
+      "à la température maximale la plus haute de l'époque, le jour le plus froid celle " +
+      "de la nuit à la température minimale la plus basse.",
     drawing: "Tirage d'une année…",
     noYear: "Aucune année de ce type pour cette époque.",
     // The submit band is hidden until a panel is open, so this is only ever
@@ -321,28 +348,14 @@ export const texts = {
       pr: "Précipitations",
       clt: "Nébulosité",
     },
-    // The two figures of the panel, by kind and by variable.
-    figures: {
-      max: {
-        tasmax: "Maille la plus chaude",
-        pr: "Maille la plus arrosée",
-      },
-      min: {
-        tasmin: "Maille la plus froide",
-      },
-      median: "Médiane des mailles",
-      share: {
-        pr: "Mailles sèches (moins de 1 mm)",
-        clt: "Mailles peu nuageuses (moins de 20 %)",
-      },
-    },
     eyebrow: "Cartographie, Europe",
     season: "Saison",
     year: "Année",
     // The simulation is the one /api/config names (the store's), never written here.
     simulated: (simulation) =>
-      "Simulation : la météo de ces journées n'est pas une prévision, mais une météo " +
-      `plausible sous le scénario ${simulation.scenario}.`,
+      "Les journées après 2026 viennent d'une simulation climatique, sous le scénario " +
+      `${simulation.scenario} : une météo plausible pour la saison et le climat de son ` +
+      "époque, pas le temps qu'il fera ce jour-là.",
     play: "Lecture",
     pause: "Pause",
     previous: "Jour précédent",
@@ -354,7 +367,6 @@ export const texts = {
     zoomOut: "Dézoomer",
     zoomWhole: "Voir toute l'Europe",
     dayOf: (index, total) => `Jour ${index} sur ${total}`,
-    cells: (n) => `${n} mailles terrestres`,
     distribution: "Répartition des mailles",
     loading: "Chargement de la carte…",
     mapLabel: "Carte d'Europe de la grandeur choisie, pour la journée affichée",

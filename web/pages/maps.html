@@ -22,6 +22,19 @@
     under the map. Stacked on a narrow screen.
   -->
   <body class="maps">
+    <!-- The bar shared by the results and the map (nav.js): home, the season
+         both pages show, a tab for each page carrying it. -->
+    <nav class="site-nav" data-attr-aria-label="nav.label">
+      <a class="site-nav-home" href="/">
+        <span class="site-nav-icon" aria-hidden="true"></span>
+        <span class="site-nav-name" data-text="nav.home"></span>
+      </a>
+      <p id="nav-context" class="site-nav-context"></p>
+      <ul class="site-nav-tabs">
+        <li><a id="nav-place" class="site-nav-tab" hidden></a></li>
+        <li><a id="nav-map" class="site-nav-tab" data-text="nav.map" hidden></a></li>
+      </ul>
+    </nav>
     <main class="maps-page">
       <aside class="maps-left">
         <h1 id="maps-title" class="maps-title"></h1>
@@ -52,9 +65,16 @@
 
         <div id="maps-player" class="maps-player" hidden>
           <div class="maps-buttons">
-            <button type="button" id="maps-play" class="toggle" aria-pressed="false" data-text="maps.play"></button>
-            <button type="button" id="maps-prev" class="maps-step" data-attr-aria-label="maps.previous"><span aria-hidden="true">‹</span></button>
-            <button type="button" id="maps-next" class="maps-step" data-attr-aria-label="maps.next"><span aria-hidden="true">›</span></button>
+            <!-- The sign of what a press does: a triangle to play, two bars to pause.
+                 Its name (aria-label, title) says it in words. -->
+            <button type="button" id="maps-play" class="maps-play" data-attr-aria-label="maps.play" data-attr-title="maps.play">
+              <svg class="maps-play-icon" viewBox="0 0 16 16" aria-hidden="true">
+                <path class="play" d="M4.5 2.5v11l9-5.5z" />
+                <path class="pause" d="M4 2.5h3v11H4zM9 2.5h3v11H9z" />
+              </svg>
+            </button>
+            <button type="button" id="maps-prev" class="maps-step" data-attr-aria-label="maps.previous" data-attr-title="maps.previous"><svg class="maps-step-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
+            <button type="button" id="maps-next" class="maps-step" data-attr-aria-label="maps.next" data-attr-title="maps.next"><svg class="maps-step-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" /></svg></button>
           </div>
           <p class="maps-field">
             <label for="maps-speed" data-text="maps.speed"></label>
@@ -88,11 +108,6 @@
       </section>
 
       <aside class="maps-panel">
-        <!-- Back to the site: top right, a sun behind a cloud and the name. -->
-        <a class="maps-home" href="/">
-          <span class="maps-home-icon" aria-hidden="true"></span>
-          <span class="maps-home-text" data-text="maps.back"></span>
-        </a>
         <!-- The place the visitor came from (?lieu&lat&lon): its value of the day
              and the way back to its results, on the season shown here. -->
         <div id="maps-here" class="maps-here" hidden>
@@ -100,19 +115,23 @@
           <p class="maps-here-line"><span id="maps-here-value" class="maps-value"></span></p>
           <a id="maps-here-link" class="maps-here-link"></a>
         </div>
-        <p id="maps-warning" class="maps-warning" hidden></p>
+        <!-- The words of the results page, the scenario under the "?". -->
+        <div id="maps-warning" class="maps-warning" hidden>
+          <p class="warning-line">
+            <span data-text="warning.notAForecast"></span>
+            <button
+              type="button"
+              class="hint"
+              data-hint
+              aria-expanded="false"
+              aria-controls="maps-warning-note"
+              data-attr-aria-label="warning.hint"
+            >?</button>
+          </p>
+          <p id="maps-warning-note" class="hint-text" role="tooltip" hidden></p>
+        </div>
         <p id="maps-date" class="maps-date"></p>
         <p id="maps-day" class="maps-note"></p>
-        <dl class="maps-figures">
-          <div>
-            <dt id="maps-first-label"></dt>
-            <dd><span id="maps-first" class="maps-value"></span> <span id="maps-first-where" class="maps-note"></span></dd>
-          </div>
-          <div>
-            <dt id="maps-second-label"></dt>
-            <dd><span id="maps-second" class="maps-value"></span> <span id="maps-cells" class="maps-note"></span></dd>
-          </div>
-        </dl>
         <p class="maps-label" data-text="maps.distribution"></p>
         <ul id="maps-bands" class="maps-bands"></ul>
         <p class="maps-note" data-text="maps.pick.hint"></p>

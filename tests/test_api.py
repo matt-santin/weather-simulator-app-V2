@@ -646,3 +646,17 @@ def test_the_config_gives_the_frame_of_the_maps_when_there_are_maps(client: Test
     found = MapStore(map_store_path)
     app.dependency_overrides[get_map_store] = lambda: found
     assert client.get("/api/config").json()["map_box"] == {"west": -25.0, "east": 45.0, "south": 34.0, "north": 72.0}
+
+
+def test_each_epoch_names_its_hottest_day_and_its_coldest_night(client: TestClient) -> None:
+    answer = client.get("/api/kinds", params={**GRENOBLE, "start": "2030-06-21", "end": "2030-09-20"}).json()
+    old = {e["id"]: e for e in answer["epochs"]}["old"]
+
+    # By brute force on the small store, the 0.1 deg cell, every summer of 1970-2010.
+    days = [(year, date(year, 6, 21) + timedelta(days=k)) for year in range(1970, 2011) for k in range(92)]
+    hot = max(days, key=lambda yd: (expected("era5", yd[1], "tasmax", fine=True), yd[1]))
+    cold = max(days, key=lambda yd: (-expected("era5", yd[1], "tasmin", fine=True), yd[1]))
+    assert old["hottest"]["date"] == hot[1].isoformat() and old["hottest"]["year"] == hot[0]
+    assert old["hottest"]["value"] == pytest.approx(expected("era5", hot[1], "tasmax", fine=True), abs=0.051)
+    assert old["coldest"]["date"] == cold[1].isoformat() and old["coldest"]["year"] == cold[0]
+    assert old["coldest"]["value"] == pytest.approx(expected("era5", cold[1], "tasmin", fine=True), abs=0.051)

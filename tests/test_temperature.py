@@ -1,4 +1,4 @@
-"""The temperature band: nine steps, and what falls either side of a line.
+"""The temperature band: ten steps, and what falls either side of a line.
 
 The boundaries themselves are a convention over a continuum, so nothing here
 argues for five degrees — scripts/temperature_scale/ does that. What is pinned is
@@ -16,27 +16,29 @@ from src.app.domain.records import DailyRecord, Origin
 from src.app.domain.temperature import BAND_COUNT, band, bands_of
 
 
-def test_the_scale_has_nine_steps() -> None:
-    """One per colour the palette can name."""
-    assert BAND_COUNT == 9
-    assert len(thresholds.TEMPERATURE_BAND_EDGES) == 8
+def test_the_scale_has_ten_steps() -> None:
+    """One per colour the palette can name, from under 0 °C to 40 °C and over."""
+    assert BAND_COUNT == 10
+    assert thresholds.TEMPERATURE_BAND_EDGES == (0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0)
 
 
 @pytest.mark.parametrize(
     ("temperature", "expected"),
     [
         (-40.0, 0),  # nothing falls off the cold end
-        (4.9, 0),
-        (5.0, 1),  # a value on an edge takes the warmer band
-        (10.0, 2),
-        (15.0, 3),
-        (20.0, 4),
-        (25.0, 5),
-        (30.0, 6),
-        (35.0, 7),
-        (39.9, 7),
-        (40.0, 8),
-        (55.0, 8),  # nor off the hot end
+        (-0.1, 0),  # an ice day: Tx < 0 °C (DRIAS, TXFD)
+        (0.0, 1),  # a value on an edge takes the warmer band
+        (4.9, 1),
+        (5.0, 2),
+        (10.0, 3),
+        (15.0, 4),
+        (20.0, 5),
+        (25.0, 6),
+        (30.0, 7),
+        (35.0, 8),
+        (39.9, 8),
+        (40.0, 9),
+        (55.0, 9),  # nor off the hot end
     ],
 )
 def test_where_each_temperature_falls(temperature: float, expected: int) -> None:
@@ -71,7 +73,7 @@ def test_a_day_is_read_minimum_first() -> None:
         temperature_max=32.0,
     )
     assert bands_of(record) == (band(19.0), band(32.0))
-    assert bands_of(record) == (3, 6)
+    assert bands_of(record) == (4, 7)
 
 
 def test_the_two_temperatures_share_one_scale() -> None:
