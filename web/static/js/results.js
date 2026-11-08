@@ -51,6 +51,7 @@ import { figures as summaryFigures, heading as summaryHeading } from "./summary.
 
 const place = document.getElementById("place");
 const summaryMap = document.getElementById("summary-map");
+const ways = document.getElementById("ways");
 const range = document.getElementById("range");
 const count = document.getElementById("count");
 const warning = document.getElementById("warning");
@@ -248,6 +249,7 @@ async function show(series) {
   count.textContent = texts.results.count(series.days.length);
   band.append(...strip(series.days, series.humid_heat_peak));
   calendar.hidden = false;
+  ways.hidden = false;
   attachZoom(band, bandScroll, dayToMap);
   fitCalendar();
   document.fonts?.ready.then(fitCalendar);
@@ -272,6 +274,7 @@ async function show(series) {
     offer(series, config);
     // The summary card sits above the calendar: the day is sought once it is
     // laid, so that it does not push the day away.
+    offerMap(document.body.dataset.season);
     showSummary().finally(() => goToDay(query.get("jour")));
     showClimate();
     showYears();
@@ -473,7 +476,6 @@ async function showSummary() {
         ]),
       ),
     );
-    await offerMap(shownSeason);
     summarySection.hidden = false;
   } catch {
     // The summary failing is not the page failing: the days are on screen.

@@ -218,3 +218,5 @@ Depuis le 05/11/2026, une carte en tête de la page de résultats (« Été 2063
 - `GET /api/summary?latitude&longitude&start&end&reference` (`src/app/api/summary.py`) calcule tous les chiffres (`tasmax_mean`, `tas_mean`, `hot_35`, `hot_40`, `tropical_nights`, `summer_days`, `frost_days`, `precipitation`), la page choisit selon la saison (`web/static/js/summary.js`).
 - Exemples : Lyon, été 2063 : Tx moyenne 31,2 °C (normale 26,7), 19 jours à 35 °C ou plus (3,2), 38 nuits tropicales (3,5), pluie 73 % de la normale. Grenoble, hiver 2080-2081 : +1,2 °C, 57 jours de gel (57,6).
 
+
+- Liens de la synthèse (08/11/2026) : trois pastilles côte à côte dans un cadre blanc compact à elles, sous la carte de synthèse et indépendant d'elle (affiché avec les journées) (« Voir cette saison parmi toutes les années », « Voir cette saison sur la carte d'Europe », « Tout comprendre sur les données affichées »), contour bleu sur fond blanc comme le bouton des normales, pleines au survol, pictogrammes grille, carte dépliée, livre ; l'une sous l'autre sous 560 px. Le lien vers la documentation sous la mention « simulation » est retiré : il est dans les pastilles.

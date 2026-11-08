@@ -243,6 +243,7 @@ export const texts = {
     loading: "Calcul de la synthèse…",
     more: "Voir cette saison parmi toutes les années",
     mapLink: "Voir cette saison sur la carte d'Europe",
+    ways: "Aller plus loin",
   },
 
   compare: {

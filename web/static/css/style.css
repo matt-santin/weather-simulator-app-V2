@@ -3958,24 +3958,73 @@ body.results .provenance {
 }
 
 /* The way down to the matrix of years, under the figures of the summary. */
-.summary-more {
-  margin: calc(var(--space) * 4) 0 0;
+.ways {
   font-family: var(--font);
   font-size: 0.875rem;
 }
 
-.summary-more {
+/* The three ways on, as pills in a compact block of their own under the
+   summary: the outlined blue of the button of the normals, filled on hover.
+   Stacked on a phone. */
+body.results .ways {
   display: flex;
   flex-wrap: wrap;
-  gap: calc(var(--space) * 2) calc(var(--space) * 6);
+  gap: calc(var(--space) * 3);
+  margin-top: calc(var(--space) * 4);
+  padding: calc(var(--space) * 4) calc(var(--space) * 6.5);
 }
 
-.summary-more a {
-  color: var(--link);
-}
-
-.summary-more a[hidden] {
+body.results .ways[hidden] {
   display: none;
+}
+
+.ways .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--cool);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--cool);
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.ways .pill:hover,
+.ways .pill:focus-visible {
+  background: var(--cool);
+  color: #fff;
+}
+
+.ways .pill:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+
+.ways .pill[hidden] {
+  display: none;
+}
+
+.pill-icon {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 560px) {
+  body.results .ways {
+    flex-direction: column;
+  }
+
+  .ways .pill {
+    justify-content: flex-start;
+  }
 }
 
 /* The link of the summary glides down to the matrix, unless motion is reduced. */

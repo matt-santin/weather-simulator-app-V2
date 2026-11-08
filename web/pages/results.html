@@ -70,14 +70,18 @@
           <p id="summary-method" class="hint-text" role="tooltip" hidden></p>
         </div>
         <ul id="summary-figures" class="summary-figures"></ul>
-        <p class="summary-more">
-          <a href="#years" data-text="summary.more"></a>
-          <!-- To the map of the same season, the place marked: shown by results.js
-               when the server has maps and the place is in their frame. -->
-          <a id="summary-map" class="summary-map" hidden data-text="summary.mapLink"></a>
-        </p>
         <p id="summary-status" class="compare-note" aria-live="polite"></p>
       </section>
+
+      <!-- Where to go from here, three pills in a block of their own under the
+           summary (8/11/2026): the matrix of the years, the map of the same
+           season (shown by results.js when the server has maps and the place is
+           in their frame), the documentation. Shown with the days. -->
+      <nav id="ways" class="climate-section ways" data-attr-aria-label="summary.ways" hidden>
+        <a class="pill" href="#years"><svg class="pill-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z" /></svg><span data-text="summary.more"></span></a>
+        <a id="summary-map" class="pill" hidden><svg class="pill-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5 5.5 2l5 1.5 4-1.5v10.5l-4 1.5-5-1.5-4 1.5zM5.5 2v10.5M10.5 3.5V14" /></svg><span data-text="summary.mapLink"></span></a>
+        <a class="pill" href="/documentation"><svg class="pill-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5C6.5 2.5 4 2.2 1.5 2.5v10c2.5-.3 5 0 6.5 1 1.5-1 4-1.3 6.5-1v-10C12 2.2 9.5 2.5 8 3.5zM8 3.5v10" /></svg><span data-text="site.documentation"></span></a>
+      </nav>
 
       <aside id="warning" class="warning" hidden>
         <p class="warning-line">
@@ -105,9 +109,6 @@
         is one line under the warning when there is one, and the first line of
         the page when there is not.
       -->
-      <p class="doc-link">
-        <a href="/documentation" data-text="site.documentation"></a>
-      </p>
 
       <p id="wait" class="status" aria-live="polite" data-text="results.loading"></p>
       <p id="failure" class="failure" role="alert" hidden></p>
