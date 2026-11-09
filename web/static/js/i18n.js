@@ -35,7 +35,7 @@ export const texts = {
   nav: {
     label: "Navigation entre le lieu et la carte",
     home: "Weather Simulator",
-    map: "Europe",
+    map: "Carte",
     placeTitle: (place) => `La saison à ${place}, jour par jour`,
     mapTitle: "La même saison sur la carte d'Europe",
   },
