@@ -90,7 +90,7 @@ export const texts = {
     // flowing line — which is the right thing to fall back to.
     // The name of the asterisk of the promise, read aloud: it opens the note.
     noteHint: "Dates disponibles et simulation",
-    example: "Voir un exemple : l'été 2063 à Lyon",
+    example: "Visualisez l'été 2075 à Paris",
     promise:
       "Simulez la météo du futur.\n" +
       "Consultez celle du passé.\n" +

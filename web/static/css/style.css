@@ -636,6 +636,14 @@ body.home footer .doc-link {
     0 0 14px rgb(6 20 42 / 55%);
 }
 
+/* The example: the one line under the form that leads somewhere without a
+   place being typed. A step above the note and the link to the documentation
+   that follow it, below the promise (1.375rem) so that it does not answer for
+   the form. */
+body.home footer .example-link {
+  font-size: 1.25rem;
+}
+
 .banner,
 main {
   width: 100%;
