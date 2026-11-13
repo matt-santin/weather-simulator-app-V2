@@ -507,7 +507,7 @@ Simulation retenue le 6/10/2026 (`docs/choix_modele_cmip6.md`). Même chaîne qu
 | Fichiers corrigés | `eur11_025_qdm/`, `eur11_010_qdm/` | `eur12_mpi_025_qdm/`, `eur12_mpi_010_qdm/` |
 | Tables et journaux | `data/correction/` | `data/correction/mpi/` |
 
-Les deux grilles sont identiques (412 × 424 mailles, pôle 39,25 N 162 W, coordonnées égales à 4e-15° près). Les fichiers ESGF, par blocs de 5 ans, sont lus année par année. Les fichiers remappés de MPI / ICON sont gardés : ils permettront de recalculer les quantiles de chaque fenêtre de 30 ans pour un éventuel ajustement sur la TRACC.
+Les deux grilles sont identiques (412 × 424 mailles, pôle 39,25 N 162 W, coordonnées égales à 4e-15° près). Les fichiers ESGF, par blocs de 5 ans, sont lus année par année. Les fichiers remappés de MPI / ICON sont gardés : ils permettent de recalculer les quantiles de chaque fenêtre de 30 ans (prévu pour un ajustement sur la TRACC, écarté le 13/11/2026 (`docs/choix_modele_cmip6.md`, section 5)).
 
 ### Diagnostic du brut
 
@@ -666,7 +666,7 @@ Bilan : sur les années non vues, le corrigé reste dans l'écart ERA5 / station
 | `ps` et `zg500` en hiver | `zg500`, février, W1 Europe terre : brut 24,6 m, corrigé 43,7 m, plancher 23,4 m | moyenne seule de décembre à mars, 9/10/2026 (ci-dessous) |
 | `clt` à 100 % | novembre à février : 4,7 à 6,3 % des jours, ERA5 2,2 à 3,0 % | laissé en l'état, 9/10/2026 |
 | Intensité de `pr` | W1 corrigé au-dessus du brut (0,68 contre 0,61) | accepté |
-| Retard sur le réchauffement | Tx corrigé 0,3 à 0,6 K sous ERA5-Land sur 2015-2025 ; contre E-OBS, surtout en hiver (février −2,4 K, dont −0,7 dû à ERA5) | ajustement sur la TRACC, à décider (`docs/choix_modele_cmip6.md`) |
+| Retard sur le réchauffement | Tx corrigé 0,3 à 0,6 K sous ERA5-Land sur 2015-2025 ; contre E-OBS, surtout en hiver (février −2,4 K, dont −0,7 dû à ERA5) | accepté : ajustement sur la TRACC écarté le 13/11/2026 (`docs/choix_modele_cmip6.md`, section 5) |
 | Marche de `rsds` en 2015 | −3,3 W/m², Europe terre | acceptée le 7/10/2026 |
 
 **Moyenne seule de `ps` et `zg500`.** W1 Europe terre, validation croisée, corrigé complet → moyenne seule (brut ; plancher) : `zg500` décembre 20,7 → 16,4 m (30,8 ; 21,0), janvier 33,1 → 29,2 (55,2 ; 16,4), février 43,7 → 41,7 (24,6 ; 23,4), mars 38,3 → 37,4 (15,9 ; 29,0) ; `ps` février 3,50 → 3,46 hPa (2,04 ; 2,37). Février et mars restent moins bons que le brut : la circulation d'hiver d'ERA5 change entre les deux moitiés (section 5), ce que la correction de la moyenne prend aussi pour un biais, en moins fort. Le signal du modèle est conservé sur ces mois, à 0,03 m près pour `zg500` sur la maille la plus touchée (2,5 m avec le QDM complet).
@@ -675,7 +675,7 @@ Bilan : sur les années non vues, le corrigé reste dans l'écart ERA5 / station
 
 Décision du 9/10/2026 : moyenne seule, par maille et par mois, toute l'année ; un décalage garde les isobares lisses. Validation croisée, Europe terre, moyenne des 12 mois : |biais| moyen 0,63 → 0,53 hPa, RMS entre mailles 1,72 → 1,85 hPa, W1 1,49 → 1,60 hPa (plancher 1,18). Gain de juin à novembre (W1 de juillet 1,11 → 0,63, plancher 0,58), perte de décembre à avril (février 1,04 → 3,54, plancher 2,46) : comme pour `ps`, la circulation d'hiver d'ERA5 change entre les deux moitiés, et un biais mesuré sur 22 ans en est pollué. La calibration définitive porte sur 45 ans. Signal du modèle conservé exactement. Journaux `qdm_psl.log`, `check_psl.log`, `scores_psl.log`.
 
-Reste : l'ajustement sur la TRACC. Référence des températures : ERA5-Land, gardée le 10/10/2026 malgré son écart froid aux stations (section 9), puis remplacée par E-OBS le 11/10/2026 (section 11).
+L'ajustement sur la TRACC, resté ouvert, est écarté le 13/11/2026 (`docs/choix_modele_cmip6.md`, section 5). Référence des températures : ERA5-Land, gardée le 10/10/2026 malgré son écart froid aux stations (section 9), puis remplacée par E-OBS le 11/10/2026 (section 11).
 
 ## 11. Températures contre E-OBS
 
@@ -738,7 +738,7 @@ Journaux `data/correction/mpi/eobs/controle_*` (`land_check.py` avec `WSA_REF=eo
 
 Stockage de service reconstruit le 13/10/2026 (`docs/application.md`, section 3) : températures passées lues dans la référence, températures futures dans les sorties `_eobs`. Contrôles du site le 13/10/2026 (`docs/application.md`, section 9).
 
-Reste : l'ajustement sur la TRACC. Sur 2015-2025, le corrigé est sous les données passées servies (Paris : Tx −1,0 K, Tn −0,6 K ; Chamonix : Tx d'hiver −1,5 K ; Ajaccio : Tx d'été −2,1 K) ; la matrice des années montre une marche entre 2025 et 2027.
+L'ajustement sur la TRACC est écarté le 13/11/2026 (`docs/choix_modele_cmip6.md`, section 5) : le retard du modèle est gardé. Sur 2015-2025, le corrigé est sous les données passées servies (Paris : Tx −1,0 K, Tn −0,6 K ; Chamonix : Tx d'hiver −1,5 K ; Ajaccio : Tx d'été −2,1 K) ; la matrice des années montre une marche entre 2025 et 2027.
 
 ## Fichiers
 

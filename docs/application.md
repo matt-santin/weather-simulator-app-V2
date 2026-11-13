@@ -128,7 +128,7 @@ Sous le diagramme, une tuile par année de 1970 à 2100, dix par ligne (une déc
 
 `GET /api/years?latitude&longitude&start&end&reference` (`src/app/api/years.py`, tuiles `web/static/js/matrix.js`), environ 0,1 s.
 
-Limite visible : une marche entre 2025 et 2027, le modèle corrigé étant plus frais que les données passées sur 2015-2025 (section 9), effet du retard de réchauffement du modèle (ajustement sur la TRACC à décider).
+Limite visible : une marche entre 2025 et 2027, le modèle corrigé étant plus frais que les données passées sur 2015-2025 (section 9), effet du retard de réchauffement du modèle. Elle reste : l'ajustement sur la TRACC est écarté le 13/11/2026 (`docs/choix_modele_cmip6.md`, section 5).
 
 ## 8. Cartes
 
@@ -191,7 +191,7 @@ Depuis le 04/11/2026, l'accueil propose, sous l'étiquette « Période », deux 
 | Climat futur | 2051-2100 | CORDEX corrigé |
 
 - Critère : moyenne de `tasmax` sur les dates de la saison, au lieu (mêmes mailles que la série), valeurs brutes. Chaque époque est classée seule ; sur 40 ou 50 ans, la tendance pèse dans le classement (une saison chaude du climat futur tombe plutôt en fin de siècle) : simplification acceptée le 05/11/2026, le classement sur l'écart à la tendance de l'époque reste possible.
-- Le nouveau climat mélange deux sources, et le modèle corrigé est plus frais que les données passées sur 2015-2025 (section 9) : son classement mêle variabilité et cette marche, jusqu'à l'ajustement sur la TRACC. `/api/kinds` lui donne une origine nulle.
+- Le nouveau climat mélange deux sources, et le modèle corrigé est plus frais que les données passées sur 2015-2025 (section 9) : son classement mêle variabilité et cette marche (l'ajustement sur la TRACC est écarté le 13/11/2026 (`docs/choix_modele_cmip6.md`, section 5)). `/api/kinds` lui donne une origine nulle.
 - Découpage : les 20 % les plus fraîches, les 60 % du milieu, les 20 % les plus chaudes (`round(0,2 × n)` à chaque bout : 8 sur 41, 10 sur 50).
 - Une saison dont les dates sortent d'une période servie est écartée : 2026, l'hiver 2025 (jusqu'en mars 2026), l'hiver 2100.
 - Accueil allégé (05/11/2026) : la note « Dates disponibles… Pour les dates futures, la météo affichée n'est pas une prévision, mais une simulation. » ne s'affiche plus en bas de page, mais au survol, au focus ou au toucher du « ? » rond placé après « N'importe quand. » (le même que celui de « Type » ; un astérisque le 05/11 au matin) ; le second paragraphe, devenu « La météo dans le futur est simulée et n'est pas le temps qu'il fera… », et le lien vers la documentation remontent sous le formulaire, en encre claire avec un halo bleu nuit diffus sous les lettres, sans encadré (contraste sous les lettres de 9,3:1 au moins, mesuré sur ordinateur, petit et grand écran, mobile, panneaux ouverts ou fermés).
