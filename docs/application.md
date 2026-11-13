@@ -181,7 +181,7 @@ Après la reconstruction sur E-OBS, contre le serveur local :
 
 ## 10. Tests
 
-`python -m pytest` (162 tests au 13/10/2026) : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages) et suite JavaScript (`node --test`, si `node` est installé).
+`python -m pytest` (198 tests au 13/11/2026, hors `tests/test_grass.py`) : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages), suite JavaScript (`node --test`, si `node` est installé) et, depuis le 13/11/2026, calculs de la correction (`tests/test_correction.py`, `docs/correction.md` section 12).
 
 ## 11. Formulaire : une année ou un type de saison
 

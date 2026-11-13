@@ -740,6 +740,36 @@ Stockage de service reconstruit le 13/10/2026 (`docs/application.md`, section 3)
 
 L'ajustement sur la TRACC est écarté le 13/11/2026 (`docs/choix_modele_cmip6.md`, section 5) : le retard du modèle est gardé. Sur 2015-2025, le corrigé est sous les données passées servies (Paris : Tx −1,0 K, Tn −0,6 K ; Chamonix : Tx d'hiver −1,5 K ; Ajaccio : Tx d'été −2,1 K) ; la matrice des années montre une marche entre 2025 et 2027.
 
+## 12. Tests des calculs (13/11/2026)
+
+`tests/test_correction.py`, lancé par `python -m pytest`, moins d'une seconde, sans le LaCie : les fonctions de calcul de `qdm.py` (`quantiles`, `rank`, `window`, `calibrate`, `correct`) et deux champs dérivés (`derive.tn_tx`, `derive.huss`), sur des séries fabriquées dont la réponse est connue. Ces tests disent si le code fait ce que la méthode dit, pas si la méthode est juste : c'est le rôle de `src/validation`.
+
+| Cas fabriqué | Résultat attendu |
+|---|---|
+| modèle sans biais | sort inchangé, à l'identique |
+| biais constant de +2 K | retiré partout, y compris hors de la plage connue |
+| modèle trop chaud de 2 K, deux fois trop variable, qui se réchauffe de 3 K | référence + 3 K, jour par jour, entre les quantiles extrêmes |
+| jours au-delà des quantiles extrêmes | correction du quantile extrême |
+| jour manquant, maille sans valeur | restent manquants, sans effet sur les autres mailles |
+| humidité relative poussée hors de 0-100 % | arrêtée à la borne |
+| pression en hiver (moyenne seule) | même décalage tous les jours |
+| vent deux fois trop fort qui se renforce de 20 % | référence × 1,2 |
+| pluie trop fréquente et trop faible | part de jours secs de la référence, bruine de la référence les jours secs, total de la référence à 2 % près |
+| pluie : tous les jours + 30 % | changement du nombre de jours de pluie et de chaque quantile des jours de pluie gardés |
+| modèle plus sec que la référence | tous ses jours de pluie gardés |
+| moins de 30 jours de pluie pour calibrer | montants bruts gardés |
+| Tn > Tx | échangés, une seule fois |
+| air saturé à 20 °C et 1013,25 hPa | 14,5 g/kg |
+
+Contrôle des tests eux-mêmes : dix erreurs introduites une à une dans `qdm.py` (signe du biais, fenêtre de 20 ans, rang des ex aequo, bornes, seuil de pluie, bruine, minimum de jours de pluie, moyenne seule, plafond du rapport, interpolation des quantiles) font toutes échouer au moins un test.
+
+Deux propriétés de la méthode, chiffrées sur ces séries fabriquées (pas des défauts du code) :
+
+- Au-delà des quantiles extrêmes (0,5 % et 99,5 % de la fenêtre, soit environ un jour sur cent), ce dont un jour dépasse le quantile extrême reste celui du modèle, sans remise à l'échelle. Avec un modèle deux fois trop variable, l'écart-type corrigé dépasse celui de la référence de 1 à 2 % et les jours les plus extrêmes s'écartent de plusieurs degrés de la valeur attendue (jusqu'à 5,5 K sur la série fabriquée). Les records d'une saison simulée sont de tels jours.
+- Pluie : le changement du total n'est pas gardé quand le nombre de jours de pluie change. Un jour du modèle qui passe le seuil devient un jour de pluie de la référence. Sur la série fabriquée (modèle qui pleut trop souvent et trop peu), +30 % dans le modèle donne +48 % une fois corrigé. Le même mécanisme amplifie un assèchement (section 10, assèchement d'été accepté).
+
+Non couverts : les lectures et écritures de fichiers, la boucle par mois et par année de `main`, `qdm010.py` (mêmes fonctions de calcul), `remap.py`, `reference.py`.
+
 ## Fichiers
 
 | Fichier | Contenu |
