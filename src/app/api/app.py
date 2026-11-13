@@ -20,6 +20,7 @@ stays in the browser (Open-Meteo, limited per visitor's address).
 
 from __future__ import annotations
 
+import hashlib
 import html
 import re
 from contextlib import asynccontextmanager
@@ -75,6 +76,49 @@ app = FastAPI(
 # The maps travel as megabytes of integers that compress threefold; the JSON
 # answers gain too. Under a kilobyte, compressing costs more than it saves.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# An answer of the API only changes when a store is rebuilt or the server's code
+# is: it may be kept an hour without asking (a browser, a cache in front of the
+# server), then asked again with its mark, and a mark that still holds is
+# answered 304 before anything is read. The maps, the heaviest, keep their day.
+API_CACHE = "public, max-age=3600"
+
+
+@lru_cache(maxsize=1)
+def _code_mark() -> str:
+    """The server's own files, hashed: new code is a new answer, same store or not."""
+    digest = hashlib.sha1()
+    for path in sorted(Path(__file__).resolve().parents[1].rglob("*.py")):
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def _dependency(dependency):
+    """What the endpoints are given for ``dependency``: a test's substitute, or it."""
+    return app.dependency_overrides.get(dependency, dependency)()
+
+
+def api_mark() -> str:
+    """The ETag of every answer of the API: the stores as built, the list of
+    places, the code. Weak: the same answer travels compressed or not."""
+    store, map_store, found = (_dependency(d) for d in (get_store, get_map_store, get_places))
+    parts = (store.built, map_store.built if map_store else "", found.stamp if found else "",
+             _code_mark())
+    return 'W/"' + hashlib.sha1("|".join(parts).encode()).hexdigest()[:20] + '"'
+
+
+@app.middleware("http")
+async def cache_api(request: Request, call_next):
+    if request.method != "GET" or not request.url.path.startswith("/api/"):
+        return await call_next(request)
+    mark = api_mark()
+    if mark in request.headers.get("if-none-match", ""):
+        return Response(status_code=304, headers={"ETag": mark, "Cache-Control": API_CACHE})
+    response = await call_next(request)
+    if response.status_code == 200:
+        response.headers["ETag"] = mark
+        response.headers.setdefault("Cache-Control", API_CACHE)
+    return response
 
 
 class Coverage(BaseModel):

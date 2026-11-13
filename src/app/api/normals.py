@@ -48,12 +48,11 @@ def label(first: int) -> str:
 def climatology(store: Store, cell: Cell, first: int) -> dict[str, np.ndarray]:
     """Each variable's smoothed normal, indexed by calendar_day, NaN where no value."""
     start, end = reference(first)
-    values = store.series(SOURCE, cell, start, end, tuple(NAMES))
+    values = store.values(SOURCE, cell, start, end, tuple(NAMES))
     n = (end - start).days + 1
     keys = np.array([calendar_day(start + timedelta(days=k)) for k in range(n)])
     out = {}
-    for name, series in values.items():
-        data = np.array(series, dtype=float)
+    for name, data in values.items():
         ok = ~np.isnan(data)
         sums = np.bincount(keys[ok], weights=data[ok], minlength=366)
         counts = np.bincount(keys[ok], minlength=366).astype(float)

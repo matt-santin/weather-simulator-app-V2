@@ -27,11 +27,18 @@ cell by cell, E-OBS (1) from its fallback (0).
 zarr is read directly rather than through xarray: the server needs integer
 chunks and three attributes, and importing xarray and pandas would double its
 start-up time. A series costs one chunk per variable, whatever its length.
+
+A page asks six things of the same place (the days, their normals, the summary,
+every year, the kinds, the climate), and each reads the same chunks: the whole
+series of a variable at a cell is kept as it is stored, in integers, for the
+next call (KEPT series, the least recently used dropped first).
 """
 
 from __future__ import annotations
 
 import os
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -58,6 +65,10 @@ EPOCH = date(1970, 1, 1)
 TEMPERATURES = ("tasmax", "tasmin", "tas")
 FINE = {"era5": "era5land", "cordex": "cordex010"}
 FINE_RADIUS = 0.1  # degrees, in latitude and in longitude
+# Whole series kept in memory, in the store's 16-bit integers: 131 years weigh
+# 96 kB, a place read on both grids and both periods 20 series, so about 25 MB
+# at most, a dozen places.
+KEPT = 256
 
 
 @dataclass(frozen=True)
@@ -138,6 +149,9 @@ class Store:
         self.longitude = root["longitude"][:]
         self.domain = root["domain"][:].astype(bool)
         self.arrays: dict[str, dict[str, zarr.Array]] = {}
+        self.packing: dict[tuple[str, str], tuple[float, int]] = {}  # scale, fill value
+        self._kept: OrderedDict[tuple, np.ndarray] = OrderedDict()
+        self._lock = threading.Lock()
         self.first: dict[str, date] = {}
         for period in PERIODS:
             self._open(root, path, period.source, FIELDS, period)
@@ -167,6 +181,7 @@ class Store:
             if "built" not in arr.attrs:
                 raise RuntimeError(f"{path}: {source}/{name} incomplet")
             arrays[name] = arr
+            self.packing[source, name] = (arr.attrs["scale_factor"], arr.attrs["_FillValue"])
         self.arrays[source] = arrays
         time = group["time"]
         if time.attrs["units"] != "days since 1970-01-01 00:00:00":
@@ -248,25 +263,47 @@ class Store:
             return float(self.latitude010[cell.fine[0]]), float(self.longitude010[cell.fine[1]])
         return float(self.latitude[cell.coarse[0]]), float(self.longitude[cell.coarse[1]])
 
-    def series(self, source: str, cell: Cell, start: date, end: date,
-               names: tuple[str, ...] = tuple(FIELDS)) -> dict[str, list]:
-        """Each variable over start..end, in its stored unit, None for a gap. The
-        temperatures from the 0.1 deg cell if there is one."""
+    def values(self, source: str, cell: Cell, start: date, end: date,
+               names: tuple[str, ...] = tuple(FIELDS)) -> dict[str, np.ndarray]:
+        """Each variable over start..end, in its stored unit, as floats, NaN for
+        a gap. The temperatures from the 0.1 deg cell if there is one."""
         out = self._read(source, cell.coarse, start, end, names)
         fine = [n for n in TEMPERATURES if n in names]
         if cell.fine and fine:
             out |= self._read(FINE[source], cell.fine, start, end, fine)
         return out
 
-    def _read(self, source, at, start, end, names) -> dict[str, list]:
-        i, j = at
+    def series(self, source: str, cell: Cell, start: date, end: date,
+               names: tuple[str, ...] = tuple(FIELDS)) -> dict[str, list]:
+        """The same as lists, None for a gap: what a daily record is made of."""
+        return {name: [None if np.isnan(v) else float(v) for v in values]
+                for name, values in self.values(source, cell, start, end, names).items()}
+
+    def _read(self, source, at, start, end, names) -> dict[str, np.ndarray]:
         k0 = (start - self.first[source]).days
         k1 = (end - self.first[source]).days + 1
         out = {}
         for name in names:
-            arr = self.arrays[source][name]
-            raw = arr[k0:k1, i, j]
-            values = raw * arr.attrs["scale_factor"]
-            gap = raw == arr.attrs["_FillValue"]
-            out[name] = [None if g else round(float(v), 2) for v, g in zip(values, gap, strict=True)]
+            scale, fill = self.packing[source, name]
+            raw = self._whole(source, name, at)[k0:k1]
+            values = np.round(raw * scale, 2)
+            values[raw == fill] = np.nan
+            out[name] = values
         return out
+
+    def _whole(self, source: str, name: str, at: tuple[int, int]) -> np.ndarray:
+        """Every day of one variable at one cell, in the stored integers: read
+        once (one chunk), then kept for the calls that follow."""
+        key = (source, name, at)
+        with self._lock:
+            found = self._kept.get(key)
+            if found is not None:
+                self._kept.move_to_end(key)
+                return found
+        # Read outside the lock: two visitors must not wait on each other's disk.
+        found = self.arrays[source][name][:, at[0], at[1]]
+        with self._lock:
+            self._kept[key] = found
+            while len(self._kept) > KEPT:
+                self._kept.popitem(last=False)
+        return found

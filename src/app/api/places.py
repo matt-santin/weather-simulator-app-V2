@@ -30,6 +30,9 @@ MAX_KM = 50.0
 
 class Places:
     def __init__(self, path: Path = PATH) -> None:
+        # What tells one list from the next: its size and the time it was written.
+        stat = path.stat()
+        self.stamp = f"{stat.st_size}-{stat.st_mtime_ns}"
         with open(path, encoding="utf-8") as lines:
             rows = list(csv.DictReader(lines, delimiter="\t", quoting=csv.QUOTE_NONE))
         self.names = [row["name"] for row in rows]

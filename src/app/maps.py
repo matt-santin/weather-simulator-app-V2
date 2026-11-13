@@ -31,12 +31,16 @@ from pathlib import Path
 import numpy as np
 import zarr
 
-from src.app.store import Simulation
+from src.app.store import PERIODS, Simulation
 from src.config import DATA
-from src.store.maps import SOURCES
 from src.store.outlines import BOX
 
 log = logging.getLogger(__name__)
+
+# The groups of the map store, those of the point store (src.store.maps writes
+# them under the same names): read from PERIODS rather than imported from the
+# builder, which would load xarray, dask and the correction chain with it.
+SOURCES = tuple(p.source for p in PERIODS)
 
 STORE = Path(os.environ.get("WSA_MAP_STORE", DATA / "serve" / "map.zarr"))
 VARIABLES = ("tasmax", "tasmin", "pr", "clt")
@@ -83,6 +87,7 @@ class MapStore:
         if any(run != first for run in runs.values()):
             raise ValueError(f"{path}: les grandeurs ne viennent pas toutes de la meme simulation")
         self.simulation = Simulation.read(first)
+        self.built = max(a.attrs["built"] for a in self.arrays.values())
 
     def cells(self) -> dict:
         """The cells of every map: their rows and columns on the grid, and the grid."""

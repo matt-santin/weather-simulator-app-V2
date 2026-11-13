@@ -48,8 +48,7 @@ def whole(store: Store, cell: Cell, names: tuple[str, ...]) -> list[tuple]:
     for a gap. One chunk per variable, whatever the number of years."""
     out = []
     for period in PERIODS:
-        values = store.series(period.source, cell, period.start, period.end, names)
-        out.append((period, {n: np.array(values[n], dtype=float) for n in names}))
+        out.append((period, store.values(period.source, cell, period.start, period.end, names)))
     return out
 
 

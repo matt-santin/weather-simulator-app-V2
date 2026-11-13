@@ -48,14 +48,14 @@ def window(year: int) -> tuple[Period, int, int] | None:
 
 def months(store: Store, source: str, cell: Cell, first: int, last: int) -> list[ClimateMonth]:
     start, end = date(first, 1, 1), date(last, 12, 31)
-    values = store.series(source, cell, start, end, tuple(NAMES))
+    values = store.values(source, cell, start, end, tuple(NAMES))
     n = (end - start).days + 1
     month = np.array([(start + timedelta(days=k)).month for k in range(n)])
     years = last - first + 1
     out = []
     for m in range(1, 13):
         at = month == m
-        mean = {name: _mean(np.array(values[name], dtype=float)[at]) for name in NAMES}
+        mean = {name: _mean(values[name][at]) for name in NAMES}
         length = at.sum() / years
         rain = None if mean["pr"] is None else mean["pr"] * length
         t = mean["tas"]

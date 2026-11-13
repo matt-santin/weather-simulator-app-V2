@@ -675,3 +675,46 @@ def test_a_missing_map_store_is_silent_and_a_broken_one_is_logged(tmp_path, capl
     with caplog.at_level("WARNING", logger="src.app.maps"):
         assert maps.open_store(broken) is None
     assert "cartes non servies" in caplog.text
+
+
+def test_an_answer_carries_its_mark_and_a_mark_that_holds_is_answered_304(client: TestClient) -> None:
+    first = client.get("/api/config")
+    assert first.headers["cache-control"] == "public, max-age=3600"
+    mark = first.headers["etag"]
+    again = client.get("/api/config", headers={"If-None-Match": mark})
+    assert again.status_code == 304 and not again.content and again.headers["etag"] == mark
+    assert client.get("/api/config", headers={"If-None-Match": 'W/"autre"'}).status_code == 200
+
+
+def test_a_refusal_is_not_kept(client: TestClient) -> None:
+    refused = client.get("/api/days", params={"latitude": 40.7, "longitude": -74.0,
+                                              "start": "2063-06-21", "end": "2063-09-20"})
+    assert refused.status_code == 400
+    assert "etag" not in refused.headers and "cache-control" not in refused.headers
+
+
+def test_a_series_read_once_is_kept(store_path) -> None:
+    """The six calls of a page read the same chunks: the second reading of a
+    place does not go back to the arrays."""
+    import numpy as np
+    store = Store(store_path)
+    i, j = (int(k[0]) for k in np.nonzero(store.domain))
+    cell = store.cell(float(store.latitude[i]), float(store.longitude[j]))
+    first = store.values("era5", cell, date(1991, 1, 1), date(2020, 12, 31), ("tasmax", "pr"))
+    store.arrays = {}
+    again = store.values("era5", cell, date(2003, 6, 21), date(2003, 9, 20), ("tasmax", "pr"))
+    k = (date(2003, 6, 21) - date(1991, 1, 1)).days
+    assert np.array_equal(again["tasmax"], first["tasmax"][k:k + 92], equal_nan=True)
+
+
+def test_the_server_does_not_load_the_building_chain() -> None:
+    """xarray, dask and the correction modules belong to the builders of the
+    stores: imported by the server, they would triple its start-up."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    code = ("import sys, src.app.api.app; "
+            "print(sorted({'xarray', 'pandas', 'dask', 'scipy', 'netCDF4', 'src.correction'} & set(sys.modules)))")
+    out = subprocess.run([sys.executable, "-W", "ignore", "-c", code], capture_output=True, text=True,
+                         cwd=Path(__file__).resolve().parents[1], check=True)
+    assert out.stdout.strip() == "[]"

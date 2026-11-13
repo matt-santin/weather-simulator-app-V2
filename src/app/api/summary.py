@@ -58,8 +58,7 @@ def figures(values: dict[str, np.ndarray]) -> dict[str, float | None]:
 def read(store: Store, cell: Cell, start: date, end: date) -> dict[str, np.ndarray] | None:
     for period in PERIODS:
         if period.holds(start, end):
-            raw = store.series(period.source, cell, start, end, NAMES)
-            return {n: np.array(raw[n], dtype=float) for n in NAMES}
+            return store.values(period.source, cell, start, end, NAMES)
     return None
 
 
@@ -70,8 +69,7 @@ def run(store: Store, cell: Cell, start: date, end: date, reference: int) -> Sum
     ref_start, ref_end = normals.reference(reference)
     # One year past the reference: a winter of its last year ends in the next.
     last_read = min(date(ref_end.year + 1, 12, 31), PERIODS[0].end)
-    era5 = store.series(normals.SOURCE, cell, ref_start, last_read, NAMES)
-    era5 = {n: np.array(era5[n], dtype=float) for n in NAMES}
+    era5 = store.values(normals.SOURCE, cell, ref_start, last_read, NAMES)
     per_year = []
     for year in range(reference, reference + normals.YEARS):
         first, last = shifted(start, end, year)
