@@ -15,13 +15,15 @@ Alps, Anatolia, Scandinavia) that leaves small loops and wavering lines.
 
 The store is optional: without data/serve/map.zarr the site runs and the map
 page says it has no data. An unfinished array (no `built`), or a CORDEX one
-that does not say which simulation it holds, counts as absent. The CORDEX
+that does not say which simulation it holds, counts as absent; a store that is
+there and serves nothing is said in the log (open_store). The CORDEX
 arrays must all hold the same simulation, the one of the point store
 (checked at start-up, src.app.api.app).
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import date
 from pathlib import Path
@@ -32,9 +34,11 @@ import zarr
 from src.app.store import Simulation
 from src.config import DATA
 from src.store.maps import SOURCES
+from src.store.outlines import BOX
+
+log = logging.getLogger(__name__)
 
 STORE = Path(os.environ.get("WSA_MAP_STORE", DATA / "serve" / "map.zarr"))
-BOX = {"west": -25.0, "east": 45.0, "south": 34.0, "north": 72.0}
 VARIABLES = ("tasmax", "tasmin", "pr", "clt")
 PRESSURE = "psl"
 COARSEN = 2  # cells of the store averaged, in latitude and longitude, for the isobars
@@ -151,7 +155,13 @@ def smooth(field: np.ndarray, passes: int = 1) -> np.ndarray:
 
 
 def open_store(path: Path = STORE) -> MapStore | None:
+    """The map store, or None: the site then runs without maps. No store is the
+    ordinary case and stays silent; one that is there and cannot be served
+    (unfinished, a group missing) is a fault, and the log says which."""
+    if not path.exists():
+        return None
     try:
         return MapStore(path)
-    except (FileNotFoundError, KeyError, RuntimeError):
+    except (FileNotFoundError, KeyError, RuntimeError) as error:
+        log.warning("%s : cartes non servies (%r)", path, error)
         return None

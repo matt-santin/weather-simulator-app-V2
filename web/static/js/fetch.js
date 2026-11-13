@@ -9,7 +9,7 @@
  * **Nothing in this file reads a value.** No date is cut, no model is chosen, no
  * threshold is compared, no average is taken. The server hands over finished
  * URLs; this calls fetch on each and posts the answers back untouched. Not
- * because a browser may derive nothing — CLAUDE.md rule 3 asks something
+ * because a browser may derive nothing — the V1 CLAUDE.md rule 3 asks something
  * narrower, that a rule the server already holds not be kept a second time here
  * — but because a transport module that reads its cargo stops being one. The
  * earlier prototype held the sky-class logic twice, once here and once in

@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="/static/css/style.css" />
     <script type="module" src="/static/js/results.js"></script>
   </head>
-  <!-- The season sets the page's inks and rules (the ground is white since
-       2026-10-17): results.js writes the season the range actually falls in.
+  <!-- The season sets the banner of the page (its gradient and inks, the ground
+       is light grey since 2026-11-04): results.js writes the season the range actually falls in.
        The attribute written here is the fallback, for a URL carrying no usable
        range: the summer the page was drawn on. -->
   <body class="results" data-season="summer">
@@ -38,19 +38,6 @@
     </header>
 
     <main>
-      <!--
-        Shown only when the range reaches the future, and it carries CLAUDE.md
-        rule 1 and nothing else.
-
-        **The emissions scenario used to be a second line here.**
-        `docs/science.md` requires that status stated in the interface, and it is
-        stated — at length, on the documentation page, where the same paragraph
-        can also say that the scenarios have not yet parted by 2050 and that the
-        single model weighs more than the choice of trajectory. Four words under
-        a search could carry the ranking but never that, and a caveat read as
-        more alarming than it is costs the same trust as one that is missing.
-        `test_pages.py` keeps the statement on the page that explains it.
-      -->
       <!--
         The summary: a few figures of the dates shown beside their normal, the
         season choosing which (summary.js). First on the page: it is the frame
@@ -83,6 +70,19 @@
         <a class="pill" href="/documentation"><svg class="pill-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5C6.5 2.5 4 2.2 1.5 2.5v10c2.5-.3 5 0 6.5 1 1.5-1 4-1.3 6.5-1v-10C12 2.2 9.5 2.5 8 3.5zM8 3.5v10" /></svg><span data-text="site.documentation"></span></a>
       </nav>
 
+      <!--
+        Shown only when the range reaches the future, and it carries rule 1 of
+        the V1 CLAUDE.md (a simulation is never shown as a forecast) and nothing else.
+
+        **The emissions scenario used to be a second line here.**
+        The V1's `docs/science.md` requires that status stated in the interface, and it is
+        stated — at length, on the documentation page, where the same paragraph
+        can also say that the scenarios have not yet parted by 2050 and that the
+        single model weighs more than the choice of trajectory. Four words under
+        a search could carry the ranking but never that, and a caveat read as
+        more alarming than it is costs the same trust as one that is missing.
+        `test_pages.py` keeps the statement on the page that explains it.
+      -->
       <aside id="warning" class="warning" hidden>
         <p class="warning-line">
           <span data-text="warning.notAForecast"></span>
@@ -97,18 +97,6 @@
         </p>
         <p id="warning-note" class="hint-text" role="tooltip" data-text="warning.detail" hidden></p>
       </aside>
-
-      <!--
-        The way out to the long explanation, at the top and next to the warning
-        it answers.
-
-        **Outside the aside, deliberately.** That block is hidden whenever the
-        range stops short of the climate model, and a link folded into it would
-        vanish on every past-only search — precisely the searches whose reader
-        has no warning to prompt the question and most needs the offer. Here it
-        is one line under the warning when there is one, and the first line of
-        the page when there is not.
-      -->
 
       <p id="wait" class="status" aria-live="polite" data-text="results.loading"></p>
       <p id="failure" class="failure" role="alert" hidden></p>

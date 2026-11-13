@@ -61,13 +61,13 @@ class Day(BaseModel):
             date=record.date,
             origin=record.origin,
             source=record.source or "",
-            temperature_min=_round(record.temperature_min),
-            temperature_max=_round(record.temperature_max),
-            precipitation=_round(record.precipitation),
-            cloud_cover=_round(record.cloud_cover),
-            relative_humidity_mean=_round(record.relative_humidity_mean),
-            wind_speed_mean=_round(record.wind_speed_mean),
-            wet_bulb_mean=_round(wet_bulb),
+            temperature_min=rounded(record.temperature_min),
+            temperature_max=rounded(record.temperature_max),
+            precipitation=rounded(record.precipitation),
+            cloud_cover=rounded(record.cloud_cover),
+            relative_humidity_mean=rounded(record.relative_humidity_mean),
+            wind_speed_mean=rounded(record.wind_speed_mean),
+            wet_bulb_mean=rounded(wet_bulb),
             humid_heat=humidity.humid_heat(wet_bulb),
             sky=sky,
             temperature_min_band=low_band,
@@ -75,7 +75,8 @@ class Day(BaseModel):
         )
 
 
-def _round(value: float | None) -> float | None:
+def rounded(value: float | None) -> float | None:
+    """One decimal, a gap left a gap: how every figure of the contract travels."""
     return None if value is None else round(value, 1)
 
 

@@ -502,7 +502,7 @@ body.home .sky::after {
 
 /* The warning, on the sunset.
  *
- * It is the one sentence CLAUDE.md rule 1 makes non-negotiable, and the only
+ * It is the one sentence the V1 CLAUDE.md rule 1 makes non-negotiable, and the only
  * one that lands on the bright band whatever the window — so it turns dark
  * instead of pale. Burnt brown rather than black: it belongs to the sky it sits
  * on. Measured 6.6:1 against #e28f5b, where the page's usual muted ink gave 1.5.
@@ -1622,7 +1622,7 @@ button[type="submit"]:hover {
  *
  * **The level is said by ink and weight, never by a second pictogram.** A skull
  * on a dated card would announce a death on 16 August 2043, which is the
- * assertion CLAUDE.md rule 1 exists to refuse — and it would be the element that
+ * assertion the V1 CLAUDE.md rule 1 exists to refuse — and it would be the element that
  * travelled furthest in a screenshot, stripped of the warning around it. The
  * attribute rather than a class is the choice `data-band` already made: the
  * sheet can then say *any level* in one selector.

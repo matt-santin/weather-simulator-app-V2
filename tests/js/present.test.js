@@ -4,7 +4,7 @@
  * `node --test`, no dependency, no install, no build step. Everything testable
  * this way was deliberately put in present.js; what is left only places nodes.
  *
- * The last suite is the one that matters most. CLAUDE.md rule 1 outranks
+ * The last suite is the one that matters most. the V1 CLAUDE.md rule 1 outranks
  * everything else in this project and forbids the vocabulary of forecasting on
  * a future date — until now that was a sentence in a document, which is to say
  * something a hurried edit walks straight past. Here it fails a test.

@@ -43,7 +43,7 @@
  *
  * The boundaries themselves are served by /api/config and passed in: they are
  * what the axis is graduated on. Writing the ladder out here would be the second
- * copy CLAUDE.md rule 3 is about.
+ * copy the V1 CLAUDE.md rule 3 is about.
  *
  * **The seasonal normals may be laid under the days**, and they change one thing
  * about the drawing that is worth knowing before reading the code: the
@@ -130,7 +130,7 @@ const round = (value) => Math.round(value * 100) / 100;
 
 // What a hole *is* is `present.isMissing`, borrowed under a shorter name rather
 // than restated: it stood here as a private one-liner and in present.js as an
-// exported one, which is CLAUDE.md rule 3 exactly — two obvious lines, in two
+// exported one, which is the V1 CLAUDE.md rule 3 exactly — two obvious lines, in two
 // files, that nobody would think to re-read. What this file decides *about* a
 // hole — break the curve, notch the baseline — stays here.
 const missing = present.isMissing;
@@ -161,7 +161,7 @@ export function frame(count, box = BOX) {
     // months where they turn — numbers over words, in the order a French date
     // is said. **The six rows are one axis read three times, not three axes**:
     // the same days, at the same x, from two functions called once per panel —
-    // which is what CLAUDE.md rule 3 asks for and the opposite of what it
+    // which is what the V1 CLAUDE.md rule 3 asks for and the opposite of what it
     // forbids. Repeating them is the whole point. The temperature panel alone
     // is 245 units tall, and dating a point on the bottom panel would otherwise
     // mean carrying the eye up past two others.
@@ -575,7 +575,7 @@ const READINGS = [
  * **One function for both years, called twice.** It was two — the year asked for
  * and the normals had a function each — and the two differed by a class
  * prefix, a flag and an optional chain, around an identical walk of an identical
- * table of readings. That is the second copy CLAUDE.md rule 3 is about: the day
+ * table of readings. That is the second copy the V1 CLAUDE.md rule 3 is about: the day
  * a third reading joined the panel, or the pair changed order, one of the two
  * would have been edited and the other would have gone on drawing the old thing
  * in grey.
@@ -681,7 +681,7 @@ function graduation(frame, span, edges, step, y) {
  * **One function, called twice** — the rain and the total are ruled by the same
  * ladder, numbered in the same ink at the same offset, and closed by the same
  * baseline. Written out in each panel it would have been five identical lines
- * kept in two places, which is exactly the shape of thing CLAUDE.md rule 3 was
+ * kept in two places, which is exactly the shape of thing the V1 CLAUDE.md rule 3 was
  * written against: nobody re-reads five obvious lines, and they diverge anyway.
  *
  * It comes back in two pieces because a panel is drawn in three layers. The

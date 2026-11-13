@@ -2,7 +2,7 @@
  * What the two views of a series agree on before either draws anything.
  *
  * There is one thing in it today, and it is here rather than in band.js for the
- * reason CLAUDE.md rule 3 gives about the sky class: the strip and the chart
+ * reason the V1 CLAUDE.md rule 3 gives about the sky class: the strip and the chart
  * both have to mark the seam, and a rule held in two places diverges — the more
  * quietly, the more obvious it looks. Reading "observed" instead of "not
  * simulated" is exactly the kind of slip that would go unnoticed in one of the

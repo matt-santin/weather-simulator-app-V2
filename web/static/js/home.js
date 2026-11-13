@@ -3,7 +3,7 @@
  *
  * Three things. The date fields get their bounds from `/api/config`, so the
  * interface refuses what the API refuses instead of keeping a second copy of
- * the numbers — CLAUDE.md rule 3. The place name becomes coordinates, because
+ * the numbers — the V1 CLAUDE.md rule 3. The place name becomes coordinates, because
  * `/api/plan` asks for a latitude and a longitude and a name is not one. And a
  * season asked for by name becomes those same two dates.
  *

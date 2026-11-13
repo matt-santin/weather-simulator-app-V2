@@ -8,14 +8,14 @@
  * `seasonOf` turns a date into a season so the results page can be put on its
  * ground; `rangeOf` turns a season into two dates so the form can ask for one by
  * name. Writing "21 June to 20 September" a second time for the second reading
- * is exactly the duplication CLAUDE.md rule 3 is about, and the rule does not
+ * is exactly the duplication the V1 CLAUDE.md rule 3 is about, and the rule does not
  * care that both copies would sit in the same file — five obvious lines diverge
  * as surely as a clever one, and less visibly. So the boundaries are declared
  * once, in `SEASONS`, and both directions walk it.
  *
  * **This is not a duplicated rule.** The server holds no version of the season:
  * it is derived here from `debut` and `fin`, which the URL already carries, and
- * it decides a background and nothing else. CLAUDE.md rule 3 sends that to the
+ * it decides a background and nothing else. the V1 CLAUDE.md rule 3 sends that to the
  * browser — the criterion is the second copy, and there is no first one.
  *
  * **Astronomical bounds, not meteorological ones.** 21 December to 20 March, and

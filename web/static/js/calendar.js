@@ -14,7 +14,7 @@
  * **It was written in three places before it was written here.** `bounds.js`
  * measured a span, `compare.js` shifted a range, `season.js` walked one — each
  * with its own `24 * 60 * 60 * 1000`, its own `T12:00:00Z`, and a comment
- * pointing at the other two. That is the double exemplaire CLAUDE.md rule 3 is
+ * pointing at the other two. That is the double exemplaire the V1 CLAUDE.md rule 3 is
  * about, and the rule does not care that the three lines are obvious: nobody
  * re-reads an obvious line, which is what lets it drift.
  *

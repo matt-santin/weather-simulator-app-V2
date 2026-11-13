@@ -10,7 +10,7 @@
  * purpose, so that a drawn icon set would change this file and nothing else.
  *
  * The rounding is not a free choice either. docs/application.md settled it, and
- * CLAUDE.md rule 4 files rounding under data treatment: whole degrees, whole
+ * the V1 CLAUDE.md rule 4 files rounding under data treatment: whole degrees, whole
  * km/h, **one decimal on millimetres**. That last one is the only one that is
  * not cosmetic — the 1 mm gate separates dry days from wet ones and commands
  * two of the five sky classes, so showing "0 mm" on a day carrying the rain

@@ -1,6 +1,6 @@
-"""The HTTP layer: eleven endpoints and four pages, no state.
+"""The HTTP layer: the endpoints of the API and four pages, no state.
 
-    uvicorn src.app.api.app:app --port 8000
+    uvicorn src.app.api.app:app --port 8765
 
 ``/api/config`` serves the constants the form shares with the API: served
 periods, maximum range, temperature scale, geocoding address. ``/api/days``
@@ -42,7 +42,6 @@ from src.app.api import climate, errors, kinds, normals, pipeline, places, summa
 from src.app.api.contract import Climate, Kinds, Normals, Place, Series, Summary, Years
 from src.app.domain import thresholds
 from src.app.maps import MapStore
-from src.store import outlines
 from src.app.store import PERIODS, Simulation, Store
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -68,7 +67,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Weather Simulator V2",
-    summary="Météo journalière : réanalyse ERA5 (1970-2025) et simulation CORDEX corrigée "
+    summary="Météo journalière : réanalyse ERA5 et observations E-OBS (1970-2025), simulation CORDEX corrigée "
     "(2027-2100). Ce n'est pas une prévision.",
     lifespan=lifespan,
 )
@@ -122,7 +121,7 @@ class Config(BaseModel):
     epochs: list[EpochInfo]
     epochs_default: str
     simulation: SimulationInfo
-    # The frame of the map page (outlines.BOX), or None without a map store: the
+    # The frame of the map page (maps.BOX), or None without a map store: the
     # results page links to the map only where it shows the place.
     map_box: dict[str, float] | None
 
@@ -161,7 +160,7 @@ def config(store: StoreDep, map_store: MapStoreDep) -> Config:
         temperature_band_step=thresholds.TEMPERATURE_BAND_STEP_C,
         epochs=[EpochInfo(id=e.id, first=e.first, last=e.last) for e in kinds.EPOCHS],
         epochs_default=kinds.DEFAULT,
-        map_box=dict(outlines.BOX) if map_store is not None else None,
+        map_box=dict(maps.BOX) if map_store is not None else None,
         simulation=SimulationInfo(
             model=sim.model,
             source=sim.source,

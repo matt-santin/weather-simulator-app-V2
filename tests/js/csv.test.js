@@ -3,7 +3,7 @@
  *
  * Two things are checked here that nothing else can check: that every row says
  * what produced it, and that the numbers survive the trip. The first is
- * CLAUDE.md rule 1 applied to a file rather than a screen — a temperature that
+ * the V1 CLAUDE.md rule 1 applied to a file rather than a screen — a temperature that
  * leaves this page with no origin beside it can be read as a measurement for as
  * long as the file exists. The second is arithmetic on strings, which is what
  * this module is.
@@ -94,7 +94,7 @@ describe("the days as a file", () => {
   });
 
   it("names what produced every day, whatever produced it", () => {
-    // The column CLAUDE.md rule 1 turns on. A row with an empty origin is a
+    // The column the V1 CLAUDE.md rule 1 turns on. A row with an empty origin is a
     // number that can be taken for a measurement once the file is out of sight
     // of the page that wrote it.
     const days = [

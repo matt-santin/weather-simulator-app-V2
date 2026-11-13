@@ -6,8 +6,8 @@
  * and one always survives. There is one language today; the shape is what
  * matters.
  *
- * **The warning keys are named, and the naming is load-bearing.** CLAUDE.md
- * rule 1 forbids the vocabulary of forecasting on a future date, and a test
+ * **The warning keys are named, and the naming is load-bearing.** Rule 1 of the
+ * V1 CLAUDE.md forbids the vocabulary of forecasting on a future date, and a test
  * walks this object to enforce it — every string is checked, except the two
  * under `warning`, which exist precisely to deny the thing. Adding a third
  * exception means widening that list, which is the moment to notice.
@@ -406,7 +406,7 @@ export const texts = {
   // **`origin` is a column, so its three words are dictionary entries like any
   // other.** A file outlives the page it left: a temperature with no origin
   // beside it can be read years later as a measurement, which is the leak
-  // CLAUDE.md rule 1 exists to close. The words are the site's own — a forecast
+  // the V1 CLAUDE.md rule 1 exists to close. The words are the site's own — a forecast
   // named a forecast, a projection named a simulation — which is why `forecast`
   // joins the sentences `present.test.js` exempts from the ban.
   //
@@ -476,10 +476,10 @@ export const texts = {
     noGrid: "Aucune journée simulée : ces journées viennent d'E-OBS (températures) et de la réanalyse ERA5.",
   },
 
-  // What a screen showing simulated days has to say, which is CLAUDE.md rule 1.
+  // What a screen showing simulated days has to say, which is the V1 CLAUDE.md rule 1.
   //
   // **It was two lines and is one.** The second named the emissions scenario, a
-  // statement `docs/science.md` requires of the interface — and gets, on the
+  // statement the V1's `docs/science.md` requires of the interface — and gets, on the
   // documentation page, where there is room to add that the scenarios have not
   // parted by 2050 and that the single model weighs more than the trajectory.
   // Four words under a search rank the scenario without any of that, which

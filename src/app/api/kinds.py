@@ -32,9 +32,9 @@ from datetime import date, timedelta
 import numpy as np
 
 from src.app.api.contract import Kinds, KindsEpoch, Peak
-from src.app.api.years import shifted
+from src.app.api.years import season, whole
 from src.app.domain.records import Origin
-from src.app.store import PERIODS, Cell, Store
+from src.app.store import Cell, Store
 
 NAME = "tasmax"
 COLD = "tasmin"  # the coldest night
@@ -69,19 +69,12 @@ def split(values: dict[int, float]) -> tuple[list[int], list[int], list[int]]:
 
 
 def run(store: Store, cell: Cell, start: date, end: date) -> Kinds:
-    series = {}
-    for period in PERIODS:
-        values = store.series(period.source, cell, period.start, period.end, (NAME, COLD))
-        series[period.source] = (period, {n: np.array(values[n], dtype=float) for n in (NAME, COLD)})
+    series = whole(store, cell, (NAME, COLD))
 
     def chunks(year: int):
         """The source, the first day and both series of the season of `year`."""
-        first, last = shifted(start, end, year)
-        for period, values in series.values():
-            if period.holds(first, last):
-                k0, k1 = (first - period.start).days, (last - period.start).days + 1
-                return period.source, first, {n: v[k0:k1] for n, v in values.items()}
-        return None
+        first, _, source, values = season(series, start, end, year)
+        return None if source is None else (source, first, values)
 
     def measure(year: int) -> tuple[str, float] | None:
         found = chunks(year)

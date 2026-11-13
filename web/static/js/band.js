@@ -8,7 +8,7 @@
  * **Three reading marks are added, and only three.** The month name where the
  * month turns, the seam where the observed stops, and whether the humid-heat
  * line is reserved at all. The server holds no version of
- * either — CLAUDE.md rule 3 turns on the double copy, and there is none here.
+ * either — the V1 CLAUDE.md rule 3 turns on the double copy, and there is none here.
  * Everything else on a card arrived decided.
  *
  * What is deliberately *not* here: no average over the range, no count of rainy
@@ -250,7 +250,7 @@ function detail(day) {
  *
  * **The level arrives decided.** `humid_heat` is the server's answer, not a
  * comparison made here: a threshold is a rule a displayed quantity turns on, and
- * CLAUDE.md rule 3 keeps those on one side. This file knows there are levels,
+ * the V1 CLAUDE.md rule 3 keeps those on one side. This file knows there are levels,
  * never where they start.
  */
 function humidHeat(day) {

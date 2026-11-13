@@ -14,7 +14,7 @@
  *
  * **`origine` and `source` are columns and not a header note.** A file outlives
  * the page it left: rows of temperatures with no origin would let simulated
- * days circulate as measurements, which is the one thing CLAUDE.md rule 1
+ * days circulate as measurements, which is the one thing the V1 CLAUDE.md rule 1
  * exists to prevent. On a row apiece, the mark cannot be separated from the
  * number it qualifies — and it survives sorting, filtering and a copy into
  * another sheet.

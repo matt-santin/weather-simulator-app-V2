@@ -20,7 +20,7 @@ from datetime import date, timedelta
 import numpy as np
 
 from src.app.api import normals
-from src.app.api.contract import Climate, ClimateMonth, ClimateWindow
+from src.app.api.contract import Climate, ClimateMonth, ClimateWindow, rounded
 from src.app.store import PERIODS, Cell, Period, Store
 
 SPAN = 15
@@ -61,10 +61,10 @@ def months(store: Store, source: str, cell: Cell, first: int, last: int) -> list
         t = mean["tas"]
         out.append(ClimateMonth(
             month=m,
-            temperature_mean=_round(t),
-            temperature_min=_round(mean["tasmin"]),
-            temperature_max=_round(mean["tasmax"]),
-            precipitation=_round(rain),
+            temperature_mean=rounded(t),
+            temperature_min=rounded(mean["tasmin"]),
+            temperature_max=rounded(mean["tasmax"]),
+            precipitation=rounded(rain),
             dry=None if rain is None or t is None else bool(rain <= 2 * t),
         ))
     return out
@@ -94,7 +94,3 @@ def run(store: Store, cell: Cell, year: int, reference: int) -> Climate:
 def _mean(values: np.ndarray) -> float | None:
     ok = values[~np.isnan(values)]
     return float(ok.mean()) if ok.size else None
-
-
-def _round(value: float | None) -> float | None:
-    return None if value is None else round(value, 1)

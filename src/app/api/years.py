@@ -24,7 +24,7 @@ from datetime import date
 import numpy as np
 
 from src.app.api import normals
-from src.app.api.contract import YearSummary, Years
+from src.app.api.contract import YearSummary, Years, rounded
 from src.app.domain.records import Origin
 from src.app.store import PERIODS, Cell, Store
 
@@ -41,6 +41,28 @@ def shifted(start: date, end: date, year: int) -> tuple[date, date]:
         except ValueError:
             return day.replace(year=to, day=28)
     return move(start, year), move(end, year + end.year - start.year)
+
+
+def whole(store: Store, cell: Cell, names: tuple[str, ...]) -> list[tuple]:
+    """Each served period read whole at the cell: (period, {name: values}), NaN
+    for a gap. One chunk per variable, whatever the number of years."""
+    out = []
+    for period in PERIODS:
+        values = store.series(period.source, cell, period.start, period.end, names)
+        out.append((period, {n: np.array(values[n], dtype=float) for n in names}))
+    return out
+
+
+def season(series: list[tuple], start: date, end: date, year: int):
+    """The dates of the search in ``year``, cut out of ``series`` (whole): first
+    day, last day, source and {name: values}. Source and values are None when
+    no served period holds the dates (2026, a winter running into it or past 2100)."""
+    first, last = shifted(start, end, year)
+    for period, values in series:
+        if period.holds(first, last):
+            k0, k1 = (first - period.start).days, (last - period.start).days + 1
+            return first, last, period.source, {n: v[k0:k1] for n, v in values.items()}
+    return first, last, None, None
 
 
 def temperature_class(sigmas: float) -> str:
@@ -63,22 +85,17 @@ def rain_class(ratio: float) -> str:
 
 
 def run(store: Store, cell: Cell, start: date, end: date, reference: int) -> Years:
-    series = {}
-    for period in PERIODS:
-        values = store.series(period.source, cell, period.start, period.end, NAMES)
-        series[period.source] = (period, {n: np.array(values[n], dtype=float) for n in NAMES})
+    series = whole(store, cell, NAMES)
 
     def measure(year: int):
-        first, last = shifted(start, end, year)
-        for period, values in series.values():
-            if period.holds(first, last):
-                k0, k1 = (first - period.start).days, (last - period.start).days + 1
-                t, p = values["tas"][k0:k1], values["pr"][k0:k1]
-                temperature = float(np.nanmean(t)) if np.isfinite(t).any() else None
-                # Mean daily rain x days: a missing day does not count as a dry one.
-                rain = float(np.nanmean(p)) * p.size if np.isfinite(p).any() else None
-                return first, last, period.source, temperature, rain
-        return first, last, None, None, None
+        first, last, source, values = season(series, start, end, year)
+        if source is None:
+            return first, last, None, None, None
+        t, p = values["tas"], values["pr"]
+        temperature = float(np.nanmean(t)) if np.isfinite(t).any() else None
+        # Mean daily rain x days: a missing day does not count as a dry one.
+        rain = float(np.nanmean(p)) * p.size if np.isfinite(p).any() else None
+        return first, last, source, temperature, rain
 
     measured = {year: measure(year) for year in range(FIRST, LAST + 1)}
 
@@ -98,11 +115,11 @@ def run(store: Store, cell: Cell, start: date, end: date, reference: int) -> Yea
             end=last,
             origin=None if source is None else
             Origin.SIMULATED if source == "cordex" else Origin.OBSERVED,
-            temperature_mean=_round(temperature),
-            temperature_anomaly=_round(anomaly),
+            temperature_mean=rounded(temperature),
+            temperature_anomaly=rounded(anomaly),
             temperature_sigmas=None if anomaly is None or sigma == 0 else round(anomaly / sigma, 2),
             temperature_class=None if anomaly is None or sigma == 0 else temperature_class(anomaly / sigma),
-            precipitation=_round(rain),
+            precipitation=rounded(rain),
             precipitation_ratio=None if ratio is None else round(ratio, 2),
             precipitation_class=None if ratio is None else rain_class(ratio),
         ))
@@ -115,7 +132,3 @@ def run(store: Store, cell: Cell, start: date, end: date, reference: int) -> Yea
         precipitation_normal=round(p_normal, 1),
         years=years,
     )
-
-
-def _round(value: float | None) -> float | None:
-    return None if value is None else round(value, 1)

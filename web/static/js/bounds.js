@@ -2,7 +2,7 @@
  * What the form refuses before anything is fetched.
  *
  * The same three rules the API applies in `validation.py`, applied earlier. Two
- * copies of a rule is what CLAUDE.md rule 3 is about — but the rule it forbids
+ * copies of a rule is what the V1 CLAUDE.md rule 3 is about — but the rule it forbids
  * duplicating is one the server *computes a value from*, and these compute
  * nothing. They are a control, and a control may be exercised on both sides:
  * the API keeps enforcing them, because a limit only the browser applies is not

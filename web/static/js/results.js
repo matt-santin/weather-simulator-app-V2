@@ -6,11 +6,11 @@
  * band.js; this file is the wiring.
  *
  * `has_simulated` is read from the response, not worked out from the days. The
- * server already answers that question for itself — it is what sends it looking
- * for a cloud-cover correction — and it is the fact CLAUDE.md rule 1 hangs on.
+ * server already answers that question for itself, and it is the fact rule 1 of
+ * the V1 CLAUDE.md hangs on.
  *
  * The season is the one thing here decided from the URL rather than from the
- * answer, and deliberately: it is a background, it must be right before the four
+ * answer, and deliberately: it is a background, it must be right before the
  * round trips rather than after them, and a refused search deserves its ground
  * as much as a served one.
  *

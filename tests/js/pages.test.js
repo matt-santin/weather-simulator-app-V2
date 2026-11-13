@@ -12,7 +12,7 @@
  * So the join is checked here instead. The pages are read as files and the keys
  * resolved through `lookup` itself — the real one, imported, not a second
  * walker written for the test. A copy of that reduce would be the very
- * duplication CLAUDE.md rule 3 is about, and it would go on agreeing with
+ * duplication the V1 CLAUDE.md rule 3 is about, and it would go on agreeing with
  * itself while disagreeing with the page.
  */
 

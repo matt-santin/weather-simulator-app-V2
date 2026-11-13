@@ -22,7 +22,7 @@ from datetime import date
 import numpy as np
 
 from src.app.api import normals
-from src.app.api.contract import Summary, SummaryFigure
+from src.app.api.contract import Summary, SummaryFigure, rounded
 from src.app.api.years import shifted
 from src.app.store import PERIODS, Cell, Store
 
@@ -84,11 +84,7 @@ def run(store: Store, cell: Cell, start: date, end: date, reference: int) -> Sum
     for key in now:
         normal = [f[key] for f in per_year if f[key] is not None]
         out[key] = SummaryFigure(
-            value=_round(now[key]),
-            normal=_round(float(np.mean(normal))) if normal else None,
+            value=rounded(now[key]),
+            normal=rounded(float(np.mean(normal))) if normal else None,
         )
     return Summary(reference_start=ref_start, reference_end=ref_end, figures=out)
-
-
-def _round(value: float | None) -> float | None:
-    return None if value is None else round(value, 1)

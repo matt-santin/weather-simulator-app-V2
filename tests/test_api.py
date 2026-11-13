@@ -660,3 +660,18 @@ def test_each_epoch_names_its_hottest_day_and_its_coldest_night(client: TestClie
     assert old["hottest"]["value"] == pytest.approx(expected("era5", hot[1], "tasmax", fine=True), abs=0.051)
     assert old["coldest"]["date"] == cold[1].isoformat() and old["coldest"]["year"] == cold[0]
     assert old["coldest"]["value"] == pytest.approx(expected("era5", cold[1], "tasmin", fine=True), abs=0.051)
+
+
+def test_a_missing_map_store_is_silent_and_a_broken_one_is_logged(tmp_path, caplog) -> None:
+    """No map store is the ordinary case; one that is there and serves nothing
+    is a fault the log names, and the site still runs without maps."""
+    import zarr
+    from src.app import maps
+    with caplog.at_level("WARNING", logger="src.app.maps"):
+        assert maps.open_store(tmp_path / "absent.zarr") is None
+    assert not caplog.records
+    broken = tmp_path / "map.zarr"
+    zarr.open_group(broken, mode="w")
+    with caplog.at_level("WARNING", logger="src.app.maps"):
+        assert maps.open_store(broken) is None
+    assert "cartes non servies" in caplog.text
