@@ -3111,6 +3111,47 @@ body.maps {
     max-height: none;
     overflow: visible;
   }
+
+  /* The map before its player: the title and the three menus on one line,
+     the map, then the player and the reading of the day. The left column
+     gives its children to the page's grid, which orders them. */
+  .maps-left {
+    display: contents;
+  }
+
+  .maps-title { order: 1; }
+  .maps-period { order: 2; }
+  #maps-status { order: 3; }
+  .maps-stage { order: 4; }
+  .maps-player { order: 5; }
+  .maps-panel { order: 6; }
+
+  .maps-period {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr);
+    gap: calc(var(--space) * 3);
+  }
+
+  .maps-period .maps-check {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The note on the data, folded under its title. */
+.maps-details summary {
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.maps-details summary:hover {
+  color: var(--ink);
+}
+
+.maps-details .maps-source {
+  margin-top: calc(var(--space) * 3);
 }
 
 .maps-label,
@@ -3465,10 +3506,26 @@ body.maps .toggle[aria-pressed="true"] {
  * box stops scrolling and the page scrolls instead (results.js leaves its
  * height alone once it counts fewer than seven columns).
  */
+/* The button that unfolds the list of days: a narrow window only. */
+.days-more {
+  display: none;
+}
+
 @media (max-width: 59.99rem) {
   .calendar-weekdays,
   .band-grid > .pad {
     display: none;
+  }
+
+  /* Folded: the first week, the rest behind the button (results.js). */
+  .band-grid.is-folded > .late {
+    display: none;
+  }
+
+  .days-more:not([hidden]) {
+    display: block;
+    margin: calc(var(--space) * 4) 0 0;
+    text-align: center;
   }
 
   .band-grid {

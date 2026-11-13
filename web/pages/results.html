@@ -126,6 +126,12 @@
         >
           <ol id="days" class="band-grid"></ol>
         </div>
+        <!-- On a narrow window the calendar is a list of one line per day: only
+             its first week shows, and this button unfolds the rest (results.js).
+             Hidden on a wide one, where four weeks show and the rest scrolls. -->
+        <p class="days-more" hidden>
+          <button type="button" id="days-more" class="toggle" aria-expanded="false" aria-controls="days"></button>
+        </p>
       </div>
 
       <!--

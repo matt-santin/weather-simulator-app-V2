@@ -17,7 +17,9 @@ import { svg } from "./dom.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
 
-export const BOX = { width: 1000, height: 380, left: 68, right: 68, top: 30, bottom: 40 };
+// Tall on purpose: on the scale of Bagnouls and Gaussen the rain of a wet
+// place sets the frame, and the temperature curve keeps the lower third of it.
+export const BOX = { width: 1000, height: 500, left: 68, right: 68, top: 30, bottom: 40 };
 
 /** Rain is drawn at half its value on the temperature axis: 20 mm level with 10 °C. */
 export const RAIN_PER_DEGREE = 2;

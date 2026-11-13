@@ -121,7 +121,7 @@ export function loadConfig() {
  * so this file holds no knowledge of Open-Meteo at all. Nominatim is not used:
  * its terms forbid intensive use.
  */
-export async function geocode(name, config, { count = 5, language = "fr" } = {}) {
+export async function geocode(name, config, { count = 10, language = "fr" } = {}) {
   const url = new URL(config.geocoding_url);
   url.searchParams.set("name", name);
   url.searchParams.set("count", String(count));
@@ -132,6 +132,21 @@ export async function geocode(name, config, { count = 5, language = "fr" } = {})
   // Absent rather than empty when nothing matches. Not a decision about the
   // data — an empty list and a missing key mean the same thing here.
   return payload.results ?? [];
+}
+
+/**
+ * Which of these places the site covers: one boolean per place, in order.
+ * The domain is the store's to know (a rotated grid, not a box).
+ */
+export async function covered(places) {
+  if (places.length === 0) return [];
+  const query = new URLSearchParams();
+  for (const place of places) {
+    query.append("latitude", place.latitude);
+    query.append("longitude", place.longitude);
+  }
+  const answer = await getJson(`/api/covered?${query}`, SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
+  return answer.covered;
 }
 
 /**

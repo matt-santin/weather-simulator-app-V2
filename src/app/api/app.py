@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import html
 import logging
+import math
 import re
 from contextlib import asynccontextmanager
 from datetime import date
@@ -259,6 +260,27 @@ def health(response: Response, store: StoreDep, map_store: MapStoreDep, found: P
     stores being open since the start. Never kept by a cache."""
     response.headers["Cache-Control"] = "no-store"
     return Health(status="ok", built=store.built, maps=map_store is not None, places=found is not None)
+
+
+class Covered(BaseModel):
+    covered: list[bool]
+
+
+@app.get("/api/covered", response_model=Covered)
+def covered(
+    store: StoreDep,
+    latitude: Annotated[list[float], Query(max_length=20)],
+    longitude: Annotated[list[float], Query(max_length=20)],
+) -> Covered:
+    """Whether each point is inside the domain served: what the home form asks
+    of the places a name gave, so as to offer only those a search would accept."""
+    if len(latitude) != len(longitude):
+        raise RequestValidationError([{"type": "value_error", "loc": ["query", "longitude"],
+                                       "msg": "as many longitudes as latitudes", "input": None}])
+    return Covered(covered=[
+        math.isfinite(lat) and math.isfinite(lon) and store.cell(lat, lon) is not None
+        for lat, lon in zip(latitude, longitude)
+    ])
 
 
 @app.get("/api/days", response_model=Series)

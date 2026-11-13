@@ -39,9 +39,18 @@ export function next(index, total) {
   return total > 0 ? (index + 1) % total : 0;
 }
 
+/**
+ * A hyphen inside a word, followed by a word joiner (U+2060, no width): the
+ * line may no longer break there. "seront-ils" used to end a line on "seront-"
+ * on a phone.
+ */
+export function unbroken(text) {
+  return text.replace(/(?<=\p{L})-(?=\p{L})/gu, "-\u2060");
+}
+
 /** One stacked span per question, in order. */
 export function build(questions) {
-  return questions.map((text) => el("span", { className: "prompt-item", text }));
+  return questions.map((text) => el("span", { className: "prompt-item", text: unbroken(text) }));
 }
 
 /** Show ``index``, hide the rest — from the reader's eye and from the tree alike. */

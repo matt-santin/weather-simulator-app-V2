@@ -21,7 +21,7 @@
  * (kinds.js). No `<select>` carries a `name`, so nothing of the modes leaves.
  */
 
-import { geocode, loadConfig, SearchError, seasonKinds } from "./fetch.js";
+import { covered, geocode, loadConfig, SearchError, seasonKinds } from "./fetch.js";
 import { periodsText, refuse } from "./bounds.js";
 import { pad } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
@@ -147,18 +147,29 @@ place.addEventListener("input", () => {
   pending = setTimeout(() => propose(name), PAUSE_MS);
 });
 
+// Places offered under the field; twice as many are asked of the geocoder, since
+// those outside the domain are dropped.
+const OFFERED = 5;
+
 async function propose(name) {
   aboutPlace(texts.form.searching);
   try {
     // `matches`, not `candidates`: that name is the list element above.
     const matches = await geocode(name, config ?? (await loadConfig()));
+    // Only the places a search would accept are offered: a name found outside
+    // the domain is said here, not after the form has been sent. If the server
+    // cannot be asked, every place is offered and the search refuses as before.
+    const inside = await covered(matches).catch(() => matches.map(() => true));
     // A slower answer to an older query must not overwrite a newer one.
     if (place.value.trim() !== name) return;
-    offer(matches);
-    aboutPlace(matches.length === 0 ? texts.form.notFound : "");
+    const shown = matches.filter((_, index) => inside[index]).slice(0, OFFERED);
+    offer(shown);
+    aboutPlace(
+      shown.length > 0 ? "" : matches.length > 0 ? texts.form.outside : texts.form.notFound,
+    );
     // Said aloud only. On screen the list is the answer, and counting five
     // visible items back to the reader is noise.
-    found.textContent = matches.length ? texts.form.candidates(matches.length) : "";
+    found.textContent = shown.length ? texts.form.candidates(shown.length) : "";
   } catch (error) {
     offer([]);
     aboutPlace(error instanceof SearchError ? error.message : texts.transport.serviceFailed);

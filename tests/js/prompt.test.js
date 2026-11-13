@@ -14,7 +14,7 @@ import { byClass, install, reads } from "./dom-stub.js";
 
 install();
 
-const { build, next, reveal, rotate } = await import("../../web/static/js/prompt.js");
+const { build, next, reveal, rotate, unbroken } = await import("../../web/static/js/prompt.js");
 const { texts } = await import("../../web/static/js/i18n.js");
 
 const THREE = ["Une ?", "Deux ?", "Trois ?"];
@@ -176,5 +176,16 @@ describe("the rotation, and what stops it", () => {
     host.dispatchEvent(new Event("mouseleave"));
     t.mock.timers.tick(5000);
     assert.equal(shown(), "une");
+  });
+});
+
+describe("a hyphen inside a word", () => {
+  it("is followed by a word joiner, so that no line ends on it", () => {
+    assert.equal(unbroken("Les étés seront-ils supportables ?"), "Les étés seront-\u2060ils supportables ?");
+    assert.equal(build(["Berck-plage ?"])[0].textContent, "Berck-\u2060plage ?");
+  });
+
+  it("leaves a dash between two spaces and a number range alone", () => {
+    assert.equal(unbroken("Nice - Lille, 2040-2050"), "Nice - Lille, 2040-2050");
   });
 });

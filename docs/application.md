@@ -64,6 +64,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `GET /api/climate?latitude&longitude&start&end&reference` | le diagramme climatique du lieu (section 6), mêmes refus |
 | `GET /api/years?latitude&longitude&start&end&reference` | les mêmes dates chaque année de 1970 à 2100 (section 7), mêmes refus |
 | `GET /api/kinds?latitude&longitude&start&end` | les saisons de chaque époque du formulaire, classées en fraîches, normales et chaudes (section 11), mêmes refus |
+| `GET /api/covered?latitude&longitude` (répétés, 20 points au plus) | pour chaque point, s'il est dans le domaine servi : le formulaire ne propose que les lieux qu'une recherche accepterait |
 | `GET /api/health` | le serveur répond : `status`, date de construction du stockage, cartes et lieux servis ou non ; jamais mis en cache |
 | `/`, `/resultats`, `/documentation` | les pages |
 
@@ -114,7 +115,7 @@ Sous le graphique, le diagramme ombrothermique du lieu : douze mois moyennés su
 - Fenêtre de 15 ans dans une seule source : décalée pour rester dans 1970-2025 (ERA5) ou 2027-2100 (CORDEX corrigé). 2020 donne 2011-2025, 2030 donne 2027-2041, 2098 donne 2086-2100. Une fenêtre simulée le dit (« une simulation, pas une prévision »).
 - Par mois : température moyenne (`tas`), Tn et Tx moyennes, précipitations d'un mois moyen (pluie journalière moyenne × longueur moyenne du mois). Mêmes mailles que la série.
 - Échelle de Bagnouls et Gaussen : 20 mm au niveau de 10 °C. Mois sec si P ≤ 2T (P en mm, T en °C), calculé par le serveur (`dry`) ; les mois secs sont teintés. Sources : Bagnouls et Gaussen (1957), repris par Charre, *Mappemonde* (https://www.mgm.fr/PUB/Mappemonde/M297/Charre.pdf).
-- L'axe est cadré sur la plus haute des températures et des demi-pluies ; les degrés ne sont numérotés que jusqu'à la dizaine au-dessus du mois le plus chaud. Dans un lieu très arrosé, la courbe des températures est donc tassée en bas.
+- L'axe est cadré sur la plus haute des températures et des demi-pluies ; les degrés ne sont numérotés que jusqu'à la dizaine au-dessus du mois le plus chaud. Dans un lieu très arrosé, la courbe des températures est donc tassée en bas : le dessin est plus haut depuis le 14/11/2026 (500 au lieu de 380 pour 1000 de large), l'échelle restant celle de Bagnouls et Gaussen.
 - Sous le diagramme : température annuelle, cumul annuel et mois secs, pour la fenêtre et pour la référence.
 
 `GET /api/climate?latitude&longitude&start&end&reference` (`src/app/api/climate.py`, dessin `web/static/js/climate.js`), environ 0,1 s.
@@ -225,3 +226,10 @@ Depuis le 05/11/2026, une carte en tête de la page de résultats (« Été 2063
 
 
 - Liens de la synthèse (08/11/2026) : trois pastilles côte à côte dans un cadre blanc compact à elles, sous la carte de synthèse et indépendant d'elle (affiché avec les journées) (« Voir cette saison parmi toutes les années », « Voir cette saison sur la carte d'Europe », « Tout comprendre sur les données affichées »), contour bleu sur fond blanc comme le bouton des normales, pleines au survol, pictogrammes grille, carte dépliée, livre ; l'une sous l'autre sous 560 px. Le lien vers la documentation sous la mention « simulation » est retiré : il est dans les pastilles.
+
+## 13. Retouches du 14/11/2026 (revue du site)
+
+- Accueil : la promesse dit « Partout en Europe. N'importe quand. » (« N'importe où » auparavant, faux hors du domaine). Les lieux proposés sous le champ sont ceux du domaine : le navigateur demande dix candidats au géocodage, puis `/api/covered`, et n'en propose que cinq au plus parmi ceux qui sont couverts ; si le nom n'existe qu'ailleurs, « Ce lieu est hors de la zone couverte (Europe). » s'affiche sous le champ, sans attendre l'envoi. Si `/api/covered` ne répond pas, tous les candidats sont proposés et la recherche refuse comme avant.
+- Accueil : un lien « Voir un exemple : l'été 2063 à Lyon » sous le formulaire, au-dessus du lien vers la documentation. Le titre ne se coupe plus après un trait d'union (« seront- / ils » sur téléphone) : un caractère de liaison sans largeur (U+2060) suit le trait d'union d'un mot composé (`unbroken`, `web/static/js/prompt.js`).
+- Résultats, écran étroit (moins de 60rem) : la liste des journées ne montre que la première semaine ; un bouton « Afficher les 92 journées » la déplie, « Replier les journées » la referme (`foldDays`, `web/static/js/results.js`). Pour l'été 2063 à Lyon sur un téléphone de 390 px, la page passe de 12 400 px à 4 500 px de haut. Un jour demandé par l'adresse (`jour`) déplie la liste et est amené dans la fenêtre. Rien ne change sur un écran large. Le graphique des journées garde sa largeur minimale et défile horizontalement.
+- Carte, moins de 1000 px : le titre, les trois menus sur une ligne, la carte, puis le lecteur et la lecture du jour (la carte venait après les réglages et le lecteur). Sur tous les écrans, la note sur les données est repliée sous « Sources et méthode » : à 900 px de haut, le panneau de droite ne déborde plus.

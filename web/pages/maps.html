@@ -135,7 +135,12 @@
         <p class="maps-label" data-text="maps.distribution"></p>
         <ul id="maps-bands" class="maps-bands"></ul>
         <p class="maps-note" data-text="maps.pick.hint"></p>
-        <p id="maps-source" class="maps-note maps-source"></p>
+        <!-- Folded: the long note on the data pushed the panel past the foot of
+             the window, where it scrolled without saying so. -->
+        <details class="maps-details">
+          <summary data-text="maps.sourceTitle"></summary>
+          <p id="maps-source" class="maps-note maps-source"></p>
+        </details>
       </aside>
     </main>
   </body>

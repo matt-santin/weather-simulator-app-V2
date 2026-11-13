@@ -90,10 +90,11 @@ export const texts = {
     // flowing line — which is the right thing to fall back to.
     // The name of the asterisk of the promise, read aloud: it opens the note.
     noteHint: "Dates disponibles et simulation",
+    example: "Voir un exemple : l'été 2063 à Lyon",
     promise:
       "Simulez la météo du futur.\n" +
       "Consultez celle du passé.\n" +
-      "N'importe où. N'importe quand.",
+      "Partout en Europe. N'importe quand.",
   },
 
   form: {
@@ -108,6 +109,7 @@ export const texts = {
     chosen: (label) => `Lieu : ${label}`,
     change: "changer",
     notFound: "Aucun lieu ne correspond à ce nom.",
+    outside: "Ce lieu est hors de la zone couverte (Europe).",
     placeRequired: "Choisissez un lieu dans la liste.",
 
     // Two ways of asking for a season: by its year, or by its kind in an
@@ -178,6 +180,8 @@ export const texts = {
     dayOnMap: "Voir ce jour sur la carte d'Europe ›",
     loading: "Récupération des données…",
     back: "Nouvelle recherche",
+    daysMore: (n) => `Afficher les ${n} journées`,
+    daysLess: "Replier les journées",
     bandLabel: "Les journées, semaine par semaine, du lundi au dimanche. Flèches pour passer d'un jour à l'autre.",
     seam: "À partir d'ici, simulation",
     // On the first simulated card of the calendar, beside the month name.
@@ -350,6 +354,7 @@ export const texts = {
       clt: "Nébulosité",
     },
     eyebrow: "Cartographie, Europe",
+    sourceTitle: "Sources et méthode",
     season: "Saison",
     year: "Année",
     // The simulation is the one /api/config names (the store's), never written here.

@@ -725,3 +725,13 @@ def test_health_says_what_is_served_and_is_never_kept(client: TestClient) -> Non
     assert answer.status_code == 200
     assert answer.json()["status"] == "ok" and answer.json()["built"]
     assert answer.headers["cache-control"] == "no-store" and "etag" not in answer.headers
+
+
+def test_covered_says_which_places_a_search_would_accept(client: TestClient) -> None:
+    import numpy as np
+    store = app.dependency_overrides[get_store]()
+    i, j = (int(k[0]) for k in np.nonzero(store.domain))
+    inside = (float(store.latitude[i]), float(store.longitude[j]))
+    answer = client.get("/api/covered", params={"latitude": [inside[0], 40.7], "longitude": [inside[1], -74.0]})
+    assert answer.status_code == 200 and answer.json() == {"covered": [True, False]}
+    assert client.get("/api/covered", params={"latitude": [1.0, 2.0], "longitude": [1.0]}).status_code == 422

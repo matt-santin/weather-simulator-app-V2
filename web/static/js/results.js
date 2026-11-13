@@ -248,6 +248,7 @@ async function show(series) {
   warning.hidden = !series.has_simulated;
   count.textContent = texts.results.count(series.days.length);
   band.append(...strip(series.days, series.humid_heat_peak));
+  foldDays(series.days.length);
   calendar.hidden = false;
   ways.hidden = false;
   attachZoom(band, bandScroll, dayToMap);
@@ -292,6 +293,43 @@ async function show(series) {
 }
 
 /**
+ * On a narrow window the days are a list of one line each, and ninety of them
+ * stood between the summary and everything under the calendar. Past the first
+ * week they are marked `late`: the sheet hides them there while the list is
+ * folded, and the button under it unfolds them. A wide window ignores both.
+ */
+const FOLDED_DAYS = 7;
+const daysMore = document.getElementById("days-more");
+
+function foldDays(total) {
+  if (total <= FOLDED_DAYS + 3) return;
+  let days = 0;
+  for (const item of band.children) {
+    if (item.classList.contains("card")) days += 1;
+    if (days > FOLDED_DAYS) item.classList.add("late");
+  }
+  const set = (folded) => {
+    band.classList.toggle("is-folded", folded);
+    daysMore.setAttribute("aria-expanded", String(!folded));
+    daysMore.textContent = folded ? texts.results.daysMore(total) : texts.results.daysLess;
+  };
+  set(true);
+  daysMore.addEventListener("click", () => {
+    const folding = !band.classList.contains("is-folded");
+    set(folding);
+    // Folded from the bottom of ninety lines, the page would be left far below
+    // the list: back to its top.
+    if (folding) calendar.scrollIntoView({ block: "start" });
+  });
+  daysMore.parentElement.hidden = false;
+}
+
+/** Every day shown, whatever the window: a day sought by the address may be a late one. */
+function unfoldDays() {
+  if (band.classList.contains("is-folded")) daysMore.click();
+}
+
+/**
  * A day of the calendar leads to the map of Europe on that day, the place
  * marked: only when the server has maps, the place is in their frame and the
  * map offers the season of that day. Until the config arrives, nowhere.
@@ -323,6 +361,8 @@ function goToDay(day) {
   if (!day) return;
   const card = band.querySelector(`.card[data-date="${CSS.escape(day)}"]`);
   if (!card) return;
+  const late = card.classList.contains("late");
+  if (late) unfoldDays();
   card.classList.add("is-target");
   // The week of the day at the top of the calendar's box, the calendar at the
   // top of the window. At once, not gliding: the focus would stop a smooth
@@ -330,6 +370,11 @@ function goToDay(day) {
   const top = card.getBoundingClientRect().top - bandScroll.getBoundingClientRect().top;
   bandScroll.scrollTo({ top: bandScroll.scrollTop + top, behavior: "instant" });
   calendar.scrollIntoView({ block: "start", behavior: "instant" });
+  // On the list of a narrow window the calendar's box does not scroll: the
+  // day itself is brought into view.
+  if (bandScroll.scrollHeight <= bandScroll.clientHeight + 1) {
+    card.scrollIntoView({ block: "center", behavior: "instant" });
+  }
   card.focus({ preventScroll: true });
 }
 
