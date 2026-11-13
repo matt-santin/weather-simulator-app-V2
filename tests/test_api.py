@@ -718,3 +718,10 @@ def test_the_server_does_not_load_the_building_chain() -> None:
     out = subprocess.run([sys.executable, "-W", "ignore", "-c", code], capture_output=True, text=True,
                          cwd=Path(__file__).resolve().parents[1], check=True)
     assert out.stdout.strip() == "[]"
+
+
+def test_health_says_what_is_served_and_is_never_kept(client: TestClient) -> None:
+    answer = client.get("/api/health")
+    assert answer.status_code == 200
+    assert answer.json()["status"] == "ok" and answer.json()["built"]
+    assert answer.headers["cache-control"] == "no-store" and "etag" not in answer.headers

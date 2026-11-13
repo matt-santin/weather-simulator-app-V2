@@ -1,15 +1,23 @@
-aiohttp>=3.14
-cdsapi>=0.7.7
-dask>=2026.8
-fastapi>=0.142
-fsspec>=2026.9
-httpx>=0.28
-matplotlib>=3.11
-netCDF4>=1.7
-numpy>=2.0
-pandas>=2.2
-pytest>=9.0
-scipy>=1.18
-uvicorn[standard]>=0.40
-xarray>=2024.1
-zarr>=3.4
+# Tout le projet : le serveur, puis la chaîne de données (téléchargement,
+# correction, validation, construction des stockages), les figures et les tests.
+# Versions de l'environnement qui a produit les données servies (Python 3.14, 13/11/2026).
+-r requirements-server.txt
+
+# Téléchargement
+aiohttp==3.14.3
+cdsapi==0.7.7
+fsspec==2026.9.0
+
+# Correction, validation, stockages
+dask==2026.8.0
+netCDF4==1.7.4
+pandas==3.0.6
+scipy==1.18.1
+xarray==2026.7.0
+
+# Figures
+matplotlib==3.11.2
+
+# Tests
+httpx==0.28.1
+pytest==9.1.1

@@ -1,0 +1,6 @@
+# Le serveur du site (src/app) : rien d'autre n'est nécessaire pour le faire tourner.
+# Versions de l'environnement où il a été testé (Python 3.14, 13/11/2026).
+fastapi==0.142.2
+numpy==2.5.3
+uvicorn[standard]==0.54.0
+zarr==3.4.0

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import logging
 import re
 from contextlib import asynccontextmanager
 from datetime import date
@@ -43,7 +44,7 @@ from src.app.api import climate, errors, kinds, normals, pipeline, places, summa
 from src.app.api.contract import Climate, Kinds, Normals, Place, Series, Summary, Years
 from src.app.domain import thresholds
 from src.app.maps import MapStore
-from src.app.store import PERIODS, Simulation, Store
+from src.app.store import PERIODS, STORE, Simulation, Store
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 WEB = Path(__file__).resolve().parents[3] / "web"
@@ -58,11 +59,28 @@ def get_store() -> Store:
 StoreDep = Annotated[Store, Depends(get_store)]
 
 
+log = logging.getLogger("src.app")
+
+
+def _log_to_stderr() -> None:
+    """The server's own lines, dated, beside uvicorn's: once, and only if nobody
+    has set the logging up (a host that does keeps its own format)."""
+    if not log.handlers and not logging.getLogger().handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s : %(message)s"))
+        log.addHandler(handler)
+        log.setLevel(logging.INFO)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_store()
-    get_map_store()
-    get_places()
+    _log_to_stderr()
+    store, map_store, found = get_store(), get_map_store(), get_places()
+    log.info("stockage %s, construit le %s, %s", STORE, store.built[:10], store.simulation.model)
+    log.info("cartes : %s ; lieux : %s",
+             ", ".join(map_store.variables) + (", isobares" if map_store.isobars else "")
+             if map_store else "non servies",
+             len(found.names) if found else "non servis")
     yield
 
 
@@ -109,7 +127,8 @@ def api_mark() -> str:
 
 @app.middleware("http")
 async def cache_api(request: Request, call_next):
-    if request.method != "GET" or not request.url.path.startswith("/api/"):
+    path = request.url.path
+    if request.method != "GET" or not path.startswith("/api/") or path == "/api/health":
         return await call_next(request)
     mark = api_mark()
     if mark in request.headers.get("if-none-match", ""):
@@ -182,6 +201,14 @@ def get_map_store() -> MapStore | None:
 MapStoreDep = Annotated[MapStore | None, Depends(get_map_store)]
 
 
+@lru_cache(maxsize=1)
+def get_places() -> places.Places | None:
+    return places.open_places()
+
+
+PlacesDep = Annotated[places.Places | None, Depends(get_places)]
+
+
 @app.get("/api/config", response_model=Config)
 def config(store: StoreDep, map_store: MapStoreDep) -> Config:
     sim = store.simulation
@@ -217,6 +244,21 @@ def config(store: StoreDep, map_store: MapStoreDep) -> Config:
             calibration_end=sim.calibration_end.isoformat(),
         ),
     )
+
+
+class Health(BaseModel):
+    status: str
+    built: str
+    maps: bool
+    places: bool
+
+
+@app.get("/api/health", response_model=Health)
+def health(response: Response, store: StoreDep, map_store: MapStoreDep, found: PlacesDep) -> Health:
+    """What a host asks to know the server is up: answered from memory, the
+    stores being open since the start. Never kept by a cache."""
+    response.headers["Cache-Control"] = "no-store"
+    return Health(status="ok", built=store.built, maps=map_store is not None, places=found is not None)
 
 
 @app.get("/api/days", response_model=Series)
@@ -329,15 +371,6 @@ def season_kinds(
 
 
 # --- the maps ----------------------------------------------------------------
-
-
-
-@lru_cache(maxsize=1)
-def get_places() -> places.Places | None:
-    return places.open_places()
-
-
-PlacesDep = Annotated[places.Places | None, Depends(get_places)]
 
 
 @app.get("/api/place", response_model=Place)
