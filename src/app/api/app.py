@@ -30,6 +30,7 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import Depends, FastAPI, Query, Request
 from fastapi.encoders import jsonable_encoder
@@ -41,7 +42,7 @@ from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
 from src.app import maps
-from src.app.api import climate, errors, kinds, normals, pipeline, places, summary, validation, years
+from src.app.api import climate, errors, kinds, normals, pipeline, places, share, summary, validation, years
 from src.app.api.contract import Climate, Kinds, Normals, Place, Series, Summary, Years
 from src.app.domain import thresholds
 from src.app.maps import MapStore
@@ -392,6 +393,22 @@ def season_kinds(
     return kinds.run(store, cell, search.start, search.end)
 
 
+@app.get("/api/card.png")
+def card(
+    store: StoreDep,
+    latitude: Annotated[float, Query()],
+    longitude: Annotated[float, Query()],
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+) -> Response:
+    """The picture a shared search is previewed with: one tile per day, in the
+    colour of its maximum (share.card). Refused as the search itself would be."""
+    search, _ = located(store, latitude, longitude, start, end, normals.DEFAULT)
+    image = share.card(store, search.latitude, search.longitude, search.start, search.end)
+    return Response(content=image, media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
 # --- the maps ----------------------------------------------------------------
 
 
@@ -530,6 +547,33 @@ def fill_simulation(page: str, sim: Simulation) -> str:
                   lambda m: html.escape(values[m.group(1)]).replace(" ", "&nbsp;"), page)
 
 
+SHARE_IMAGE = "static/share.png"  # the picture of every page but a search
+
+
+def with_head(page: str, request: Request, title: str, description: str,
+              image: str = SHARE_IMAGE) -> str:
+    """The page with its <title> replaced by what a preview of its link reads
+    (share.py): the title, a description and the Open Graph tags. Addresses are
+    absolute, as the robots ask; everything written is escaped."""
+    e = html.escape
+    shown = title.removesuffix(f" · {share.SITE}")
+    tags = "\n    ".join([
+        f"<title>{e(title)}</title>",
+        f'<meta name="description" content="{e(description)}" />',
+        '<meta property="og:type" content="website" />',
+        f'<meta property="og:site_name" content="{e(share.SITE)}" />',
+        '<meta property="og:locale" content="fr_FR" />',
+        f'<meta property="og:title" content="{e(shown)}" />',
+        f'<meta property="og:description" content="{e(description)}" />',
+        f'<meta property="og:url" content="{e(str(request.url))}" />',
+        f'<meta property="og:image" content="{e(str(request.base_url) + image)}" />',
+        f'<meta property="og:image:width" content="{share.WIDTH}" />',
+        f'<meta property="og:image:height" content="{share.HEIGHT}" />',
+        '<meta name="twitter:card" content="summary_large_image" />',
+    ])
+    return re.sub(r"<title>.*?</title>", lambda _: tags, page, count=1, flags=re.S)
+
+
 def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
     """Serve the pages, when web/ sits next to the package. Says whether it did."""
     if not directory.is_dir():
@@ -537,22 +581,48 @@ def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
 
     target.mount("/static", RevalidatedStatic(directory=directory / "static"), name="static")
 
+    def read(name: str) -> str:
+        return (directory / "pages" / name).read_text(encoding="utf-8")
+
     @target.get("/", include_in_schema=False)
-    def home() -> FileResponse:
-        return FileResponse(directory / "pages" / "home.html", headers=REVALIDATE)
+    def home(request: Request) -> HTMLResponse:
+        page = with_head(read("home.html"), request, share.SITE, share.PROMISE)
+        return HTMLResponse(page, headers=REVALIDATE)
 
     @target.get("/resultats", include_in_schema=False)
-    def results() -> FileResponse:
-        return FileResponse(directory / "pages" / "results.html", headers=REVALIDATE)
+    def results(
+        request: Request,
+        store: StoreDep,
+        lieu: str | None = None,
+        lat: str | None = None,
+        lon: str | None = None,
+        debut: str | None = None,
+        fin: str | None = None,
+    ) -> HTMLResponse:
+        """The page, its head filled for the search of the address. Whatever
+        the address holds, the page is served: refusing is the API's work."""
+        title, description = share.words(store, lieu, lat, lon, debut, fin)
+        image = SHARE_IMAGE
+        if share.searched(store, lat, lon, debut, fin) is not None:
+            query = urlencode({"latitude": lat, "longitude": lon, "start": debut, "end": fin})
+            image = f"api/card.png?{query}"
+        return HTMLResponse(with_head(read("results.html"), request, title, description, image),
+                            headers=REVALIDATE)
 
     @target.get("/cartes", include_in_schema=False)
-    def maps_page() -> FileResponse:
-        return FileResponse(directory / "pages" / "maps.html", headers=REVALIDATE)
+    def maps_page(request: Request) -> HTMLResponse:
+        page = with_head(read("maps.html"), request, f"Cartes météo · {share.SITE}",
+                         "La météo jour par jour sur la carte d'Europe, de 1970 à 2100 : "
+                         "températures, précipitations, nébulosité. " + share.NOT_A_FORECAST)
+        return HTMLResponse(page, headers=REVALIDATE)
 
     @target.get("/documentation", include_in_schema=False)
-    def documentation(store: StoreDep) -> HTMLResponse:
-        page = (directory / "pages" / "documentation.html").read_text()
-        return HTMLResponse(fill_simulation(page, store.simulation), headers=REVALIDATE)
+    def documentation(request: Request, store: StoreDep) -> HTMLResponse:
+        page = fill_simulation(read("documentation.html"), store.simulation)
+        page = with_head(page, request, f"Comment ça fonctionne · {share.SITE}",
+                         "D'où viennent les données, comment la simulation est corrigée, "
+                         "ce que les chiffres veulent dire et ce qu'ils ne disent pas.")
+        return HTMLResponse(page, headers=REVALIDATE)
 
     return True
 

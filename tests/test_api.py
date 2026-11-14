@@ -735,3 +735,92 @@ def test_covered_says_which_places_a_search_would_accept(client: TestClient) -> 
     answer = client.get("/api/covered", params={"latitude": [inside[0], 40.7], "longitude": [inside[1], -74.0]})
     assert answer.status_code == 200 and answer.json() == {"covered": [True, False]}
     assert client.get("/api/covered", params={"latitude": [1.0, 2.0], "longitude": [1.0]}).status_code == 422
+
+
+# --- what a shared link shows (share.py) and the rank of a season ---------------
+
+
+def _inside(store) -> tuple[float, float]:
+    import numpy as np
+    i, j = (int(k[0]) for k in np.nonzero(store.domain))
+    return float(store.latitude[i]), float(store.longitude[j])
+
+
+def test_a_season_of_the_form_is_named_and_other_dates_are_not() -> None:
+    from src.app.api import share
+    assert share.season_title(date(2075, 6, 21), date(2075, 9, 20)) == "Été 2075"
+    assert share.season_title(date(2080, 12, 21), date(2081, 3, 20)) == "Hiver 2080-2081"
+    assert share.season_title(date(2075, 6, 21), date(2075, 9, 19)) is None
+    assert share.season_title(date(2075, 7, 1), date(2075, 7, 31)) is None
+
+
+def test_the_picture_of_a_search_wears_the_colours_of_the_calendar() -> None:
+    """The ten colours are written twice, in the sheet and in share.py: held equal here."""
+    import re
+    from pathlib import Path
+    from src.app.api import share
+    sheet = (Path(__file__).resolve().parents[1] / "web/static/css/style.css").read_text()
+    tiles = dict(re.findall(r'body\.results \[data-band="(\d)"\] \{ --tile: (#[0-9a-f]{6});', sheet))
+    assert tuple(tiles[str(k)] for k in range(10)) == share.TILES
+
+
+def test_the_head_of_a_results_page_is_filled_for_its_search(client: TestClient) -> None:
+    lat, lon = _inside(app.dependency_overrides[get_store]())
+    page = client.get("/resultats", params={"lieu": "Lyon", "lat": lat, "lon": lon,
+                                            "debut": "2063-06-21", "fin": "2063-09-20"}).text
+    assert "<title>Été 2063 à Lyon · Weather Simulator</title>" in page
+    assert '<meta property="og:title" content="Été 2063 à Lyon" />' in page
+    assert "pas une prévision" in page.split('name="description"')[1].split("/>")[0]
+    assert "api/card.png?latitude=" in page and 'name="twitter:card"' in page
+
+
+def test_an_address_that_is_no_search_still_gets_its_page_and_nothing_unescaped(client: TestClient) -> None:
+    answer = client.get("/resultats", params={"lieu": '<script>alert(1)</script>"', "lat": "abc",
+                                              "lon": "2", "debut": "x", "fin": "y"})
+    assert answer.status_code == 200
+    head = answer.text.split("</head>")[0]
+    assert "<script>alert" not in head and "&lt;script&gt;" in head
+    assert "static/share.png" in head and "api/card.png" not in head
+
+
+def test_the_other_pages_carry_a_title_a_description_and_a_picture(client: TestClient) -> None:
+    for path in ("/", "/cartes", "/documentation"):
+        head = client.get(path).text.split("</head>")[0]
+        assert head.count("<title>") == 1 and 'name="description"' in head
+        assert 'property="og:image"' in head and "static/share.png" in head
+
+
+def test_the_picture_of_a_search_is_a_png_of_the_size_previews_ask(client: TestClient) -> None:
+    import struct
+    lat, lon = _inside(app.dependency_overrides[get_store]())
+    answer = client.get("/api/card.png", params={"latitude": lat, "longitude": lon,
+                                                 "start": "2063-06-21", "end": "2063-09-20"})
+    assert answer.status_code == 200 and answer.headers["content-type"] == "image/png"
+    assert answer.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert struct.unpack(">II", answer.content[16:24]) == (1200, 630)
+    refused = client.get("/api/card.png", params={"latitude": 40.7, "longitude": -74.0,
+                                                  "start": "2063-06-21", "end": "2063-09-20"})
+    assert refused.status_code == 400
+
+
+def test_the_rank_counts_the_observed_years_warmer_than_the_season_shown(client: TestClient) -> None:
+    import numpy as np
+    from src.app.api.years import shifted
+    store = app.dependency_overrides[get_store]()
+    lat, lon = _inside(store)
+    cell = store.cell(lat, lon)
+
+    def mean(year: int, start: date, end: date, source: str) -> float:
+        first, last = shifted(start, end, year)
+        return float(np.nanmean(store.values(source, cell, first, last, ("tasmax",))["tasmax"]))
+
+    for start, end, source in ((date(2063, 6, 21), date(2063, 9, 20), "cordex"),
+                               (date(2003, 6, 21), date(2003, 9, 20), "era5")):
+        rank = client.get("/api/summary", params={"latitude": lat, "longitude": lon,
+                                                  "start": start.isoformat(), "end": end.isoformat()}).json()["rank"]
+        shown = mean(start.year, start, end, source)
+        others = [y for y in range(1970, 2026) if y != start.year]
+        warmer = [y for y in others if mean(y, start, end, "era5") > shown]
+        assert (rank["first"], rank["last"], rank["total"]) == (others[0], others[-1], len(others))
+        assert rank["warmer"] == len(warmer)
+        assert rank["warmer_years"] == (warmer if len(warmer) <= 3 else [])

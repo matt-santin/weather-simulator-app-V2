@@ -43,6 +43,34 @@ export function heading(season, start, end, place) {
 }
 
 /**
+ * Where the dates shown stand among the observed years, in a sentence, from the
+ * `rank` of /api/summary: "Plus chaud que les 56 étés observés de 1970 à 2025.",
+ * "Seuls 2 étés observés de 1970 à 2025 ont été plus chauds : 2003, 2022.",
+ * "Plus frais que 41 des 56 étés observés de 1970 à 2025." The warm side is told
+ * while fewer than half of the observed years were warmer, the cool one after.
+ * `observed` says the season shown is itself one of the observed years: the
+ * others are then "les autres". Empty without a rank.
+ */
+export function standing(rank, season, observed = false) {
+  const words = texts.summary;
+  const names = words.seasons[season];
+  if (!rank || !names || rank.total === 0) return "";
+  const [singular, plural] = names;
+  const span = words.rankSpan(rank.first, rank.last);
+  const { total, warmer } = rank;
+  if (warmer === 0) return words.rankAll(words.warm[season], total, plural, span, observed);
+  if (warmer === total) return words.rankAll(words.cool[season], total, plural, span, observed);
+  if (warmer <= rank.warmer_years.length) {
+    return words.rankFew(
+      warmer, singular, plural, words.warm[season], words.warmPlural[season], span,
+      rank.warmer_years.join(", "),
+    );
+  }
+  if (warmer * 2 < total) return words.rankMost(words.warm[season], total - warmer, total, plural, span, observed);
+  return words.rankMost(words.cool[season], warmer, total, plural, span, observed);
+}
+
+/**
  * The figures of `answer` (/api/summary) the season shows, each as
  * `{ key, value, label, normal, tone }`; tone is "warm", "cool" or "" and only
  * set on the temperature gap. A figure the server could not compute is left out.

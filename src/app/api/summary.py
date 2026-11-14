@@ -22,8 +22,8 @@ from datetime import date
 import numpy as np
 
 from src.app.api import normals
-from src.app.api.contract import Summary, SummaryFigure, rounded
-from src.app.api.years import shifted
+from src.app.api.contract import SeasonRank, Summary, SummaryFigure, rounded
+from src.app.api.years import FIRST, LAST, season, shifted, whole
 from src.app.store import PERIODS, Cell, Store
 
 NAMES = ("tasmax", "tasmin", "tas", "pr")
@@ -62,6 +62,31 @@ def read(store: Store, cell: Cell, start: date, end: date) -> dict[str, np.ndarr
     return None
 
 
+NAMED = 3  # the warmer years are named when there are no more than this
+
+
+def rank(store: Store, cell: Cell, start: date, end: date) -> SeasonRank | None:
+    """The dates shown among the same dates of every observed year, by the mean
+    of the daily maximum (the criterion of kinds.py): how many of those years
+    were warmer. The year shown, if observed, is not compared with itself. A
+    simulated season is thus set against what was lived, not against the model."""
+    series = whole(store, cell, ("tasmax",))
+    means: dict[int, tuple[str, float]] = {}
+    for year in range(FIRST, LAST + 1):
+        _, _, source, values = season(series, start, end, year)
+        if source is not None and np.isfinite(values["tasmax"]).any():
+            means[year] = (source, float(np.nanmean(values["tasmax"])))
+    if start.year not in means:
+        return None
+    shown = means[start.year][1]
+    observed = {y: v for y, (source, v) in means.items() if source == normals.SOURCE and y != start.year}
+    if not observed:
+        return None
+    warmer = sorted(y for y, v in observed.items() if v > shown)
+    return SeasonRank(first=min(observed), last=max(observed), total=len(observed),
+                      warmer=len(warmer), warmer_years=warmer if len(warmer) <= NAMED else [])
+
+
 def run(store: Store, cell: Cell, start: date, end: date, reference: int) -> Summary:
     shown = read(store, cell, start, end)
     now = figures(shown) if shown is not None else {}
@@ -85,4 +110,5 @@ def run(store: Store, cell: Cell, start: date, end: date, reference: int) -> Sum
             value=rounded(now[key]),
             normal=rounded(float(np.mean(normal))) if normal else None,
         )
-    return Summary(reference_start=ref_start, reference_end=ref_end, figures=out)
+    return Summary(reference_start=ref_start, reference_end=ref_end, figures=out,
+                   rank=rank(store, cell, start, end))

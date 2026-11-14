@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { PICKS, count, figures, heading } from "../../web/static/js/summary.js";
+import { PICKS, count, figures, heading, standing } from "../../web/static/js/summary.js";
 
 const ANSWER = {
   reference_start: "1991-01-01",
@@ -57,5 +57,49 @@ describe("count and heading", () => {
   it("names the season, its years and the place", () => {
     assert.equal(heading("summer", "2063-06-21", "2063-09-20", "Lyon"), "Été 2063 à Lyon");
     assert.equal(heading("winter", "2080-12-21", "2081-03-20", "Grenoble"), "Hiver 2080-2081 à Grenoble");
+  });
+});
+
+describe("where the season stands among the observed ones", () => {
+  const rank = (warmer, years = [], total = 56) => ({ first: 1970, last: 2025, total, warmer, warmer_years: years });
+
+  it("says so when no observed season was warmer, or none cooler", () => {
+    assert.equal(standing(rank(0), "summer"), "Plus chaud que les 56 étés observés de 1970 à 2025.");
+    assert.equal(standing(rank(56), "winter"), "Plus froid que les 56 hivers observés de 1970 à 2025.");
+  });
+
+  it("names the warmer years when there are three at most", () => {
+    assert.equal(standing(rank(1, [2022]), "summer"), "Un seul été observé de 1970 à 2025 a été plus chaud : 2022.");
+    assert.equal(
+      standing(rank(2, [2003, 2023]), "summer"),
+      "Seuls 2 étés observés de 1970 à 2025 ont été plus chauds : 2003, 2023.",
+    );
+    // "printemps" is its own plural, and "doux" takes no s.
+    assert.equal(
+      standing(rank(2, [2007, 2011]), "spring"),
+      "Seuls 2 printemps observés de 1970 à 2025 ont été plus chauds : 2007, 2011.",
+    );
+    assert.equal(
+      standing(rank(2, [2007, 2020]), "winter"),
+      "Seuls 2 hivers observés de 1970 à 2025 ont été plus doux : 2007, 2020.",
+    );
+  });
+
+  it("tells the warm side under half, the cool one from half", () => {
+    assert.equal(standing(rank(10), "winter"), "Plus doux que 46 des 56 hivers observés de 1970 à 2025.");
+    assert.equal(standing(rank(28), "autumn"), "Plus frais que 28 des 56 automnes observés de 1970 à 2025.");
+    assert.equal(standing(rank(30), "summer"), "Plus frais que 30 des 56 étés observés de 1970 à 2025.");
+  });
+
+  it("sets an observed season against the others", () => {
+    assert.equal(
+      standing(rank(52, [], 54), "winter", true),
+      "Plus froid que 52 des 54 autres hivers observés de 1970 à 2025.",
+    );
+  });
+
+  it("is empty without a rank or for dates that are no season", () => {
+    assert.equal(standing(null, "summer"), "");
+    assert.equal(standing(rank(0), "nothing"), "");
   });
 });

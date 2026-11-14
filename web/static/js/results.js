@@ -29,6 +29,7 @@ import {
   loadConfig,
   normals,
   search,
+  seasonKinds,
   SearchError,
   summaryOf,
   years as everyYear,
@@ -46,8 +47,9 @@ import { texts } from "./i18n.js";
 import * as present from "./present.js";
 import { insideMap, MAP_LATITUDE, mapHref, seasonOfDay, seasonYear } from "./links.js";
 import { fillNav } from "./nav.js";
-import { dominantSeason, yearsFor } from "./season.js";
-import { figures as summaryFigures, heading as summaryHeading } from "./summary.js";
+import { DRAWN, drawAnother, kindLabels, kindsOf } from "./kinds.js";
+import { dominantSeason, rangeOf, yearsFor } from "./season.js";
+import { figures as summaryFigures, heading as summaryHeading, standing } from "./summary.js";
 
 const place = document.getElementById("place");
 const summaryMap = document.getElementById("summary-map");
@@ -102,6 +104,60 @@ const summaryTitle = document.getElementById("summary-title");
 const summaryMethod = document.getElementById("summary-method");
 const summaryList = document.getElementById("summary-figures");
 const summaryStatus = document.getElementById("summary-status");
+const summaryRank = document.getElementById("summary-rank");
+
+const summaryKind = document.getElementById("summary-kind");
+const summaryKindText = document.getElementById("summary-kind-text");
+const summaryRedraw = document.getElementById("summary-redraw");
+
+/**
+ * The season came from "Choisir un type de saison" (?type&epoque, written by
+ * the home form): the summary says which kind of which epoch, and for a kind
+ * drawn at random offers another year of it. An address without them, or with
+ * values the form does not offer, shows nothing.
+ */
+function showKind(config) {
+  const season = document.body.dataset.season;
+  const kind = query.get("type");
+  const epoch = config.epochs.find((e) => e.id === query.get("epoque"));
+  const label = kindLabels(season)[kind];
+  if (!epoch || !label || !kindsOf(season).includes(kind) || !wholeSeason(asked.start, asked.end)) return;
+  const words = texts.summary;
+  const of = words.epochOf[epoch.id] ?? "";
+  const drawn = DRAWN.includes(kind);
+  summaryKindText.textContent = drawn
+    ? words.drawn(words.seasons[season][0], label, of, epoch.first, epoch.last)
+    : words.fixed(label, of, epoch.first, epoch.last);
+  summaryKind.hidden = false;
+  if (!drawn) return;
+  summaryRedraw.hidden = false;
+  summaryRedraw.addEventListener("click", async () => {
+    summaryRedraw.disabled = true;
+    summaryRedraw.textContent = words.redrawing;
+    try {
+      const answer = await seasonKinds(asked);
+      const ranked = answer.epochs.find((e) => e.id === epoch.id);
+      const year = drawAnother(ranked, kind, Number(asked.start.slice(0, 4)));
+      const range = year === null ? null : rangeOf(season, year, asked.latitude);
+      if (!range) throw new Error("no other year");
+      const next = new URLSearchParams(query);
+      next.set("debut", range.start);
+      next.set("fin", range.end);
+      next.delete("jour");
+      window.location.assign(`/resultats?${next}`);
+    } catch {
+      // No other year of this kind, or the server did not answer: the button
+      // goes, the season shown stays.
+      summaryRedraw.hidden = true;
+    }
+  });
+}
+
+/** From the 21st to the 20th three months on: a season as the form writes it. */
+function wholeSeason(start, end) {
+  const months = (Number(end.slice(5, 7)) - Number(start.slice(5, 7)) + 12) % 12;
+  return start.slice(8) === "21" && end.slice(8) === "20" && months === 3;
+}
 
 const exportBlock = document.getElementById("export");
 const exportButton = document.getElementById("export-button");
@@ -277,6 +333,7 @@ async function show(series) {
     // laid, so that it does not push the day away.
     offerMap(document.body.dataset.season);
     showSummary().finally(() => goToDay(query.get("jour")));
+    showKind(config);
     showClimate();
     showYears();
   }
@@ -509,9 +566,16 @@ async function showSummary() {
     const answer = summaries.get(reference);
     const shownSeason = document.body.dataset.season;
     summaryTitle.textContent = summaryHeading(shownSeason, asked.start, asked.end, asked.place);
-    summaryMethod.textContent = texts.summary.method(
-      `${answer.reference_start.slice(0, 4)}-${answer.reference_end.slice(0, 4)}`,
-    );
+    // The sentence is for a whole season of the form: other dates have no name
+    // to be ranked under.
+    const sentence = wholeSeason(asked.start, asked.end)
+      ? standing(answer.rank, shownSeason, Number(asked.start.slice(0, 4)) <= (answer.rank?.last ?? 0))
+      : "";
+    summaryRank.textContent = sentence;
+    summaryRank.hidden = sentence === "";
+    summaryMethod.textContent =
+      texts.summary.method(`${answer.reference_start.slice(0, 4)}-${answer.reference_end.slice(0, 4)}`) +
+      (sentence ? texts.summary.rankMethod : "");
     summaryList.replaceChildren(
       ...summaryFigures(answer, shownSeason).map((figure) =>
         el("li", { className: `summary-figure${figure.tone ? ` ${figure.tone}` : ""}` }, [

@@ -191,14 +191,26 @@ class SummaryFigure(BaseModel):
     normal: float | None = None
 
 
+class SeasonRank(BaseModel):
+    """Where the dates shown stand among the same dates of every observed year
+    (summary.rank): by the mean of the daily maximum, the year shown left out."""
+
+    first: int = Field(description="first observed year compared")
+    last: int = Field(description="last observed year compared")
+    total: int = Field(description="observed years compared")
+    warmer: int = Field(description="of them, those warmer than the dates shown")
+    warmer_years: list[int] = Field(description="their years, when there are three at most")
+
+
 class Summary(BaseModel):
     """The figures of the dates of a search beside the reference period (summary.py):
     tasmax_mean, tas_mean, hot_35, hot_40, tropical_nights, summer_days,
-    frost_days, precipitation."""
+    frost_days, precipitation; and their rank among the observed years."""
 
     reference_start: date
     reference_end: date
     figures: dict[str, SummaryFigure]
+    rank: SeasonRank | None = None
 
 
 class Peak(BaseModel):

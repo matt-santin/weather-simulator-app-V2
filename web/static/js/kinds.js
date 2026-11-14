@@ -68,6 +68,20 @@ export function record(ranked, sign = 1) {
  * One year of `ranked[kind]`, or null if there is none. `random` is in [0, 1).
  * The record is not drawn: it is the one year.
  */
+/** The kinds whose year is drawn at random: the others always give the same one. */
+export const DRAWN = ["cool", "normal", "warm"];
+
+/**
+ * Another year of the same kind than `shown`, or null when there is none: the
+ * kind has one year only, or always gives the same (a record, an extreme day).
+ */
+export function drawAnother(ranked, kind, shown, random = Math.random) {
+  if (!DRAWN.includes(kind)) return null;
+  const others = (ranked?.[kind] ?? []).filter((year) => year !== shown);
+  if (others.length === 0) return null;
+  return others[Math.min(others.length - 1, Math.floor(random() * others.length))];
+}
+
 export function draw(ranked, kind, random = Math.random) {
   if (kind === "hottestDay" || kind === "coldestDay") return peakOf(ranked, kind)?.year ?? null;
   if (kind === "record") return record(ranked, 1);

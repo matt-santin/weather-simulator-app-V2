@@ -6,7 +6,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { KINDS, anyYearOf, dayOf, draw, epochLabel, kindLabels, kindsOf, record } from "../../web/static/js/kinds.js";
+import {
+  DRAWN, KINDS, anyYearOf, dayOf, draw, drawAnother, epochLabel, kindLabels, kindsOf, record,
+} from "../../web/static/js/kinds.js";
 import { texts } from "../../web/static/js/i18n.js";
 
 describe("kindLabels", () => {
@@ -84,5 +86,24 @@ describe("the extreme days", () => {
     assert.equal(dayOf(ranked, "coldestDay"), "2057-01-08");
     assert.equal(dayOf(ranked, "warm"), null);
     assert.equal(draw({}, "hottestDay"), null);
+  });
+});
+
+describe("another year of the same kind", () => {
+  const ranked = { warm: [2018, 2022, 2030], normal: [2015], values: { 2018: 28, 2022: 29, 2030: 28.5 } };
+
+  it("is never the year shown", () => {
+    for (const random of [() => 0, () => 0.5, () => 0.999]) {
+      assert.notEqual(drawAnother(ranked, "warm", 2022, random), 2022);
+    }
+    assert.equal(drawAnother(ranked, "warm", 2022, () => 0), 2018);
+    assert.equal(drawAnother(ranked, "warm", 2022, () => 0.999), 2030);
+  });
+
+  it("is null when the kind holds that year alone, or always gives the same", () => {
+    assert.equal(drawAnother(ranked, "normal", 2015), null);
+    assert.equal(drawAnother(ranked, "record", 2022), null);
+    assert.equal(drawAnother(ranked, "hottestDay", 2022), null);
+    assert.deepEqual(DRAWN, ["cool", "normal", "warm"]);
   });
 });

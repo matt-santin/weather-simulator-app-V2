@@ -46,6 +46,8 @@ const longitude = document.getElementById("lon");
 const from = document.getElementById("debut");
 const to = document.getElementById("fin");
 const dayField = document.getElementById("jour");
+const kindField = document.getElementById("type-tire");
+const epochField = document.getElementById("epoque-tiree");
 const status = document.getElementById("status");
 const placeStatus = document.getElementById("place-status");
 const found = document.getElementById("found");
@@ -347,6 +349,9 @@ async function drawSeason(button) {
     const day = dayOf(ranked, kindPick.value);
     dayField.value = day ?? "";
     dayField.disabled = !day;
+    kindField.value = kindPick.value;
+    epochField.value = epoch.id;
+    kindField.disabled = epochField.disabled = false;
     form.submit();
   } catch (error) {
     say(error instanceof SearchError ? error.message : texts.transport.serviceFailed);
@@ -429,6 +434,9 @@ form.addEventListener("submit", (event) => {
     place.focus();
     return;
   }
+  // A year chosen by hand was drawn from nothing: a page brought back by the
+  // browser may still hold the fields of an earlier draw.
+  kindField.disabled = epochField.disabled = dayField.disabled = true;
   if (!kindPanel.hidden) {
     event.preventDefault();
     if (!config) {

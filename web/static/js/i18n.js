@@ -244,6 +244,32 @@ export const texts = {
     summer_days: (n) => `${n < 2 ? "journée" : "journées"} au-dessus de 25\u00a0°C`,
     frost_days: (n) => `${n < 2 ? "jour" : "jours"} de gel (minimale sous 0\u00a0°C)`,
     precipitation: (total) => `de pluie par rapport à la normale (${total}\u00a0mm)`,
+    // Where the season stands among the observed ones (summary.js, `standing`).
+    // Every season name is masculine; "printemps" does not change in the plural.
+    seasons: { summer: ["été", "étés"], winter: ["hiver", "hivers"], spring: ["printemps", "printemps"], autumn: ["automne", "automnes"] },
+    // The words of the kinds of the form: chaud and frais, doux and froid in winter.
+    warm: { summer: "chaud", winter: "doux", spring: "chaud", autumn: "chaud" },
+    cool: { summer: "frais", winter: "froid", spring: "frais", autumn: "frais" },
+    warmPlural: { summer: "chauds", winter: "doux", spring: "chauds", autumn: "chauds" },
+    rankAll: (side, total, plural, span, other) =>
+      `Plus ${side} que les ${total} ${other ? "autres " : ""}${plural} observés ${span}.`,
+    rankFew: (n, singular, plural, side, sides, span, years) =>
+      n === 1
+        ? `Un seul ${singular} observé ${span} a été plus ${side} : ${years}.`
+        : `Seuls ${n} ${plural} observés ${span} ont été plus ${sides} : ${years}.`,
+    rankMost: (side, n, total, plural, span, other) =>
+      `Plus ${side} que ${n} des ${total} ${other ? "autres " : ""}${plural} observés ${span}.`,
+    rankSpan: (first, last) => `de ${first} à ${last}`,
+    rankMethod:
+      " Le classement compare la moyenne des températures maximales à celle des mêmes dates " +
+      "de chaque année observée.",
+    // The kind the season was drawn from on the home form (results.js, `showKind`).
+    epochOf: { old: "de l'ancien climat", new: "du nouveau climat", future: "du climat futur" },
+    drawn: (singular, kind, epoch, first, last) =>
+      `Un ${singular} ${kind.toLowerCase()} ${epoch} (${first}-${last}), tiré au hasard.`,
+    fixed: (kind, epoch, first, last) => `${kind} ${epoch} (${first}-${last}).`,
+    redraw: "Tirer une autre année",
+    redrawing: "Tirage…",
     loading: "Calcul de la synthèse…",
     more: "Voir cette saison parmi toutes les années",
     mapLink: "Voir cette saison sur la carte d'Europe",

@@ -65,6 +65,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `GET /api/years?latitude&longitude&start&end&reference` | les mêmes dates chaque année de 1970 à 2100 (section 7), mêmes refus |
 | `GET /api/kinds?latitude&longitude&start&end` | les saisons de chaque époque du formulaire, classées en fraîches, normales et chaudes (section 11), mêmes refus |
 | `GET /api/covered?latitude&longitude` (répétés, 20 points au plus) | pour chaque point, s'il est dans le domaine servi : le formulaire ne propose que les lieux qu'une recherche accepterait |
+| `GET /api/card.png?latitude&longitude&start&end` | l'image d'aperçu d'une recherche partagée (section 14), mêmes refus qu'une recherche |
 | `GET /api/health` | le serveur répond : `status`, date de construction du stockage, cartes et lieux servis ou non ; jamais mis en cache |
 | `/`, `/resultats`, `/documentation` | les pages |
 
@@ -233,3 +234,24 @@ Depuis le 05/11/2026, une carte en tête de la page de résultats (« Été 2063
 - Accueil : un lien « Visualisez l'été 2075 à Paris » (un peu plus gros que la note, 1,25rem) sous le formulaire, au-dessus de la phrase « La météo dans le futur est simulée… » (l'été 2063 à Lyon d'abord). Choisi parmi les 74 étés simulés à Paris (maille 48,9 N 2,3 E) : 15 ont un jour à 40 °C ou plus, 5 ont deux épisodes distincts (jours consécutifs à Tx ≥ 35 °C dont un à 40 °C ou plus : 2045, 2073, 2075, 2085, 2093) ; 2075 est le seul dont les deux durent plus d'un jour à 40 °C : 26 et 27 juillet (pic 42,1 °C), puis 8 jours à partir du 24 août dont 5 à 40 °C ou plus (pic 42,3 °C). 6e été le plus chaud en moyenne des Tx (29,3 °C). Le titre ne se coupe plus après un trait d'union (« seront- / ils » sur téléphone) : un caractère de liaison sans largeur (U+2060) suit le trait d'union d'un mot composé (`unbroken`, `web/static/js/prompt.js`).
 - Résultats, écran étroit (moins de 60rem) : la liste des journées ne montre que la première semaine ; un bouton « Afficher les 92 journées » la déplie, « Replier les journées » la referme (`foldDays`, `web/static/js/results.js`). Pour l'été 2063 à Lyon sur un téléphone de 390 px, la page passe de 12 400 px à 4 500 px de haut. Un jour demandé par l'adresse (`jour`) déplie la liste et est amené dans la fenêtre. Rien ne change sur un écran large. Le graphique des journées garde sa largeur minimale et défile horizontalement.
 - Carte, moins de 1000 px : le titre, les trois menus sur une ligne, la carte, puis le lecteur et la lecture du jour (la carte venait après les réglages et le lecteur). Sur tous les écrans, la note sur les données est repliée sous « Sources et méthode » : à 900 px de haut, le panneau de droite ne déborde plus.
+
+## 14. Partage et phrase d'interprétation (14/11/2026)
+
+Partage (`src/app/api/share.py`, `with_head` dans `src/app/api/app.py`). Les robots qui dessinent l'aperçu d'un lien n'exécutent pas le JavaScript : le serveur écrit donc l'en-tête des quatre pages (titre, description, balises Open Graph, `twitter:card`), à la place du `<title>` du fichier.
+
+- Page de résultats : titre « Été 2075 à Paris · Weather Simulator » (une saison du formulaire est nommée, d'autres dates s'écrivent « Du 1er juillet 2075 au 31 juillet 2075 ») ; description tirée de la synthèse (Tx moyenne et son écart à 1991-2020, jours à 35 °C ou plus, sinon jours de gel), suivie de « Simulation : une météo plausible, pas une prévision. » pour une saison simulée. Exemple : « Été 2075 à Paris : maximales de 29,3 °C en moyenne (+4,5 °C par rapport à 1991-2020), 13 jours à 35 °C ou plus. Simulation : une météo plausible, pas une prévision. »
+- Image d'une recherche : `/api/card.png`, 1200 × 630, une tuile par jour dans la couleur de sa Tx (les dix couleurs du calendrier, tenues égales à celles de la feuille de style par un test), une colonne par semaine, lundi en haut, fond clair ; PNG écrit par le serveur avec numpy et zlib, sans bibliothèque d'images ; environ 12 ko, 25 ms.
+- Autres pages, et adresse de résultats qui n'est pas une recherche valide : nom du site, promesse, image fixe `web/static/share.png` (le ciel de l'accueil avec sa première question et la promesse, capturé avec Playwright).
+- Rien de l'adresse n'est écrit sans échappement ; une adresse refusée par l'API reçoit quand même sa page.
+- Les adresses des balises sont absolues et viennent de la requête : derrière un proxy, lancer uvicorn avec `--proxy-headers` pour qu'elles soient en `https`.
+
+Phrase d'interprétation. `/api/summary` renvoie `rank` : parmi les mêmes dates de chaque année observée (1970-2025, l'année montrée exclue si elle est observée), combien ont une moyenne des Tx plus haute, et lesquelles s'il y en a trois au plus (`rank` dans `src/app/api/summary.py`, critère de `kinds.py`). Une saison simulée est ainsi comparée à ce qui a été vécu, pas au modèle. La synthèse l'écrit sous son titre, pour une saison entière du formulaire (`standing`, `web/static/js/summary.js`) :
+
+- aucune année observée plus chaude : « Plus chaud que les 56 étés observés de 1970 à 2025. » (Paris, été 2075) ;
+- trois au plus : « Seuls 2 étés observés de 1970 à 2025 ont été plus chauds : 2003, 2023. » (Lyon, été 2030) ;
+- moins de la moitié : « Plus doux que 45 des 55 hivers observés de 1970 à 2024. » (Paris, hiver 2080-2081) ;
+- la moitié ou plus : « Plus froid que 52 des 54 autres hivers observés de 1970 à 2024. » (Paris, hiver 1985-1986).
+
+Mots du formulaire : chaud et frais, doux et froid en hiver. Le « ? » de la synthèse dit le critère. Limite : le modèle corrigé étant plus frais que les données passées sur 2015-2025 (section 9), le rang d'une saison simulée proche est plutôt sous-estimé.
+
+Type de saison dans l'adresse. Une recherche lancée par « Choisir un type de saison » porte `type` (cool, normal, warm, record, coldRecord, hottestDay, coldestDay) et `epoque` (old, new, future) ; une année choisie à la main ne les porte pas. La synthèse l'écrit sous la phrase de rang : « Un automne chaud du nouveau climat (2011-2050), tiré au hasard. », ou « Record de chaleur du climat futur (2051-2100). » pour un type qui donne toujours la même année. Pour un type tiré au hasard, « Tirer une autre année » redemande `/api/kinds` et ouvre une autre année du même type (`drawAnother`, `web/static/js/kinds.js`) ; le bouton disparaît s'il n'y en a pas d'autre. Des valeurs que le formulaire ne propose pas n'affichent rien.

@@ -56,6 +56,16 @@
           >?</button>
           <p id="summary-method" class="hint-text" role="tooltip" hidden></p>
         </div>
+        <!-- Where the season stands among the observed ones, in one sentence
+             (summary.js, `standing`): what the figures below add up to. -->
+        <p id="summary-rank" class="summary-rank" hidden></p>
+        <!-- The kind and the epoch the season was drawn from, when the search
+             came from "Choisir un type de saison" (?type&epoque), and another
+             draw of the same kind. -->
+        <p id="summary-kind" class="summary-kind" hidden>
+          <span id="summary-kind-text"></span>
+          <button type="button" id="summary-redraw" class="link" data-text="summary.redraw" hidden></button>
+        </p>
         <ul id="summary-figures" class="summary-figures"></ul>
         <p id="summary-status" class="compare-note" aria-live="polite"></p>
       </section>
