@@ -34,7 +34,7 @@ export const texts = {
   // The bar of the results and the map (nav.js).
   nav: {
     label: "Navigation entre le lieu et la carte",
-    home: "Weather Simulator",
+    home: "Météo 2100",
     map: "Carte",
     placeTitle: (place) => `La saison à ${place}, jour par jour`,
     mapTitle: "La même saison sur la carte d'Europe",
@@ -369,7 +369,7 @@ export const texts = {
   maps: {
     pageTitle: "Cartes météo",
     homeLink: "Cartes météos",
-    back: "Weather Simulator",
+    back: "Météo 2100",
     title: (variable, season, year) => `${variable}, ${season.toLowerCase()} ${year}`,
     variable: "Grandeur",
     isobars: "Isobares",

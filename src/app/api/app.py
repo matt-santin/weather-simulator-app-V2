@@ -87,7 +87,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Weather Simulator V2",
+    title="Météo 2100",
     summary="Météo journalière : réanalyse ERA5 et observations E-OBS (1970-2025), simulation CORDEX corrigée "
     "(2027-2100). Ce n'est pas une prévision.",
     lifespan=lifespan,

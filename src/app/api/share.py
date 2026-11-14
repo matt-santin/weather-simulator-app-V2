@@ -30,7 +30,7 @@ from src.app.api import errors, normals, summary, validation
 from src.app.domain import temperature
 from src.app.store import Store
 
-SITE = "Weather Simulator"
+SITE = "Météo 2100"
 PROMISE = ("Simulez la météo du futur, consultez celle du passé : la météo jour par jour, "
            "partout en Europe, de 1970 à 2100.")
 NOT_A_FORECAST = "Simulation : une météo plausible, pas une prévision."

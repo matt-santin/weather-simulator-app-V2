@@ -768,7 +768,7 @@ def test_the_head_of_a_results_page_is_filled_for_its_search(client: TestClient)
     lat, lon = _inside(app.dependency_overrides[get_store]())
     page = client.get("/resultats", params={"lieu": "Lyon", "lat": lat, "lon": lon,
                                             "debut": "2063-06-21", "fin": "2063-09-20"}).text
-    assert "<title>Été 2063 à Lyon · Weather Simulator</title>" in page
+    assert "<title>Été 2063 à Lyon · Météo 2100</title>" in page
     assert '<meta property="og:title" content="Été 2063 à Lyon" />' in page
     assert "pas une prévision" in page.split('name="description"')[1].split("/>")[0]
     assert "api/card.png?latitude=" in page and 'name="twitter:card"' in page
