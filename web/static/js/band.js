@@ -5,6 +5,9 @@
  * hands back nodes, which a test can walk without a browser. What is left in
  * results.js is the page's wiring — the URL, the call, the waiting.
  *
+ * Snow on the ground rides on the card as a class and a word read aloud; the
+ * server decides it (`snow_on_ground`), the stylesheet draws it.
+ *
  * **Three reading marks are added, and only three.** The month name where the
  * month turns, the seam where the observed stops, and whether the humid-heat
  * line is reserved at all. The server holds no version of
@@ -76,7 +79,7 @@ export function strip(days, humidHeatPeak = 0) {
  * edges are the server's (`/api/config`), so the legend cannot drift from the
  * bands the cards carry.
  */
-export function legend(edges) {
+export function legend(edges, snow = false) {
   const { legendTitle, legendBelow, legendBetween, legendAbove } = texts.results;
   const chips = [legendBelow(edges[0])];
   for (let index = 1; index < edges.length; index += 1) {
@@ -90,6 +93,15 @@ export function legend(edges) {
       { attrs: { "aria-labelledby": "band-legend-title" } },
       chips.map((text, band) => el("li", { text, attrs: { "data-band": String(band) } })),
     ),
+    // The mark of a day with snow on the ground, when the calendar carries one.
+    ...(snow
+      ? [
+          el("span", { className: "band-legend-snow" }, [
+            el("span", { className: "snow-sample", attrs: { "aria-hidden": "true" } }),
+            el("span", { text: texts.snow.legend }),
+          ]),
+        ]
+      : []),
   ]);
 }
 
@@ -114,7 +126,9 @@ function weekdayIndex(iso) {
 export function card(day, namesMonth, reservesHumidHeat = false, opensSimulation = false) {
   const { emoji, label } = present.sky(day.sky);
   const { celsius, millimetres, kilometresPerHour, percent } = texts.units;
-  const className = `card card--${day.origin}${opensSimulation ? " card--seam" : ""}`;
+  const snow = day.snow_on_ground === true;
+  const className =
+    `card card--${day.origin}${opensSimulation ? " card--seam" : ""}${snow ? " card--snow" : ""}`;
 
   // The band of the maximum tints the whole card. It arrives decided by the
   // server and is written as an attribute, never as a colour: the hues live in
@@ -184,6 +198,8 @@ export function card(day, namesMonth, reservesHumidHeat = false, opensSimulation
         degrees(day.temperature_min, "low", celsius),
       ]),
       el("p", { className: "card-sky", text: label }),
+      // The white lower part of the card says it to the eye (stylesheet).
+      ...(snow ? [el("p", { className: "sr-only", text: texts.snow.onGround })] : []),
       el("dl", { className: "card-measures" }, [
         ...measure(texts.measure.precipitation, day.precipitation, present.precipitation, millimetres),
         ...measure(texts.measure.humidity, day.relative_humidity_mean, present.humidity, percent),
@@ -217,13 +233,23 @@ function detail(day) {
   return el(
     "dl",
     { className: "card-detail", attrs: { "aria-hidden": "true" } },
-    rows.flatMap(([label, raw, format, unit]) => [
-      el("dt", { text: label }),
-      el("dd", {}, [
-        el("span", { className: "value", text: format(raw) }),
-        el("span", { className: "unit", text: unit }),
+    [
+      ...rows.flatMap(([label, raw, format, unit]) => [
+        el("dt", { text: label }),
+        el("dd", {}, [
+          el("span", { className: "value", text: format(raw) }),
+          el("span", { className: "unit", text: unit }),
+        ]),
       ]),
-    ]),
+      // Last, and only on a day that has it: a line that said "non" all summer
+      // would be noise.
+      ...(day.snow_on_ground === true
+        ? [
+            el("dt", { text: texts.detail.snow }),
+            el("dd", {}, [el("span", { className: "value", text: texts.detail.yes })]),
+          ]
+        : []),
+    ],
   );
 }
 

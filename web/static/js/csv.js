@@ -49,6 +49,8 @@ const FIELDS = [
   "temperature_min",
   "temperature_max",
   "precipitation",
+  // Beside the precipitation it comes from.
+  "snow_on_ground",
   "cloud_cover",
   "relative_humidity_mean",
   "wind_speed_mean",
@@ -86,6 +88,8 @@ function row(day) {
     // to report" and "nothing was measured", and the wet-bulb column beside it
     // already says which of the two it is: a figure, or a blank.
     if (field === "humid_heat") return texts.export.humidHeat[day.humid_heat] ?? "";
+    // "oui" or "non" where the server says, an empty cell where it does not.
+    if (field === "snow_on_ground") return texts.export.snow[day.snow_on_ground] ?? "";
     return cell(day[field]);
   });
 }

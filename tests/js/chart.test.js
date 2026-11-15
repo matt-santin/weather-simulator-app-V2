@@ -733,3 +733,36 @@ describe("the normals laid under the days", () => {
     );
   });
 });
+
+describe("snow on the ground, on the rain panel", () => {
+  // Days 3 to 5 and day 8 of ten: two runs.
+  const on = new Set([2, 3, 4, 7]);
+  const days = series(10, (index) => ({ snow_on_ground: on.has(index) }));
+  const node = chart(days, SCALE);
+  const geometry = frame(days.length);
+  const grounds = byClass(node, "chart-snow").filter((mark) => !mark.className.includes("sample"));
+
+  it("lays one ground per unbroken run, as wide as the run and as tall as the panel", () => {
+    assert.equal(grounds.length, 2);
+    const [long, short] = grounds;
+    assert.equal(Number(long.attrs.x), Math.round(edgeOf(geometry, 2) * 100) / 100);
+    assert.equal(Number(long.attrs.width), Math.round(3 * geometry.column * 100) / 100);
+    assert.equal(Number(short.attrs.width), Math.round(geometry.column * 100) / 100);
+    assert.equal(Number(long.attrs.y), geometry.rain.top);
+    assert.equal(Number(long.attrs.height), BOX.rain);
+  });
+
+  it("names it on the title line, and in the sentence of the drawing", () => {
+    assert.ok(byClass(node, "chart-legend-label").some((label) => label.textContent === texts.chart.snow));
+    assert.equal(node.attrs["aria-label"], texts.chart.label(null, true));
+  });
+
+  it("draws and names nothing where no day has snow, known or not", () => {
+    for (const quiet of [series(10), series(10, () => ({ snow_on_ground: false }))]) {
+      const plain = chart(quiet, SCALE);
+      assert.equal(byClass(plain, "chart-snow").length, 0);
+      assert.equal(byClass(plain, "chart-legend-label").length, 0);
+      assert.equal(plain.attrs["aria-label"], texts.chart.label(null));
+    }
+  });
+});

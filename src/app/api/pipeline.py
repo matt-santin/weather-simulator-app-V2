@@ -6,13 +6,15 @@
 2. The transformation block, neutral by default.
 3. The sky class, the temperature bands and the wet bulb, one function each,
    the same for ERA5 and CORDEX days.
+4. Snow on the ground, day by day (climate.on_ground), and its longest run.
 """
 
 from __future__ import annotations
 
 from datetime import date, timedelta
 
-from src.app.api.contract import Day, Grid, Series
+from src.app.api import climate
+from src.app.api.contract import Day, Grid, Series, SnowCover
 from src.app.domain.records import DailyRecord, Origin
 from src.app.domain.sky import classify_record
 from src.app.store import FIELDS, PERIODS, Cell, Period, Store
@@ -63,9 +65,27 @@ def grid(store: Store, cell: Cell) -> Grid:
     )
 
 
+def cover(days: list[Day]) -> SnowCover | None:
+    """The days with snow on the ground and their longest run (the first of two
+    equal ones), or None when no day of the range says whether there is snow."""
+    if all(d.snow_on_ground is None for d in days):
+        return None
+    best: list[Day] = []
+    run_: list[Day] = []
+    for day in days:
+        run_ = run_ + [day] if day.snow_on_ground else []
+        if len(run_) > len(best):
+            best = run_
+    if not best:
+        return SnowCover(days=0)
+    return SnowCover(days=sum(bool(d.snow_on_ground) for d in days), longest_days=len(best),
+                     longest_start=best[0].date, longest_end=best[-1].date)
+
+
 def run(store: Store, period: Period, cell: Cell, start: date, end: date) -> Series:
     transformed = block.apply(records(store, period, cell, start, end))
-    days = [Day.from_record(r, classify_record(r)) for r in transformed]
+    ground = climate.on_ground(store, period, cell, start, end) or [None] * len(transformed)
+    days = [Day.from_record(r, classify_record(r), g) for r, g in zip(transformed, ground)]
     simulated = period.source == "cordex"
     latitude, longitude = store.position(cell)
     return Series(
@@ -79,5 +99,6 @@ def run(store: Store, period: Period, cell: Cell, start: date, end: date) -> Ser
         cell_elevation=None if store.elevation(cell) is None else round(store.elevation(cell)),
         humid_heat_peak=max((d.humid_heat or 0 for d in days), default=0),
         grid=grid(store, cell) if simulated else None,
+        snow=cover(days),
         days=days,
     )

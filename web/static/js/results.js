@@ -61,6 +61,9 @@ const range = document.getElementById("range");
 const count = document.getElementById("count");
 const warning = document.getElementById("warning");
 const note = document.getElementById("humid-note");
+const snowCoverRow = document.getElementById("snow-cover");
+const snowCoverText = document.getElementById("snow-cover-text");
+const snowCoverMethod = document.getElementById("snow-cover-method");
 const wait = document.getElementById("wait");
 const failure = document.getElementById("failure");
 const calendar = document.getElementById("calendar");
@@ -319,6 +322,12 @@ async function show(series) {
   document.fonts?.ready.then(fitCalendar);
   window.addEventListener("resize", fitCalendar);
   humidNote(series.humid_heat_peak);
+  const snowLine = present.snowCover(series.snow, series.days);
+  if (snowLine) {
+    snowCoverText.textContent = snowLine;
+    snowCoverMethod.textContent = texts.snow.method(series.has_simulated);
+    snowCoverRow.hidden = false;
+  }
 
   // Offered as soon as the days are on screen, and before the chart: what the
   // file carries is the series, and a config that never arrives costs the
@@ -331,7 +340,7 @@ async function show(series) {
   const config = await settings;
   if (config) {
     scale = { edges: config.temperature_band_edges, step: config.temperature_band_step };
-    calendar.append(legend(config.temperature_band_edges));
+    calendar.append(legend(config.temperature_band_edges, (series.snow?.days ?? 0) > 0));
     drawn = chart(series.days, scale);
     chartPanel.append(drawn);
     chartPanel.hidden = false;

@@ -144,6 +144,26 @@ export function monthKey(iso) {
   return iso.slice(0, 7);
 }
 
+/** The months a winter's snow is counted in, as on the server (thresholds.SNOW_SEASON_MONTHS). */
+const SNOW_MONTHS = new Set(["11", "12", "01", "02", "03", "04"]);
+
+/**
+ * Snow on the ground over the days shown, in a sentence, from the `snow` of
+ * /api/days: "Neige au sol 52 jours, dont 27 de suite du 2 au 28 février."
+ * Empty where the server shows none, and for a range without snow that has no
+ * day from November to April: a summer has nothing to be told about snow.
+ */
+export function snowCover(cover, days) {
+  if (!cover) return "";
+  if (cover.days === 0) {
+    return days.some((day) => SNOW_MONTHS.has(day.date.slice(5, 7))) ? texts.snow.none : "";
+  }
+  const [from, to] = [cover.longest_start, cover.longest_end];
+  // "du 2 au 28 février" within a month, "du 28 janvier au 19 février" across two.
+  const first = from.slice(0, 7) === to.slice(0, 7) && from !== to ? dayOfMonth(from) : dayMonth(from);
+  return texts.snow.cover(cover.days, cover.longest_days, first, dayMonth(to));
+}
+
 /**
  * A sentence, cut where a footnote call belongs in it.
  *

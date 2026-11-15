@@ -438,6 +438,7 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
     ...(span && compared ? curves(geometry, compared, y, { tone: "past", points: false }) : []),
     ...(span ? curves(geometry, days, y) : []),
     rain(geometry, days),
+    snowLegend(geometry, days),
     cumul(geometry, days, compared),
     ...(span
       ? [
@@ -468,7 +469,7 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
         // The one sentence, and it names the normals when they are drawn:
         // a reader who gets nothing from a drawing must at least be told what
         // the drawing now holds.
-        "aria-label": texts.chart.label(legend),
+        "aria-label": texts.chart.label(legend, days.some(snowy)),
       },
     },
     marks,
@@ -766,12 +767,64 @@ function bars(frame, days, height) {
   });
 }
 
+/** Whether the server says there is snow on the ground that day. */
+const snowy = (day) => day.snow_on_ground === true;
+
+/**
+ * The days with snow on the ground, as a ground under the bars: one rectangle
+ * per unbroken run, the full height of the rain panel. A period is read from
+ * its width, which is why it is a ground and not a mark per day. Decided by the
+ * server day by day; nothing is derived here but where a run starts and ends.
+ */
+function snowGround(frame, days) {
+  const marks = [];
+  let from = null;
+  for (let index = 0; index <= days.length; index += 1) {
+    const on = index < days.length && snowy(days[index]);
+    if (on && from === null) from = index;
+    if (!on && from !== null) {
+      marks.push(
+        svg("rect", {
+          className: "chart-snow",
+          attrs: {
+            x: round(edgeOf(frame, from)),
+            y: frame.rain.top,
+            width: round((index - from) * frame.column),
+            height: frame.box.rain,
+          },
+        }),
+      );
+      from = null;
+    }
+  }
+  return marks;
+}
+
+/** The name of that ground, on the title line of the rain panel, when it is drawn. */
+function snowLegend(frame, days) {
+  if (!days.some(snowy)) return null;
+  const left = frame.plot.to - LEGEND.swatch;
+  const baseline = frame.rain.top - TITLE_LIFT;
+  return svg("g", { className: "chart-legend" }, [
+    svg("text", {
+      className: "chart-legend-label",
+      text: texts.chart.snow,
+      attrs: { x: round(left - LEGEND.gap), y: round(baseline), "text-anchor": "end" },
+    }),
+    svg("rect", {
+      className: "chart-snow sample",
+      attrs: { x: round(left), y: baseline - 8, width: LEGEND.swatch, height: 8 },
+    }),
+  ]);
+}
+
 function rain(frame, days) {
   const ceiling = rainCeiling(days);
   const height = (value) => (value / ceiling) * frame.box.rain;
   const scale = millimetres(frame, frame.rain.base, ceiling, height);
 
   return svg("g", { className: "chart-rain" }, [
+    ...snowGround(frame, days),
     ...scale.rules,
     ...bars(frame, days, height),
     ...scale.foot,

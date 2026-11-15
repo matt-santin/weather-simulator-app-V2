@@ -3938,6 +3938,86 @@ body.results .card--zoom {
   font-variant-numeric: tabular-nums;
 }
 
+/* Snow on the ground. On a card: a white bar laid inside its foot, clear of the
+   edges (a white edge would read as a shorter card on the white page), with a
+   hairline that keeps it visible on the palest tints. The same mark as a sample
+   in the legend of the calendar; on the chart, a bluish ground under the bars
+   of the rain. */
+body.results .card--snow:not(.card--zoom)::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 4px;
+  height: 5px;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(28, 20, 8, 0.35);
+  pointer-events: none;
+}
+
+.band-legend-snow {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 1.5);
+}
+
+.snow-sample {
+  width: 1.6rem;
+  height: 1rem;
+  position: relative;
+  border-radius: 4px;
+  background: var(--tile, #5c95e8);
+}
+
+.snow-sample::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  height: 4px;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(28, 20, 8, 0.35);
+}
+
+/* On the calendar of a wide window, the lower part of the card is white instead
+   (asked on 15/11/2026; cut at 40 %, just above the pictogram and the figure): the day keeps its tint above, the pictogram and the
+   maximum stand on the snow, in the dark ink whatever the band. The list of a
+   narrow window keeps the bar: its lines are read across, not top to bottom. */
+@media (min-width: 60rem) {
+  body.results .card--snow:not(.card--zoom) {
+    background: linear-gradient(var(--tile, var(--raised)) 0 40%, #fff 40% 100%);
+  }
+
+  body.results .card--snow:not(.card--zoom)::after {
+    content: none;
+  }
+
+  body.results .card--snow:not(.card--zoom) .card-temperatures {
+    color: #1c1408;
+  }
+
+  .snow-sample {
+    border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+    background: linear-gradient(var(--tile, #5c95e8) 0 40%, #fff 40% 100%);
+  }
+
+  .snow-sample::after {
+    content: none;
+  }
+}
+
+.chart-snow {
+  fill: color-mix(in srgb, var(--cool) 16%, transparent);
+}
+
+.chart-snow.sample {
+  stroke: color-mix(in srgb, var(--cool) 45%, transparent);
+  stroke-width: 0.75;
+}
+
 /* The matrix of years. */
 body.results .years-grid {
   gap: 4px;

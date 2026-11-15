@@ -220,6 +220,50 @@ describe("the footnote call", () => {
   });
 });
 
+describe("snow on the ground over the days shown", () => {
+  const winter = [{ date: "2013-01-31" }, { date: "2013-02-01" }];
+  const summer = [{ date: "2013-07-01" }];
+  const cover = (days, longest, from, to) => ({
+    days, longest_days: longest, longest_start: from, longest_end: to,
+  });
+
+  it("says nothing where the server shows none", () => {
+    assert.equal(present.snowCover(null, winter), "");
+    assert.equal(present.snowCover(undefined, winter), "");
+  });
+
+  it("says a winter had none, and keeps quiet about a summer", () => {
+    assert.equal(present.snowCover({ days: 0 }, winter), texts.snow.none);
+    assert.equal(present.snowCover({ days: 0 }, summer), "");
+  });
+
+  it("gives the days and the longest run, the month once when the run stays in it", () => {
+    assert.equal(
+      present.snowCover(cover(52, 27, "2013-02-02", "2013-02-28"), winter),
+      "Neige au sol 52 jours, dont 27 de suite du 2 au 28 février.",
+    );
+    assert.equal(
+      present.snowCover(cover(28, 23, "2061-01-28", "2061-02-19"), winter),
+      "Neige au sol 28 jours, dont 23 de suite du 28 janvier au 19 février.",
+    );
+  });
+
+  it("does not repeat a run that is the whole count", () => {
+    assert.equal(
+      present.snowCover(cover(14, 14, "2013-01-14", "2013-01-27"), winter),
+      "Neige au sol 14 jours, du 14 au 27 janvier.",
+    );
+    assert.equal(
+      present.snowCover(cover(1, 1, "2027-01-01", "2027-01-01"), winter),
+      "Neige au sol 1 jour, le 1 janvier.",
+    );
+    assert.equal(
+      present.snowCover(cover(3, 1, "2027-01-01", "2027-01-01"), winter),
+      "Neige au sol 3 jours, jamais deux de suite.",
+    );
+  });
+});
+
 /**
  * Where the promise breaks.
  *

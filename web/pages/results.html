@@ -167,6 +167,21 @@
       -->
       <p id="humid-note" class="humid-note" hidden></p>
 
+      <!-- Snow on the ground over the days shown: how many days and the longest
+           run, with its "?" (results.js). Hidden where the server shows none. -->
+      <div id="snow-cover" class="title-row snow-row" hidden>
+        <p id="snow-cover-text" class="compare-note"></p>
+        <button
+          type="button"
+          class="hint"
+          data-hint
+          aria-expanded="false"
+          aria-controls="snow-cover-method"
+          data-attr-aria-label="snow.hint"
+        >?</button>
+        <p id="snow-cover-method" class="hint-text" role="tooltip" hidden></p>
+      </div>
+
       <!--
         The seasonal normals: one button over the chart, and the menu of the
         reference period beside it, which also sets the grey of the climate

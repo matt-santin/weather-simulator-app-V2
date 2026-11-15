@@ -209,11 +209,15 @@ export const texts = {
     // A function of one argument, and the argument is the label of the normals
     // or nothing. Two separate sentences would be the same sentence written twice,
     // to drift the day either is reworded.
-    label: (normals) =>
+    label: (normals, snow = false) =>
       "Températures et précipitations de la période, jour par jour, " +
       "puis le cumul des précipitations dans un troisième panneau. " +
       "Les valeurs sont écrites dans la bande de journées ci-dessus." +
-      (normals ? ` Les ${normals.toLowerCase()} y sont superposées en gris.` : ""),
+      (normals ? ` Les ${normals.toLowerCase()} y sont superposées en gris.` : "") +
+      (snow ? " Les jours de neige au sol sont sur fond bleuté dans le panneau des précipitations." : ""),
+
+    // The ground under the bars of the rain panel, named on its title line.
+    snow: "Neige au sol",
 
     // What each panel plots, over it. The second says the same word as
     // `measure.precipitation` and is written twice on purpose: that one names a
@@ -499,6 +503,7 @@ export const texts = {
       `Température minimale (${texts.units.celsius})`,
       `Température maximale (${texts.units.celsius})`,
       `${texts.measure.precipitation} (${texts.units.millimetres})`,
+      "Neige au sol",
       "Nébulosité (%)",
       `${texts.measure.humidity} (${texts.units.percent})`,
       `Vent moyen (${texts.units.kilometresPerHour})`,
@@ -506,6 +511,7 @@ export const texts = {
       "Chaleur humide",
       "Ciel",
     ],
+    snow: { true: "oui", false: "non" },
     origin: {
       observed: "Réanalyse",
       simulated: "Simulation",
@@ -716,6 +722,34 @@ export const texts = {
     precipitation: "Précipitations",
     humidity: "Humidité",
     wind: "Vent moyen",
+    snow: "Neige au sol",
+    yes: "oui",
+  },
+
+  // Snow on the ground, day by day: the mark of a card, the line under the
+  // calendar and its "?".
+  snow: {
+    onGround: "Neige au sol",
+    legend: "neige au sol",
+    hint: "Comment la neige au sol est estimée",
+    none: "Aucun jour de neige au sol sur la période.",
+    // "Neige au sol 52 jours, dont 27 de suite du 2 au 28 février."
+    cover: (days, longest, from, to) => {
+      const count = days === 1 ? "1 jour" : `${days} jours`;
+      if (days === 1) return `Neige au sol ${count}, le ${from}.`;
+      if (longest === days) return `Neige au sol ${count}, du ${from} au ${to}.`;
+      if (longest === 1) return `Neige au sol ${count}, jamais deux de suite.`;
+      return `Neige au sol ${count}, dont ${longest} de suite du ${from} au ${to}.`;
+    },
+    method: (simulated) =>
+      "La neige au sol n'est pas mesurée : elle est estimée à partir de la température moyenne et des " +
+      "précipitations de chaque jour. Ce qui tombe par temps froid s'accumule, puis fond quand il dégèle. " +
+      "Les dates sont justes à quelques jours près, moins bien en montagne. Les jours concernés ont " +
+      "le bas de leur tuile en blanc sur le calendrier et un fond bleuté sur le graphique des précipitations." +
+      (simulated
+        ? " Pour une année simulée, c'est la neige d'un hiver possible du modèle, qui en donne un peu trop " +
+          "en plaine : ce compte n'est pas celui du diagramme climatique, recalé sur le passé."
+        : ""),
   },
 
   // Handed to fetch.js, which transports and does not write. Separate sentences

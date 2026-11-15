@@ -51,9 +51,12 @@ class Day(BaseModel):
         default=None, description=f"0 to {temperature.BAND_COUNT - 1}, band of the minimum"
     )
     temperature_max_band: int | None = Field(default=None, description="band of the maximum")
+    snow_on_ground: bool | None = Field(
+        default=None, description="snow on the ground that day (src.app.domain.snow); null where it is not shown"
+    )
 
     @classmethod
-    def from_record(cls, record: DailyRecord, sky: SkyClass | None) -> Day:
+    def from_record(cls, record: DailyRecord, sky: SkyClass | None, snow: bool | None = None) -> Day:
         """Values are rounded on the way out, after every rule has read the full ones."""
         low_band, high_band = temperature.bands_of(record)
         wet_bulb = humidity.wet_bulb_of_record(record)
@@ -72,6 +75,7 @@ class Day(BaseModel):
             sky=sky,
             temperature_min_band=low_band,
             temperature_max_band=high_band,
+            snow_on_ground=snow,
         )
 
 
@@ -157,6 +161,15 @@ class Climate(BaseModel):
     reference_snow: ClimateSnow | None = None
 
 
+class SnowCover(BaseModel):
+    """Snow on the ground over the days of a search, and its longest unbroken run."""
+
+    days: int = Field(description="days with snow on the ground")
+    longest_days: int = Field(default=0, description="days of the longest run")
+    longest_start: date | None = Field(default=None, description="first day of the longest run")
+    longest_end: date | None = None
+
+
 class Series(BaseModel):
     """The answer to one search."""
 
@@ -171,6 +184,8 @@ class Series(BaseModel):
         default=None, description="metres; mean altitude of the temperature cell, when the store knows it")
     humid_heat_peak: int = Field(default=0, description="Highest humid-heat level of the range")
     grid: Grid | None = Field(default=None, description="Null for ERA5 days")
+    snow: SnowCover | None = Field(
+        default=None, description="Null where snow on the ground is not shown, or for a range with none of its days known")
     days: list[Day]
 
 

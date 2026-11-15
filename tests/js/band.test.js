@@ -409,3 +409,34 @@ describe("the legend of the calendar", () => {
     assert.equal(chips[9].textContent, "≥ 40");
   });
 });
+
+describe("snow on the ground", () => {
+  const snowy = card(day("2013-02-02", "observed", { snow_on_ground: true }), false);
+  const bare = card(day("2013-02-01", "observed", { snow_on_ground: false }), false);
+  const unknown = card(day("2013-01-31", "observed"), false);
+
+  it("marks the card of a day that has it, and no other", () => {
+    assert.ok(snowy.className.split(" ").includes("card--snow"));
+    assert.ok(!bare.className.split(" ").includes("card--snow"));
+    assert.ok(!unknown.className.split(" ").includes("card--snow"));
+  });
+
+  it("says it aloud and in the table of the enlarged card, on that day alone", () => {
+    assert.ok(reads(snowy).includes(texts.snow.onGround));
+    assert.ok(!reads(bare).includes(texts.snow.onGround));
+    assert.ok(said(snowy, "card-detail").includes(`${texts.detail.snow}${texts.detail.yes}`));
+    assert.ok(!said(bare, "card-detail").includes(texts.detail.snow));
+  });
+
+  it("keeps the two temperatures first in the table, where the gaps to the normal are set", () => {
+    const [detail] = byClass(snowy, "card-detail");
+    const labels = walk(detail).filter((node) => node.tag === "dt").map((node) => node.textContent);
+    assert.deepEqual(labels.slice(0, 2), [texts.detail.high, texts.detail.low]);
+    assert.equal(labels.at(-1), texts.detail.snow);
+  });
+
+  it("names its mark in the legend of the calendar only when asked", () => {
+    assert.equal(byClass(legend([5, 10]), "band-legend-snow").length, 0);
+    assert.equal(said(legend([5, 10], true), "band-legend-snow"), texts.snow.legend);
+  });
+});

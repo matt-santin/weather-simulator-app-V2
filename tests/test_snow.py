@@ -169,3 +169,73 @@ def test_no_snow_above_the_gate_or_without_altitude(client: TestClient, where: d
     assert answer["snow"] is None and answer["reference_snow"] is None
     assert len(answer["months"]) == 12
 
+
+# --- snow on the ground day by day (/api/days) ---------------------------------
+
+def test_each_day_says_whether_there_is_snow_from_the_stock_since_august(client: TestClient, store: Store) -> None:
+    cell = store.cell(**CORNER)
+    start, end = date(1978, 3, 1), date(1978, 5, 31)
+    answer = client.get("/api/days", params={**CORNER, "start": start.isoformat(), "end": end.isoformat()}).json()
+    origin = date(1977, 8, 1)
+    values = store.values("era5", cell, origin, end, ("tas", "pr"))
+    expected = snow.on_ground(values["tas"], values["pr"], origin)[at(origin, start):].tolist()
+    assert [d["snow_on_ground"] for d in answer["days"]] == expected
+    assert any(expected), "the small store has no snow that winter"
+
+
+def test_the_cover_counts_the_days_and_gives_the_longest_run(client: TestClient) -> None:
+    answer = client.get("/api/days", params={**CORNER, "start": "1978-03-01", "end": "1978-05-31"}).json()
+    flags = [d["snow_on_ground"] for d in answer["days"]]
+    dates = [d["date"] for d in answer["days"]]
+    runs, k = [], 0
+    while k < len(flags):
+        if flags[k]:
+            j = k
+            while j + 1 < len(flags) and flags[j + 1]:
+                j += 1
+            runs.append((j - k + 1, dates[k], dates[j]))
+            k = j
+        k += 1
+    longest = max(runs, key=lambda r: r[0])
+    assert len(runs) >= 1 and 0 < sum(flags) < len(flags)
+    assert answer["snow"] == {"days": sum(flags), "longest_days": longest[0],
+                              "longest_start": longest[1], "longest_end": longest[2]}
+
+
+def test_a_range_without_snow_has_a_cover_of_zero(client: TestClient) -> None:
+    answer = client.get("/api/days", params={**GRENOBLE, "start": "1985-07-01", "end": "1985-07-10"}).json()
+    assert answer["snow"] == {"days": 0, "longest_days": 0, "longest_start": None, "longest_end": None}
+    assert all(d["snow_on_ground"] is False for d in answer["days"])
+
+
+def test_no_snow_by_day_above_the_gate_nor_at_an_unknown_altitude(client: TestClient) -> None:
+    for place in (HIGH, UNKNOWN):
+        answer = client.get("/api/days", params={**place, "start": "1985-01-01", "end": "1985-01-10"}).json()
+        assert answer["snow"] is None
+        assert all(d["snow_on_ground"] is None for d in answer["days"])
+
+
+def test_the_days_before_the_first_august_held_are_left_unknown(client: TestClient) -> None:
+    answer = client.get("/api/days", params={**GRENOBLE, "start": "1970-07-25", "end": "1970-08-05"}).json()
+    flags = [d["snow_on_ground"] for d in answer["days"]]
+    assert flags[:7] == [None] * 7 and all(f is False for f in flags[7:])
+    early = client.get("/api/days", params={**GRENOBLE, "start": "1970-01-01", "end": "1970-01-10"}).json()
+    assert early["snow"] is None
+
+
+def test_simulated_days_carry_snow_only_where_the_model_has_enough(client: TestClient, store: Store) -> None:
+    for place in (CORNER, GRENOBLE):
+        cell = store.cell(**place)
+        # July and August 2027: snow on the small store's CORNER, and the stock emptied on 1 August.
+        answer = client.get("/api/days", params={**place, "start": "2027-07-01", "end": "2027-08-20"}).json()
+        flags = [d["snow_on_ground"] for d in answer["days"]]
+        if climate.rare(store, cell):
+            assert answer["snow"] is None and flags == [None] * 51
+        else:
+            origin = date(2026, 8, 1)  # before the served period: the stock is the model's own
+            values = store.values("cordex", cell, origin, date(2027, 8, 20), ("tas", "pr"))
+            assert flags == snow.on_ground(values["tas"], values["pr"], origin)[at(origin, date(2027, 7, 1)):].tolist()
+            assert any(flags) and flags[31] is False
+    # The two places differ: one is rare in the model, the other is not (conftest.py).
+    rares = {climate.rare(store, store.cell(**place)) for place in (CORNER, GRENOBLE)}
+    assert rares == {True, False}

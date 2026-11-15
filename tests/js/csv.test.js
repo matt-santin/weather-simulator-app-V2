@@ -59,6 +59,7 @@ describe("the days as a file", () => {
       "21,4",
       "39",
       "0",
+      "",
       "12,5",
       "63,4",
       "9",
@@ -66,6 +67,17 @@ describe("the days as a file", () => {
       "Chaleur humide",
       "Dégagé",
     ]);
+  });
+
+  it("says the snow on the ground beside the precipitation, and nothing where it is not shown", () => {
+    const at = texts.export.columns().indexOf("Neige au sol");
+    const read = (over) => cells(lines(toCsv([day(over)]))[1])[at];
+
+    assert.equal(at, texts.export.columns().indexOf("Nébulosité (%)") - 1);
+    assert.equal(read({ snow_on_ground: true }), "oui");
+    assert.equal(read({ snow_on_ground: false }), "non");
+    assert.equal(read({ snow_on_ground: null }), "");
+    assert.equal(read({}), "");
   });
 
   it("keeps the humid-heat level beside the figure it qualifies", () => {

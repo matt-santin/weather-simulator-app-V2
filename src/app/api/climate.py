@@ -95,13 +95,46 @@ def snow_days(store: Store, source: str, cell: Cell, first: int, last: int) -> t
     return sum(counts.values()) / len(counts), len(counts)
 
 
+def counted(store: Store, cell: Cell) -> bool:
+    """Whether snow is counted at the cell. The gate is for temperatures left at
+    the altitude of their cell."""
+    altitude = store.elevation(cell)
+    return cell.lift is not None or (
+        altitude is not None and altitude <= thresholds.SNOW_MAX_ELEVATION_M)
+
+
+def rare(store: Store, cell: Cell) -> bool:
+    """Whether snow is too rare in the model, over SNOW_BASELINE, to be shown."""
+    return snow_days(store, "cordex", cell, *SNOW_BASELINE)[0] < thresholds.SNOW_RARE_DAYS
+
+
+def on_ground(store: Store, period: Period, cell: Cell, start: date, end: date) -> list[bool | None] | None:
+    """Whether there is snow on the ground on each day of start..end, or None
+    where it is not shown: where it is not counted, and, for simulated days,
+    where the model has too little of it (the figure of the diagram is then
+    "rare" too). The stock runs from the 1 August before ``start``, in the same
+    source; the days before the first 1 August the source holds are left null."""
+    if not counted(store, cell) or (period.source == "cordex" and rare(store, cell)):
+        return None
+    held = max(store.first[name] for name in (period.source, FINE[period.source]) if name in store.first)
+    origin = date(start.year - (start.month < thresholds.SNOW_RESET_MONTH), thresholds.SNOW_RESET_MONTH, 1)
+    while origin < held:
+        origin = date(origin.year + 1, origin.month, 1)
+    out: list[bool | None] = [None] * ((end - start).days + 1)
+    if origin > end:
+        return out
+    values = store.values(period.source, cell, origin, end, ("tas", "pr"))
+    ground = snow.on_ground(values["tas"], values["pr"], origin).tolist()
+    skipped = max((origin - start).days, 0)
+    out[skipped:] = ground[max((start - origin).days, 0):]
+    return out
+
+
 def snows(store: Store, cell: Cell, period: Period, first: int, last: int,
           ref_first: int, ref_last: int) -> tuple[ClimateSnow | None, ClimateSnow | None]:
     """Snow on the ground over the window and over the reference, or nothing
     where it is not counted."""
-    # The gate is for temperatures left at the altitude of their cell.
-    altitude = store.elevation(cell)
-    if cell.lift is None and (altitude is None or altitude > thresholds.SNOW_MAX_ELEVATION_M):
+    if not counted(store, cell):
         return None, None
     days, winters = snow_days(store, normals.SOURCE, cell, ref_first, ref_last)
     reference = ClimateSnow(days=rounded(days), winters=winters)

@@ -59,7 +59,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | Appel | Rôle |
 |---|---|
 | `GET /api/config` | périodes servies, plage maximale, échelle des températures, adresse du géocodage, simulation servie |
-| `GET /api/days?latitude&longitude&start&end` | la série journalière classée, ou un refus avec sa phrase |
+| `GET /api/days?latitude&longitude&start&end` | la série journalière classée, avec la neige au sol jour par jour (section 15), ou un refus avec sa phrase |
 | `GET /api/normals?latitude&longitude&start&end` | les normales (Tx, Tn, précipitations) aux mêmes dates, `reference` = 1971, 1981 ou 1991 (section 5), mêmes refus |
 | `GET /api/climate?latitude&longitude&start&end&reference` | le diagramme climatique du lieu (section 6), mêmes refus |
 | `GET /api/years?latitude&longitude&start&end&reference` | les mêmes dates chaque année de 1970 à 2100 (section 7), mêmes refus |
@@ -186,7 +186,7 @@ Après la reconstruction sur E-OBS, contre le serveur local :
 
 ## 10. Tests
 
-`python -m pytest` (198 tests au 13/11/2026, hors `tests/test_grass.py`) : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages), suite JavaScript (`node --test`, si `node` est installé) et, depuis le 13/11/2026, calculs de la correction (`tests/test_correction.py`, `docs/correction.md` section 12).
+`python -m pytest` (234 tests au 15/11/2026, hors `tests/test_grass.py`) : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages), suite JavaScript (`node --test`, si `node` est installé) et, depuis le 13/11/2026, calculs de la correction (`tests/test_correction.py`, `docs/correction.md` section 12).
 
 ## 11. Formulaire : une année ou un type de saison
 
@@ -273,6 +273,34 @@ Sous le diagramme climatique, une ligne : « Neige au sol : 6 jours par hiver en
 - `/api/climate` renvoie `snow` et `reference_snow` (`days`, `rare`, `winters`, et pour une fenêtre simulée `baseline_start_year`, `baseline_end_year`), ou `null`. Coût : 15 à 45 ms de plus par appel.
 - Affichage : jours entiers ; « moins d'un jour », « aucun jour ».
 - Synthèse d'un hiver : un chiffre de plus en tête de page, « 27 jours de neige au sol par hiver, en moyenne sur 2086-2100 », avec sa valeur sur la période de référence (`snowFigure` dans `web/static/js/summary.js`). C'est la moyenne du climat du lieu, pas le compte de l'hiver affiché ; le « ? » de la synthèse le dit. Absent quand la neige est trop rare ou non comptée.
+
+### Neige au sol jour par jour (15/11/2026)
+
+La même neige, pour les journées de la recherche : quelles tuiles sont enneigées, et de quand à quand.
+
+- Serveur : chaque journée de `/api/days` porte `snow_on_ground` (vrai, faux, ou `null` quand la neige n'est pas montrée), et la série porte `snow` : `days`, `longest_days`, `longest_start`, `longest_end` (plus longue suite de jours enneigés ; la première en cas d'égalité), ou `null`. Calcul : `on_ground` dans `src/app/api/climate.py`, `cover` dans `src/app/api/pipeline.py`. Le stock est déroulé depuis le 1er août qui précède le début de la recherche, dans la même source. Coût : environ 5 à 40 ms par appel.
+- Pas montrée (`null`) : là où la neige n'est pas comptée (seuil de 800 m sans altitude du lieu, altitude inconnue) ; pour des journées simulées, là où le diagramme climatique dit « trop rare » (sous 3 jours par hiver dans le modèle sur 1991-2020) ; avant le 1er août 1970, le stock n'ayant pas de point de départ.
+- Journées simulées : c'est la neige brute de l'hiver du modèle, non recalée. Le modèle en a plus que les données passées sur les mêmes années (environ 50 % de jours en plus à Lyon, 10 % dans les lieux enneigés, `docs/neige.md`) : compter les tuiles ne redonne pas le chiffre du diagramme climatique, obtenu par la méthode du rapport. Le « ? » de la ligne le dit. L'hiver 2026-2027 est déroulé depuis août 2026 dans le groupe `cordex`, bien que 2026 ne soit pas servie.
+- Tuiles : le bas de la tuile en blanc, coupé à 40 % de sa hauteur, juste au-dessus du pictogramme et du maximum ; la teinte de la température reste sur le bandeau du haut (`card--snow`, feuille de style). Sur écran étroit, où les journées sont en liste, une barre blanche au pied de la ligne. Les mots « Neige au sol » lus par un lecteur d'écran, une ligne « Neige au sol : oui » dans la tuile agrandie. Ce n'est pas le pictogramme de neige, qui dit qu'il neige ce jour-là (seuil de 1,5 °C). La légende du calendrier nomme la marque quand la période en porte une.
+- Graphique : fond bleuté sur toute la hauteur du panneau des précipitations, un rectangle par suite de jours enneigés, nommé « Neige au sol » sur la ligne du titre (`snowGround`, `snowLegend` dans `web/static/js/chart.js`).
+- Phrase sous le calendrier : « Neige au sol 75 jours, dont 27 de suite du 2 au 28 février. » ; « Aucun jour de neige au sol sur la période. » si la période touche les mois de novembre à avril, rien sinon (`snowCover` dans `web/static/js/present.js`). Son « ? » donne la méthode et ses limites.
+- Export : colonne « Neige au sol » (oui, non, vide), après les précipitations.
+- Pas d'épaisseur. Essai du 14/11/2026 (`figures/neige/epaisseur.py`, journal `data/neige/epaisseur.log`) : le stock converti en centimètres (neige fraîche à 100 kg/m³, tassement vers 300 kg/m³ en 20 jours, valeurs calées sur 1971-2000) tient sous 800 m (4 à 6 cm d'erreur sur le maximum d'hiver, contrôle 2001-2020, 1 229 stations) mais sous-estime de 30 % entre 800 et 1 500 m (31 stations) et de moitié sur les sommets (5 stations), les précipitations de la maille n'étant pas corrigées de l'altitude. Non intégré.
+
+Contrôle sur le stockage réel (hiver de décembre à février, altitude du lieu donnée) :
+
+| Lieu | Période | Jours enneigés | Plus longue suite |
+|---|---|---|---|
+| Gresse-en-Vercors (1 224 m) | 2012-2013 | 75 | 2 au 28 février |
+| Gresse-en-Vercors | 2060-2061 | 25 | 29 janvier au 17 février |
+| Gresse-en-Vercors | 2093-2094 | 10 | 17 au 21 février |
+| Pontarlier (837 m) | 2012-2013 | 68 | 2 au 28 février |
+| Pontarlier | 2060-2061 | 28 | 28 janvier au 19 février |
+| Strasbourg | 2012-2013 | 28 | 14 au 27 janvier |
+| Strasbourg | 2093-2094 | 0 | |
+| Bordeaux | 2060-2061 | non montrée | |
+
+Tests : `tests/test_snow.py` (journées, suite la plus longue, seuils, 1970, rareté), `tests/js/band.test.js`, `chart.test.js`, `present.test.js`, `csv.test.js`.
 
 Contrôle du bloc climat sur le stockage réel (jours par hiver) :
 
