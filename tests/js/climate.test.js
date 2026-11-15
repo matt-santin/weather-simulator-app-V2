@@ -108,3 +108,52 @@ describe("the rain bars", () => {
     assert.ok(Number(grey.attrs.x) + Number(grey.attrs.width) <= Number(blue.attrs.x));
   });
 });
+
+describe("snow on the ground", () => {
+  it("is absent where the server counts none", async () => {
+    const { snow } = await import("../../web/static/js/climate.js");
+    assert.equal(snow(answer(months())), null);
+    assert.equal(snow({ ...answer(months()), snow: null, reference_snow: null }), null);
+  });
+
+  it("gives whole days per winter for the window and the reference", async () => {
+    const { snow } = await import("../../web/static/js/climate.js");
+    const past = {
+      ...answer(months()),
+      window: { start_year: 2011, end_year: 2025, origin: "observed", source: "ERA5" },
+      snow: { days: 3.9, rare: false, winters: 15, baseline_start_year: null, baseline_end_year: null },
+      reference_snow: { days: 7.6, rare: false, winters: 30 },
+    };
+    const { line, method } = snow(past);
+    assert.equal(line, "Neige au sol : 4 jours par hiver en 2011-2025 ; 8 jours par hiver en 1991-2020.");
+    // A past window is counted, not scaled: the note does not speak of the model.
+    assert.ok(!method.includes("modèle"));
+  });
+
+  it("says what a simulated figure is scaled from", async () => {
+    const { snow } = await import("../../web/static/js/climate.js");
+    const future = {
+      ...answer(months()),
+      snow: { days: 0.6, rare: false, winters: 15, baseline_start_year: 1991, baseline_end_year: 2020 },
+      reference_snow: { days: 1, rare: false, winters: 30 },
+    };
+    const { line, method } = snow(future);
+    assert.equal(line, "Neige au sol : 1 jour par hiver en 2077-2091 ; 1 jour par hiver en 1991-2020.");
+    assert.ok(method.includes("le nombre observé en 1991-2020"));
+    assert.ok(snow({ ...future, snow: { ...future.snow, days: 0.4 } }).line.includes("moins d'un jour par hiver"));
+    assert.ok(snow({ ...future, snow: { ...future.snow, days: 0 } }).line.includes("aucun jour par hiver"));
+  });
+
+  it("gives no number where snow is too rare in the model", async () => {
+    const { snow } = await import("../../web/static/js/climate.js");
+    const rare = {
+      ...answer(months()),
+      snow: { days: null, rare: true, winters: 15, baseline_start_year: 1991, baseline_end_year: 2020 },
+      reference_snow: { days: 1.2, rare: false, winters: 30 },
+    };
+    assert.equal(
+      snow(rare).line,
+      "Neige au sol : trop rare pour être chiffrée en 2077-2091 ; 1 jour par hiver en 1991-2020.",
+    );
+  });
+});

@@ -37,7 +37,7 @@ import {
 import { legend, sources, strip } from "./band.js";
 import { chart } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
-import { diagram, summary, years as yearsOf } from "./climate.js";
+import { diagram, snow as snowOf, summary, years as yearsOf } from "./climate.js";
 import { alignByDate, gapTone, referenceYears } from "./compare.js";
 import { toCsv, fileName } from "./csv.js";
 import { applyTexts, el } from "./dom.js";
@@ -49,7 +49,7 @@ import { insideMap, MAP_LATITUDE, mapHref, seasonOfDay, seasonYear } from "./lin
 import { fillNav } from "./nav.js";
 import { DRAWN, drawAnother, kindLabels, kindsOf } from "./kinds.js";
 import { dominantSeason, rangeOf, yearsFor } from "./season.js";
-import { figures as summaryFigures, heading as summaryHeading, standing } from "./summary.js";
+import { figures as summaryFigures, heading as summaryHeading, snowFigure, standing } from "./summary.js";
 
 const place = document.getElementById("place");
 const summaryMap = document.getElementById("summary-map");
@@ -82,6 +82,9 @@ const climateLegendRain = document.getElementById("climate-legend-rain");
 const climateLegendReference = document.getElementById("climate-legend-reference");
 const climateSummary = document.getElementById("climate-summary");
 const climateSummaryReference = document.getElementById("climate-summary-reference");
+const climateSnowRow = document.getElementById("climate-snow-row");
+const climateSnow = document.getElementById("climate-snow");
+const climateSnowMethod = document.getElementById("climate-snow-method");
 const climateStatus = document.getElementById("climate-status");
 const climateFailure = document.getElementById("climate-failure");
 
@@ -551,6 +554,29 @@ const GAP = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0, signDispl
 
 // --- the summary card ----------------------------------------------------------
 
+/**
+ * One more figure on a winter: snow on the ground, from the climate of the
+ * place. It comes from another call than the summary, so it is added when it
+ * arrives, if the summary on screen is still the one it was asked for; it
+ * failing leaves the summary as it is.
+ */
+async function addSnow(reference, turn) {
+  try {
+    const figure = snowFigure(await climateFor(reference));
+    if (!figure || turn !== summaryTurn) return;
+    summaryList.append(
+      el("li", { className: "summary-figure" }, [
+        el("p", { className: "summary-value", text: figure.value }),
+        el("p", { className: "summary-label", text: figure.label }),
+        el("p", { className: "summary-normal", text: figure.normal }),
+      ]),
+    );
+    summaryMethod.textContent += texts.summary.snowMethod;
+  } catch {
+    // The diagram below says the failure, where the figure comes from.
+  }
+}
+
 const summaries = new Map();
 let summaryTurn = 0;
 
@@ -586,6 +612,7 @@ async function showSummary() {
       ),
     );
     summarySection.hidden = false;
+    if (shownSeason === "winter") addSnow(reference, turn);
   } catch {
     // The summary failing is not the page failing: the days are on screen.
     if (turn === summaryTurn) summarySection.hidden = true;
@@ -611,6 +638,16 @@ async function offerMap(shownSeason) {
 }
 
 const climates = new Map();
+/** The answer of /api/climate for a reference: asked once, by whoever needs it
+ * first (the diagram, or the snow of the summary). A failure is not kept. */
+function climateFor(reference) {
+  if (!climates.has(reference)) {
+    const pending = climateOf(asked, reference);
+    climates.set(reference, pending);
+    pending.catch(() => climates.delete(reference));
+  }
+  return climates.get(reference);
+}
 let climateTurn = 0;
 
 /**
@@ -624,13 +661,9 @@ async function showClimate() {
   climateSection.hidden = false;
 
   try {
-    if (!climates.has(reference)) {
-      climateStatus.textContent = texts.climate.loading;
-      climates.set(reference, await climateOf(asked, reference));
-    }
+    climateStatus.textContent = texts.climate.loading;
+    const answer = await climateFor(reference);
     if (turn !== climateTurn) return;
-
-    const answer = climates.get(reference);
     const years = yearsOf(answer.window);
     const referenceYears = yearsOf(answer.reference);
     climatePanel.replaceChildren(diagram(answer));
@@ -644,9 +677,14 @@ async function showClimate() {
     climateLegendReference.textContent = texts.climate.legendReference(referenceYears);
     climateSummary.textContent = sentence(years, summary(answer.months));
     climateSummaryReference.textContent = sentence(referenceYears, summary(answer.reference_months));
+    const snow = snowOf(answer);
+    climateSnowRow.hidden = !snow;
+    climateSnow.textContent = snow ? snow.line : "";
+    climateSnowMethod.textContent = snow ? snow.method : "";
   } catch (error) {
     if (turn !== climateTurn) return;
     climatePanel.replaceChildren();
+    climateSnowRow.hidden = true;
     climateFailure.hidden = false;
     climateFailure.textContent =
       error instanceof SearchError ? error.message : texts.transport.serviceFailed;

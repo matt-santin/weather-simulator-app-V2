@@ -116,3 +116,26 @@ export function figures(answer, season) {
   }
   return out;
 }
+
+/**
+ * Snow on the ground, as one more figure of a winter, from the answer of
+ * /api/climate: days per winter over the 15 years around the search, beside the
+ * reference. Not the count of the winter shown: a simulated winter has none
+ * (the figure is a mean scaled from the observed one, climate.js). Null where
+ * the server counts no snow, or too little to give a number.
+ */
+export function snowFigure(climate) {
+  const own = climate?.snow;
+  const reference = climate?.reference_snow;
+  if (!own || !reference || own.rare || own.days === null || reference.days === null) return null;
+  const words = texts.summary;
+  const years = ({ start_year: first, end_year: last }) => `${first}-${last}`;
+  const days = Math.round(own.days);
+  return {
+    key: "snow",
+    value: String(days),
+    label: words.snow(days, years(climate.window)),
+    normal: words.normal(years(climate.reference), String(Math.round(reference.days))),
+    tone: "",
+  };
+}

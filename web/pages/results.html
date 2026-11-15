@@ -266,6 +266,23 @@
         </ul>
         <p id="climate-summary" class="compare-note"></p>
         <p id="climate-summary-reference" class="compare-note"></p>
+        <!--
+          Snow on the ground, days per winter: absent where the server counts
+          none (results.js, climate.js). The note behind the "?" is written with
+          the line: a simulated figure says what it is scaled from.
+        -->
+        <div id="climate-snow-row" class="title-row snow-row" hidden>
+          <p id="climate-snow" class="compare-note"></p>
+          <button
+            type="button"
+            class="hint"
+            data-hint
+            aria-expanded="false"
+            aria-controls="climate-snow-method"
+            data-attr-aria-label="climate.snowHint"
+          >?</button>
+          <p id="climate-snow-method" class="hint-text" role="tooltip" hidden></p>
+        </div>
         <p id="climate-status" class="compare-note" aria-live="polite"></p>
         <p id="climate-failure" class="failure" role="alert" hidden></p>
       </section>

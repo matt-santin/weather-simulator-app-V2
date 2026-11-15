@@ -103,3 +103,28 @@ describe("where the season stands among the observed ones", () => {
     assert.equal(standing(rank(0), "nothing"), "");
   });
 });
+
+describe("snow on the ground, as a figure of a winter", () => {
+  const climate = (snow, reference = { days: 75.3, rare: false, winters: 30 }) => ({
+    window: { start_year: 2086, end_year: 2100 },
+    reference: { start_year: 1991, end_year: 2020 },
+    snow,
+    reference_snow: reference,
+  });
+
+  it("is a mean over the years around the search, beside the reference", async () => {
+    const { snowFigure } = await import("../../web/static/js/summary.js");
+    const figure = snowFigure(climate({ days: 26.7, rare: false, winters: 15 }));
+    assert.equal(figure.value, "27");
+    assert.equal(figure.label, "jours de neige au sol par hiver, en moyenne sur 2086-2100");
+    assert.equal(figure.normal, "normale 1991-2020 : 75");
+    assert.ok(snowFigure(climate({ days: 0.6, rare: false, winters: 15 })).label.startsWith("jour de neige"));
+  });
+
+  it("is left out where the server gives no number", async () => {
+    const { snowFigure } = await import("../../web/static/js/summary.js");
+    assert.equal(snowFigure(climate(null, null)), null);
+    assert.equal(snowFigure(climate({ days: null, rare: true, winters: 15 })), null);
+    assert.equal(snowFigure(null), null);
+  });
+});

@@ -244,6 +244,12 @@ export const texts = {
     summer_days: (n) => `${n < 2 ? "journée" : "journées"} au-dessus de 25\u00a0°C`,
     frost_days: (n) => `${n < 2 ? "jour" : "jours"} de gel (minimale sous 0\u00a0°C)`,
     precipitation: (total) => `de pluie par rapport à la normale (${total}\u00a0mm)`,
+    // A mean of the winters around the one shown, and said so: no winter has its own count.
+    snow: (n, years) =>
+      `${n < 2 ? "jour" : "jours"} de neige au sol par hiver, en moyenne sur ${years}`,
+    snowMethod:
+      " La neige au sol est une moyenne sur les 15 années autour de l'hiver affiché, pas le compte " +
+      "de cet hiver : voir le climat du lieu, plus bas.",
     // Where the season stands among the observed ones (summary.js, `standing`).
     // Every season name is masculine; "printemps" does not change in the plural.
     seasons: { summer: ["été", "étés"], winter: ["hiver", "hivers"], spring: ["printemps", "printemps"], autumn: ["automne", "automnes"] },
@@ -318,6 +324,31 @@ export const texts = {
       `${years}, et en gris ${referenceYears}. ` +
       "Les valeurs sont résumées sous le diagramme.",
     loading: "Calcul du diagramme climatique…",
+    // Snow on the ground, under the two lines of the summary. A simulated
+    // figure is scaled from the observed one (`baseline`), and says so.
+    snowHint: "Comment la neige au sol est comptée",
+    snowDays: (days) => {
+      if (days === 0) return "aucun jour";
+      const whole = Math.round(days);
+      if (whole === 0) return "moins d'un jour";
+      return whole === 1 ? "1 jour" : `${whole} jours`;
+    },
+    snow: (own, years, reference, referenceYears) =>
+      `Neige au sol : ${own} par hiver en ${years} ; ${reference} par hiver en ${referenceYears}.`,
+    snowRare: (years, reference, referenceYears) =>
+      `Neige au sol : trop rare pour être chiffrée en ${years} ; ` +
+      `${reference} par hiver en ${referenceYears}.`,
+    snowMethod: (baseline) =>
+      "Jours avec de la neige au sol, de novembre à avril, en moyenne par hiver. Ils sont calculés à " +
+      "partir des températures et des précipitations du lieu : la neige s'accumule les jours froids et " +
+      "fond dès qu'il dégèle. Écart habituel aux observations : environ une semaine par hiver. " +
+      "Non calculé au-dessus de 800 m." +
+      (baseline
+        ? ` Pour une période simulée, le nombre observé en ${baseline} est multiplié par l'évolution ` +
+          "que le modèle donne depuis ces années. Le modèle se réchauffe en retard sur les observations : " +
+          "le recul de la neige est plutôt sous-estimé, et le nombre peut remonter entre les dernières " +
+          "années observées et les premières années simulées."
+        : ""),
   },
 
   // The matrix of years, under the climate diagram. The classes are the

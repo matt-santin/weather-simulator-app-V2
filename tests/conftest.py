@@ -56,6 +56,8 @@ REFERENCE |= {"cordex": REFERENCE["era5"], "cordex010": REFERENCE["era5land"]}
 ERA5 = {"name": "ERA5", "version": "", "fallback": ""}
 EOBS_FALLBACK = (4, 4)
 EOBS_FALLBACK010 = (5, 5)
+HIGH010 = (0, 10)     # 46.0 N 6.0 E
+UNKNOWN010 = (0, 9)   # 46.0 N 5.9 E
 
 
 def fill(dtype: str) -> int:
@@ -106,6 +108,12 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     eobs010 = domain010.copy()
     eobs010[EOBS_FALLBACK010] = 0
     root.create_array("eobs010", data=eobs010)
+    # Altitudes: 300 m everywhere, HIGH010 above the snow gate, UNKNOWN010 without one.
+    elevation010 = np.full(domain010.shape, 300.0, dtype="float32")
+    elevation010[HIGH010] = 1500.0
+    elevation010[UNKNOWN010] = np.nan
+    root.create_array("elevation010", data=elevation010)
+    root.create_array("elevation", data=np.full((5, 5), 300.0, dtype="float32"))
     shape = (LATITUDE010.size, LONGITUDE010.size)
     for source, (start, end) in SOURCES.items():
         group = root.create_group(FINE[source])

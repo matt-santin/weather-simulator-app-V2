@@ -132,14 +132,29 @@ class ClimateWindow(BaseModel):
     source: str
 
 
+class ClimateSnow(BaseModel):
+    """Snow on the ground over a window: days per winter, November to April,
+    averaged over the winters that end in the window."""
+
+    days: float | None = Field(default=None, description="days per winter; null when rare")
+    rare: bool = Field(default=False, description="True when too rare in the model to be given a number")
+    winters: int = Field(description="winters averaged")
+    baseline_start_year: int | None = Field(
+        default=None, description="simulated window: first year of the observed period the count is scaled from")
+    baseline_end_year: int | None = None
+
+
 class Climate(BaseModel):
     """The climate diagram of a place: the window around the year searched, and a
-    reference period of the normals."""
+    reference period of the normals. The snow is null where it is not counted
+    (cell above thresholds.SNOW_MAX_ELEVATION_M, or of unknown altitude)."""
 
     window: ClimateWindow
     months: list[ClimateMonth]
     reference: ClimateWindow
     reference_months: list[ClimateMonth]
+    snow: ClimateSnow | None = None
+    reference_snow: ClimateSnow | None = None
 
 
 class Series(BaseModel):

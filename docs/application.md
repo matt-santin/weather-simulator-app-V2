@@ -41,7 +41,7 @@ Limite connue : en vallée étroite, la maille 0,1° la plus proche peut couvrir
 | `era5` | ERA5, 7 variables et `psl` (`msl`) ; températures E-OBS ou repli ERA5, 0,25° | 1970-2025 | 8,4 Go |
 | `cordex010` | CORDEX corrigé, 3 températures, 0,1° | 1970-2100 | 26 Go |
 | `era5land` | 3 températures, E-OBS ou repli ERA5-Land, 0,1° | 1970-2025 | 10 Go |
-| racine | `latitude`, `longitude`, `domain`, `eobs` (0,25°) ; `latitude010`, `longitude010`, `domain010`, `eobs010` (0,1°) | | |
+| racine | `latitude`, `longitude`, `domain`, `eobs`, `elevation` (0,25°) ; `latitude010`, `longitude010`, `domain010`, `eobs010`, `elevation010` (0,1°) | | |
 
 Les noms `era5` et `era5land` sont gardés quelle que soit la référence : chaque tableau dit ce qu'il contient, ou ce contre quoi il est corrigé, dans son attribut `reference` (`name`, `version`, `fallback` : par exemple E-OBS, v33.0e, ERA5-Land). `eobs` et `eobs010` valent 1 là où les températures viennent d'E-OBS, 0 pour le repli (`source.nc` de la référence). Les groupes `cordex_rca4` et `cordex010_rca4` (46 Go) gardent l'ancienne simulation, en attendant leur suppression.
 
@@ -87,6 +87,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `src/app/api/years.py` | matrice des années |
 | `src/app/api/kinds.py` | types de saison du formulaire |
 | `src/app/domain/` | règles d'affichage (V1) |
+| `src/app/domain/snow.py` | neige au sol (section 15) |
 | `web/` | pages, feuille de style, modules JavaScript (V1, adaptés) |
 
 Réorganisation du 05/11/2026 (lot 1 des pistes de sensibilisation) : ordre calendrier, matrice des années, graphique, diagramme climatique (le 06/11 : synthèse, calendrier, graphique, matrice, diagramme ; lien « Voir cette saison parmi toutes les années » dans la synthèse) ; l'avertissement n'est plus un encadré orange mais une ligne « Simulation : une météo plausible, pas une prévision. » avec un « ? » qui donne le détail ; normales affichées d'office sur le graphique (le bouton les retire) ; l'année affichée entourée dans la matrice ; méthode des normales, seuils de la matrice et critère de Bagnouls et Gaussen derrière un « ? » (`web/static/js/hint.js`) ; diagramme titré « Le climat du lieu, mois par mois ».
@@ -118,6 +119,7 @@ Sous le graphique, le diagramme ombrothermique du lieu : douze mois moyennés su
 - Échelle de Bagnouls et Gaussen : 20 mm au niveau de 10 °C. Mois sec si P ≤ 2T (P en mm, T en °C), calculé par le serveur (`dry`) ; les mois secs sont teintés. Sources : Bagnouls et Gaussen (1957), repris par Charre, *Mappemonde* (https://www.mgm.fr/PUB/Mappemonde/M297/Charre.pdf).
 - L'axe est cadré sur la plus haute des températures et des demi-pluies ; les degrés ne sont numérotés que jusqu'à la dizaine au-dessus du mois le plus chaud. Dans un lieu très arrosé, la courbe des températures est donc tassée en bas : le dessin est plus haut depuis le 14/11/2026 (500 au lieu de 380 pour 1000 de large), l'échelle restant celle de Bagnouls et Gaussen.
 - Sous le diagramme : température annuelle, cumul annuel et mois secs, pour la fenêtre et pour la référence.
+- Dessous encore : jours de neige au sol par hiver (section 15).
 
 `GET /api/climate?latitude&longitude&start&end&reference` (`src/app/api/climate.py`, dessin `web/static/js/climate.js`), environ 0,1 s.
 
@@ -257,3 +259,35 @@ Mots du formulaire : chaud et frais, doux et froid en hiver. Le « ? » de la sy
 Type de saison dans l'adresse. Une recherche lancée par « Choisir un type de saison » porte `type` (cool, normal, warm, record, coldRecord, hottestDay, coldestDay) et `epoque` (old, new, future) ; une année choisie à la main ne les porte pas. La synthèse l'écrit sous la phrase de rang : « Un automne chaud du nouveau climat (2011-2050), tiré au hasard. », ou « Record de chaleur du climat futur (2051-2100). » pour un type qui donne toujours la même année. Pour un type tiré au hasard, « Tirer une autre année » redemande `/api/kinds` et ouvre une autre année du même type (`drawAnother`, `web/static/js/kinds.js`) ; le bouton disparaît s'il n'y en a pas d'autre. Des valeurs que le formulaire ne propose pas n'affichent rien.
 
 Nom du site (14/11/2026) : « Météo 2100 », à la place de « Weather Simulator » : barre commune, titres des pages, balises de partage (`SITE` dans `src/app/api/share.py`, `nav.home` et `maps.back` dans `web/static/js/i18n.js`). Le dépôt et le dossier gardent leur nom.
+
+## 15. Neige au sol (14/11/2026)
+
+Sous le diagramme climatique, une ligne : « Neige au sol : 6 jours par hiver en 2028-2042 ; 8 jours par hiver en 1991-2020. », avec un « ? » qui donne la méthode. Essai, calage et limites : `docs/neige.md`.
+
+- Calcul (`src/app/domain/snow.py`, réglage dans `thresholds.py`) : stock d'eau en degré-jour. La précipitation du jour s'y ajoute quand `tas` est sous 0,5 °C ; il fond de 4 mm par degré au-dessus de 0 °C et par jour ; il est vidé le 1er août. Neige au sol quand le stock atteint 2 mm. Jours comptés de novembre à avril, par hiver (nommé par son année de fin), moyennés sur les hivers qui finissent dans la fenêtre. Mêmes mailles que la série.
+- Fenêtre passée et période de référence : compte direct sur les données passées. La première fenêtre (1970-1984) n'a que 14 hivers, l'hiver 1970 commençant avant le stockage.
+- Fenêtre simulée, méthode du rapport : compte passé de 1991-2020 × (compte du modèle sur la fenêtre / compte du modèle sur 1991-2020). Le modèle corrigé a plus de jours à la fois froids et humides que les données passées, donc plus de neige sur les mêmes années ; le rapport retire cet excès. La base 1991-2020 est fixe, quel que soit le menu des normales (`SNOW_BASELINE` dans `src/app/api/climate.py`). Le modèle est lu sur 1991-2020 dans le groupe `cordex`, bien que ces années ne soient pas servies.
+- Trop rare : sous 3 jours par hiver dans le modèle sur 1991-2020, le rapport est instable ; la ligne dit « trop rare pour être chiffrée » (Bordeaux).
+- Altitude : pas de ligne quand la maille des températures dépasse 800 m, ou quand son altitude est inconnue, sauf si les températures sont ramenées à l'altitude du lieu (section 16) : le seuil ne vaut alors plus. Altitudes : `elevation` et `elevation010` dans le stockage, moyenne des quatre mailles E-OBS (`elev_ens`, v33.0e) qui se touchent au centre de la maille du site, les deux grilles étant décalées d'une demi-maille (`write_elevation` dans `src/store/build.py`, LaCie branché). 18 978 mailles à 0,1° dépassent 800 m ; 20 558 mailles du domaine n'ont pas d'altitude (est du domaine au-delà de 45° E, hors de l'emprise d'E-OBS).
+- `/api/climate` renvoie `snow` et `reference_snow` (`days`, `rare`, `winters`, et pour une fenêtre simulée `baseline_start_year`, `baseline_end_year`), ou `null`. Coût : 15 à 45 ms de plus par appel.
+- Affichage : jours entiers ; « moins d'un jour », « aucun jour ».
+- Synthèse d'un hiver : un chiffre de plus en tête de page, « 27 jours de neige au sol par hiver, en moyenne sur 2086-2100 », avec sa valeur sur la période de référence (`snowFigure` dans `web/static/js/summary.js`). C'est la moyenne du climat du lieu, pas le compte de l'hiver affiché ; le « ? » de la synthèse le dit. Absent quand la neige est trop rare ou non comptée.
+
+Contrôle du bloc climat sur le stockage réel (jours par hiver) :
+
+| Lieu | 1991-2020 | 2011-2025 | 2028-2042 | 2052-2066 | 2086-2100 |
+|---|---|---|---|---|---|
+| Lyon | 7,6 | 3,9 | 5,5 | 2,4 | 0,6 |
+| Paris | 3,6 | 3,6 | 3,3 | 0,7 | 0,6 |
+| Strasbourg | 11,8 | 7,1 | 9,9 | 4,4 | 2,4 |
+| Oslo | 87,4 | 79,5 | 57,8 | 34,6 | 18,6 |
+| Bordeaux | 1,2 | 0,7 | trop rare | trop rare | trop rare |
+
+Limites :
+
+- le compte remonte entre 2011-2025 (observé) et 2028-2042 (simulé) : retard de réchauffement du modèle, même marche que celle de la matrice des années (section 7). Le « ? » le dit ;
+- sans altitude du lieu (ancien lien, point cliqué sur la carte), le seuil de 800 m porte sur la maille : Pontarlier (maille à 891 m) et Le Puy-en-Velay (827 m) n'ont pas de ligne ; Grenoble (ville à 212 m, maille à 600 m) en a une, trop forte (33 jours par hiver en 1991-2020, 17 avec l'altitude) ;
+- le stockage copié sur le LaCie n'a pas les deux tableaux d'altitude tant que `python -m src.archive` n'a pas été relancé.
+
+Tests : `tests/test_snow.py` (calcul sur séries fabriquées, méthode du rapport, seuils d'altitude et de rareté), `tests/js/climate.test.js`.
+

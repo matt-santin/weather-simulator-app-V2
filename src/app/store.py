@@ -24,6 +24,13 @@ against (attribute `reference`: ERA5, ERA5-Land, or E-OBS with its fallback).
 Where the temperatures come from E-OBS, the masks `eobs` and `eobs010` tell,
 cell by cell, E-OBS (1) from its fallback (0).
 
+The altitude of the cells, `elevation` and `elevation010` (metres, E-OBS, NaN
+where E-OBS has none), is optional: without it a place has no known altitude.
+
+A place given with its own altitude has its temperatures brought from the
+altitude of the cell to its own (src.app.domain.altitude), at the reading, past
+and simulated days alike: every figure of the site goes through `values`.
+
 zarr is read directly rather than through xarray: the server needs integer
 chunks and three attributes, and importing xarray and pandas would double its
 start-up time. A series costs one chunk per variable, whatever its length.
@@ -167,6 +174,8 @@ class Store:
         self.references = self._references(path)
         self.masks = {fine: root[key][:].astype(bool) for fine, key in ((False, "eobs"), (True, "eobs010"))
                       if key in root}
+        self.elevations = {fine: root[key][:] for fine, key in ((False, "elevation"), (True, "elevation010"))
+                           if key in root}
         for (source, name), ref in self.references.items():
             if ref.fallback and (source in FINE.values()) not in self.masks:
                 raise RuntimeError(f"{path}: {source}/{name} vient de {ref.name}, sans masque des mailles")
@@ -262,6 +271,15 @@ class Store:
         if cell.fine:
             return float(self.latitude010[cell.fine[0]]), float(self.longitude010[cell.fine[1]])
         return float(self.latitude[cell.coarse[0]]), float(self.longitude[cell.coarse[1]])
+
+    def elevation(self, cell: Cell) -> float | None:
+        """Altitude of the cell the temperatures are read at, in metres, or None
+        where the store has none."""
+        fine = cell.fine is not None
+        if fine not in self.elevations:
+            return None
+        value = float(self.elevations[fine][cell.fine if fine else cell.coarse])
+        return None if np.isnan(value) else value
 
     def values(self, source: str, cell: Cell, start: date, end: date,
                names: tuple[str, ...] = tuple(FIELDS)) -> dict[str, np.ndarray]:

@@ -73,6 +73,25 @@ export function summary(months) {
   };
 }
 
+/**
+ * The line on snow on the ground and the note behind its "?", or null where the
+ * server counts none (a cell too high, or of unknown altitude).
+ */
+export function snow(answer) {
+  const { snow: own, reference_snow: reference } = answer;
+  if (!own || !reference || missing(reference.days)) return null;
+  const words = texts.climate;
+  const ownYears = years(answer.window);
+  const referenceYears = years(answer.reference);
+  const baseline = missing(own.baseline_start_year)
+    ? null
+    : `${own.baseline_start_year}-${own.baseline_end_year}`;
+  const line = own.rare || missing(own.days)
+    ? words.snowRare(ownYears, words.snowDays(reference.days), referenceYears)
+    : words.snow(words.snowDays(own.days), ownYears, words.snowDays(reference.days), referenceYears);
+  return { line, method: words.snowMethod(baseline) };
+}
+
 export function diagram(answer, box = BOX) {
   const span = window(answer.months, answer.reference_months);
   const plot = { from: box.left, to: box.width - box.right, top: box.top, bottom: box.height - box.bottom };

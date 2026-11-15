@@ -2053,6 +2053,20 @@ body.results [data-band="9"] { --tile: #1a1a1a; --tile-ink: #fff; }
   margin: calc(var(--space) * 2) 0 0;
 }
 
+/* Snow on the ground, under the climate summary: the line and its "?". */
+.snow-row {
+  max-width: 46rem;
+  margin-top: calc(var(--space) * 2);
+}
+
+.snow-row > .compare-note {
+  margin: 0;
+}
+
+.snow-row > .hint {
+  flex: none;
+}
+
 /* The wait line holds no room when it has nothing to say: it is announced by
    aria-live, so it must stay in the document rather than be toggled hidden. */
 #compare-status:empty {

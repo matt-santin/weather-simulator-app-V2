@@ -148,3 +148,36 @@ HUMID_HEAT_EXTREME_C = 30.0
 # irregularly to read it directly — hence the derived rule — but the reanalyses
 # serve it faithfully, which is what makes the calibration possible at all.
 SNOW_DEPTH_CM = 1.0
+
+# Snow on the ground, computed from the served temperatures and precipitation
+# (src.app.domain.snow), settled by the project owner on 2026-11-14 on the trial
+# of docs/neige.md.
+#
+# A degree-day stock, in mm of water: a day's precipitation joins it when the
+# daily mean temperature is under SNOW_FALL_C, it melts by SNOW_MELT_MM_PER_DEGREE_DAY
+# for each degree above zero, and there is snow on the ground while it holds
+# SNOW_STOCK_MM or more. Counted from November to April.
+#
+# Calibrated on winters 1971-2000 against the snow depth of about 1 500 ECA&D
+# stations (SNOW_DEPTH_CM or more), checked on 2001-2020: 6 to 7 days per winter
+# of mean absolute error under 800 m. The values are loosely constrained (1.0,
+# 5, 2 does as well). SNOW_FALL_C is not SNOW_TEMPERATURE_C: that one draws the
+# pictogram of a day when snow falls, this one feeds a stock, and each is the
+# best value for its own purpose.
+SNOW_FALL_C = 0.5
+SNOW_MELT_MM_PER_DEGREE_DAY = 4.0
+SNOW_STOCK_MM = 2.0
+SNOW_SEASON_MONTHS = (11, 12, 1, 2, 3, 4)
+# The stock starts empty each 1 August.
+SNOW_RESET_MONTH = 8
+
+# Above this altitude of the cell the count is not shown: the error is 28 days
+# per winter between 800 and 1 500 m, the temperature being that of the cell and
+# not of the place (docs/neige.md, section 8).
+SNOW_MAX_ELEVATION_M = 800.0
+
+# A simulated count is the observed one times the model's change (ratio
+# method). Under this many days per winter in the model's own reference, the
+# ratio is unstable (Bordeaux: 1.5 or 3.7 depending on the reference) and no
+# number is shown.
+SNOW_RARE_DAYS = 3.0

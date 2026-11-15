@@ -206,6 +206,41 @@ def write_domain() -> None:
                       ("domain010", domain(True).astype("uint8"))):
         root.create_array(key, data=data, overwrite=True)
     write_eobs_mask(root)
+    write_elevation(root)
+
+
+def elevation_file(fine: bool):
+    """Mean altitude of the E-OBS cells, on the E-OBS grid."""
+    name = "elev_ens_0.1deg_reg_v33.0e.nc" if fine else "elev_ens_0.25deg_reg_v33.0e.nc"
+    return ARCHIVE / "eobs" / ("0.1deg" if fine else "") / name
+
+
+def elevation(fine: bool) -> np.ndarray:
+    """Altitude of the site's cells, in metres, NaN where E-OBS has none (sea,
+    outside its extent). The E-OBS grid is shifted by half a cell from the
+    site's: a site cell takes the mean of the four E-OBS cells that meet at its
+    centre, those of them that have a value."""
+    with xr.open_dataset(grid_file(fine)) as ref:
+        lat, lon = ref.latitude.values, ref.longitude.values
+    half = abs(lat[1] - lat[0]) / 2
+    with xr.open_dataset(elevation_file(fine)) as ds:
+        corners = np.stack([
+            ds.elevation.reindex(latitude=lat + a * half, longitude=lon + b * half,
+                                 method="nearest", tolerance=half / 5).values
+            for a in (-1, 1) for b in (-1, 1)])
+    seen = np.isfinite(corners).sum(0)
+    mean = np.where(seen > 0, np.nansum(corners, axis=0) / np.maximum(seen, 1), np.nan)
+    return np.where(domain(fine), mean, np.nan).astype("float32")
+
+
+def write_elevation(root: zarr.Group) -> None:
+    """The altitude of each grid's cells (`elevation`, `elevation010`): the site
+    does not count snow on the ground above a given altitude."""
+    for fine, key in ((False, "elevation"), (True, "elevation010")):
+        if not (elevation_file(fine).exists() and grid_file(fine).exists()):
+            continue
+        arr = root.create_array(key, data=elevation(fine), overwrite=True)
+        arr.attrs.update({"units": "m", "source": "E-OBS v33.0e, elev_ens"})
 
 
 def write_eobs_mask(root: zarr.Group) -> None:
