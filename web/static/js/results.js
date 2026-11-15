@@ -45,13 +45,16 @@ import { wireHints } from "./hint.js";
 import { decimal, detail, tiles } from "./matrix.js";
 import { texts } from "./i18n.js";
 import * as present from "./present.js";
-import { insideMap, MAP_LATITUDE, mapHref, seasonOfDay, seasonYear } from "./links.js";
+import { elevationOf, insideMap, MAP_LATITUDE, mapHref, seasonOfDay, seasonYear } from "./links.js";
 import { fillNav } from "./nav.js";
 import { DRAWN, drawAnother, kindLabels, kindsOf } from "./kinds.js";
 import { dominantSeason, rangeOf, yearsFor } from "./season.js";
 import { figures as summaryFigures, heading as summaryHeading, snowFigure, standing } from "./summary.js";
 
 const place = document.getElementById("place");
+const altitudeLine = document.getElementById("altitude");
+const altitudeText = document.getElementById("altitude-text");
+const altitudeMethod = document.getElementById("altitude-method");
 const summaryMap = document.getElementById("summary-map");
 const ways = document.getElementById("ways");
 const range = document.getElementById("range");
@@ -189,6 +192,7 @@ const asked = {
   place: query.get("lieu") ?? "",
   latitude: Number(query.get("lat")),
   longitude: Number(query.get("lon")),
+  elevation: elevationOf(query.get("alt")),
   start: query.get("debut") ?? "",
   end: query.get("fin") ?? "",
 };
@@ -348,6 +352,18 @@ async function show(series) {
     provenanceGrid.replaceWith(el("p", { text: texts.provenance.noGrid }));
   } else {
     provenanceGrid.append(...pairs);
+  }
+  if (series.place_elevation !== null && series.place_elevation !== undefined) {
+    const metres = (value) => METRES.format(value);
+    altitudeText.textContent = texts.results.altitude(metres(series.place_elevation));
+    altitudeMethod.textContent = texts.results.altitudeMethod(
+      metres(series.place_elevation),
+      metres(series.cell_elevation),
+    );
+    altitudeLine.hidden = false;
+    provenance.append(el("p", {
+      text: texts.provenance.altitude(series.place_elevation, series.cell_elevation),
+    }));
   }
   provenance.hidden = false;
 }
@@ -638,6 +654,8 @@ async function offerMap(shownSeason) {
 }
 
 const climates = new Map();
+const METRES = new Intl.NumberFormat("fr-FR");
+
 /** The answer of /api/climate for a reference: asked once, by whoever needs it
  * first (the diagram, or the snow of the summary). A failure is not kept. */
 function climateFor(reference) {
@@ -842,6 +860,7 @@ function url({ start, end }) {
     debut: start,
     fin: end,
   });
+  if (asked.elevation !== null) query.set("alt", String(asked.elevation));
   return `${window.location.pathname}?${query}`;
 }
 

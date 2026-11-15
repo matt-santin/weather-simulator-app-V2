@@ -185,8 +185,10 @@ export function normals(asked, reference) {
   return ask("/api/normals", asked, { reference });
 }
 
-async function ask(path, { latitude, longitude, start, end }, extra = {}) {
+async function ask(path, { latitude, longitude, start, end, elevation = null }, extra = {}) {
   const query = new URLSearchParams({ latitude, longitude, start, end, ...extra });
+  // The altitude of the place, when it has one: the temperatures are brought to it.
+  if (elevation !== null && elevation !== undefined) query.set("elevation", elevation);
   let response;
   try {
     response = await fetch(`${path}?${query}`, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });

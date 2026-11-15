@@ -55,3 +55,17 @@ test("a day travels with the season, when the season holds it", () => {
   assert.equal(outside.searchParams.get("jour"), null);
   assert.equal(new URL(mapHref(asked), "http://x").searchParams.get("jour"), null);
 });
+
+test("the altitude of a place travels in whole metres, or not at all", async () => {
+  const { elevationOf } = await import("../../web/static/js/links.js");
+  assert.equal(elevationOf("1035.4"), 1035);
+  assert.equal(elevationOf(0), 0);
+  for (const none of [null, undefined, "", "haut", 9000, -900]) assert.equal(elevationOf(none), null);
+
+  const asked = { season: "winter", year: 2080, place: "Chamonix", latitude: 45.92, longitude: 6.87 };
+  assert.equal(new URL(resultsHref(asked), "http://x").searchParams.has("alt"), false);
+  assert.equal(new URL(mapHref(asked), "http://x").searchParams.has("alt"), false);
+  const high = { ...asked, elevation: 1035 };
+  assert.equal(new URL(resultsHref(high), "http://x").searchParams.get("alt"), "1035");
+  assert.equal(new URL(mapHref(high), "http://x").searchParams.get("alt"), "1035");
+});

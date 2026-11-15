@@ -13,6 +13,7 @@ from datetime import date
 from pydantic import BaseModel, Field, model_validator
 
 from src.app.api import errors
+from src.app.domain import altitude
 from src.app.store import PERIODS, Period
 
 MAX_DAYS = 92
@@ -48,3 +49,5 @@ class Range(BaseModel):
 class Search(Range):
     latitude: float = Field(ge=-90.0, le=90.0)
     longitude: float = Field(ge=-180.0, le=180.0)
+    # Altitude of the place, metres: optional, the temperatures are brought to it.
+    elevation: float | None = Field(default=None, ge=altitude.MIN_ELEVATION_M, le=altitude.MAX_ELEVATION_M)

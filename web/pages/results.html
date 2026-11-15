@@ -34,6 +34,20 @@
       <!-- The separator lives in the stylesheet, so a refusal — which never
            sets a count — does not leave a dangling "·" after the dates. -->
       <p class="tagline"><span id="range"></span><span id="count"></span></p>
+      <!-- The altitude the temperatures were brought to, when they were
+           (results.js, once the days are in): the place is not its cell. -->
+      <p id="altitude" class="tagline altitude" hidden>
+        <span id="altitude-text"></span>
+        <button
+          type="button"
+          class="hint"
+          data-hint
+          aria-expanded="false"
+          aria-controls="altitude-method"
+          data-attr-aria-label="results.altitudeHint"
+        >?</button>
+        <span id="altitude-method" class="hint-text" role="tooltip" hidden></span>
+      </p>
       <p><a href="/" data-text="results.back"></a></p>
     </header>
 

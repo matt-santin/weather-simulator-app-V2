@@ -291,29 +291,32 @@ def days(
     longitude: Annotated[float, Query()],
     start: Annotated[date, Query()],
     end: Annotated[date, Query()],
+    elevation: Annotated[float | None, Query()] = None,
 ) -> Series:
     try:
-        search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end)
+        search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end,
+                                   elevation=elevation)
     except ValidationError as error:
         raise RequestValidationError(error.errors()) from error
-    cell = store.cell(search.latitude, search.longitude)
+    cell = store.cell(search.latitude, search.longitude, search.elevation)
     if cell is None:
         raise errors.OutsideDomain(search.latitude, search.longitude)
     return pipeline.run(store, search.period, cell, search.start, search.end)
 
 
 def located(store: Store, latitude: float, longitude: float, start: date, end: date,
-            reference: int):
+            reference: int, elevation: float | None = None):
     """The checks the normals and the climate diagram share with a search, plus
     the reference period. Returns the search and the cell."""
     if reference not in normals.REFERENCES:
         labels = [normals.label(f) for f in normals.REFERENCES]
         raise errors.UnknownReference(reference, ", ".join(labels[:-1]) + " et " + labels[-1])
     try:
-        search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end)
+        search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end,
+                                   elevation=elevation)
     except ValidationError as error:
         raise RequestValidationError(error.errors()) from error
-    cell = store.cell(search.latitude, search.longitude)
+    cell = store.cell(search.latitude, search.longitude, search.elevation)
     if cell is None:
         raise errors.OutsideDomain(search.latitude, search.longitude)
     return search, cell
@@ -326,11 +329,12 @@ def seasonal_normals(
     longitude: Annotated[float, Query()],
     start: Annotated[date, Query()],
     end: Annotated[date, Query()],
+    elevation: Annotated[float | None, Query()] = None,
     reference: Annotated[int, Query()] = normals.DEFAULT,
 ) -> Normals:
     """The normals of the dates of a search, under the same rules, over the
     30 years starting in ``reference`` (normals.REFERENCES)."""
-    search, cell = located(store, latitude, longitude, start, end, reference)
+    search, cell = located(store, latitude, longitude, start, end, reference, elevation)
     return normals.run(store, cell, search.start, search.end, reference)
 
 
@@ -341,11 +345,12 @@ def climate_diagram(
     longitude: Annotated[float, Query()],
     start: Annotated[date, Query()],
     end: Annotated[date, Query()],
+    elevation: Annotated[float | None, Query()] = None,
     reference: Annotated[int, Query()] = normals.DEFAULT,
 ) -> Climate:
     """The climate diagram of the place over the 15 years around the year of the
     search (climate.window), beside the reference period."""
-    search, cell = located(store, latitude, longitude, start, end, reference)
+    search, cell = located(store, latitude, longitude, start, end, reference, elevation)
     middle = search.start + (search.end - search.start) / 2
     return climate.run(store, cell, middle.year, reference)
 
@@ -357,11 +362,12 @@ def every_year(
     longitude: Annotated[float, Query()],
     start: Annotated[date, Query()],
     end: Annotated[date, Query()],
+    elevation: Annotated[float | None, Query()] = None,
     reference: Annotated[int, Query()] = normals.DEFAULT,
 ) -> Years:
     """The dates of the search in every year from 1970 to 2100, beside the
     reference period (years.run)."""
-    search, cell = located(store, latitude, longitude, start, end, reference)
+    search, cell = located(store, latitude, longitude, start, end, reference, elevation)
     return years.run(store, cell, search.start, search.end, reference)
 
 
@@ -372,10 +378,11 @@ def search_summary(
     longitude: Annotated[float, Query()],
     start: Annotated[date, Query()],
     end: Annotated[date, Query()],
+    elevation: Annotated[float | None, Query()] = None,
     reference: Annotated[int, Query()] = normals.DEFAULT,
 ) -> Summary:
     """A few figures of the dates of the search beside their normal (summary.run)."""
-    search, cell = located(store, latitude, longitude, start, end, reference)
+    search, cell = located(store, latitude, longitude, start, end, reference, elevation)
     return summary.run(store, cell, search.start, search.end, reference)
 
 
@@ -386,10 +393,11 @@ def season_kinds(
     longitude: Annotated[float, Query()],
     start: Annotated[date, Query()],
     end: Annotated[date, Query()],
+    elevation: Annotated[float | None, Query()] = None,
 ) -> Kinds:
     """The years of each epoch of the home form, sorted into cool, normal and
     warm seasons over the dates of the search (kinds.run)."""
-    search, cell = located(store, latitude, longitude, start, end, normals.DEFAULT)
+    search, cell = located(store, latitude, longitude, start, end, normals.DEFAULT, elevation)
     return kinds.run(store, cell, search.start, search.end)
 
 
@@ -400,11 +408,12 @@ def card(
     longitude: Annotated[float, Query()],
     start: Annotated[date, Query()],
     end: Annotated[date, Query()],
+    elevation: Annotated[float | None, Query()] = None,
 ) -> Response:
     """The picture a shared search is previewed with: one tile per day, in the
     colour of its maximum (share.card). Refused as the search itself would be."""
-    search, _ = located(store, latitude, longitude, start, end, normals.DEFAULT)
-    image = share.card(store, search.latitude, search.longitude, search.start, search.end)
+    search, _ = located(store, latitude, longitude, start, end, normals.DEFAULT, elevation)
+    image = share.card(store, search.latitude, search.longitude, search.start, search.end, search.elevation)
     return Response(content=image, media_type="image/png",
                     headers={"Cache-Control": "public, max-age=86400"})
 
@@ -598,13 +607,16 @@ def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
         lon: str | None = None,
         debut: str | None = None,
         fin: str | None = None,
+        alt: str | None = None,
     ) -> HTMLResponse:
         """The page, its head filled for the search of the address. Whatever
         the address holds, the page is served: refusing is the API's work."""
-        title, description = share.words(store, lieu, lat, lon, debut, fin)
+        title, description = share.words(store, lieu, lat, lon, debut, fin, alt)
         image = SHARE_IMAGE
-        if share.searched(store, lat, lon, debut, fin) is not None:
-            query = urlencode({"latitude": lat, "longitude": lon, "start": debut, "end": fin})
+        found = share.searched(store, lat, lon, debut, fin, alt)
+        if found is not None:
+            query = urlencode({"latitude": lat, "longitude": lon, "start": debut, "end": fin}
+                              | ({} if found[0].elevation is None else {"elevation": alt}))
             image = f"api/card.png?{query}"
         return HTMLResponse(with_head(read("results.html"), request, title, description, image),
                             headers=REVALIDATE)

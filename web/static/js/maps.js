@@ -42,7 +42,7 @@ import {
   zoomAt,
 } from "./mapview.js";
 import * as present from "./present.js";
-import { insideMap, MAP_LATITUDE, resultsHref } from "./links.js";
+import { elevationOf, insideMap, MAP_LATITUDE, resultsHref } from "./links.js";
 import { fillNav } from "./nav.js";
 import { rangeOf, yearsFor } from "./season.js";
 
@@ -211,7 +211,8 @@ function placeOf(query) {
   if (!name || !query.has("lat") || !query.has("lon")) return null;
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
   if (!insideMap(state.box, latitude, longitude)) return null;
-  return { name, latitude, longitude, k: cellAt(longitude, latitude) };
+  // The altitude the results page sent travels back to it with the place.
+  return { name, latitude, longitude, elevation: elevationOf(query.get("alt")), k: cellAt(longitude, latitude) };
 }
 
 /** The index of the land cell holding a point, or undefined. */
@@ -302,6 +303,7 @@ async function load() {
     query.lieu = state.place.name;
     query.lat = String(state.place.latitude);
     query.lon = String(state.place.longitude);
+    if (state.place.elevation !== null) query.alt = String(state.place.elevation);
   }
   history.replaceState(null, "", `?${new URLSearchParams(query)}`);
   linkHere();

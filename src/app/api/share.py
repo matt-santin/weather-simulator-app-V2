@@ -67,19 +67,27 @@ def season_title(start: date, end: date) -> str | None:
     return f"{name} {start.year}" if start.year == end.year else f"{name} {start.year}-{end.year}"
 
 
-def searched(store: Store, latitude, longitude, start, end):
-    """The search of an address and its cell, or None for anything a search refuses."""
+def searched(store: Store, latitude, longitude, start, end, elevation=None):
+    """The search of an address and its cell, or None for anything a search
+    refuses. An altitude that is not one is left out, not refused: the page
+    does the same (results.js)."""
     try:
         search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end)
     except (ValidationError, errors.ApiError, TypeError, ValueError):
         return None
-    cell = store.cell(search.latitude, search.longitude)
+    try:
+        search = validation.Search(latitude=latitude, longitude=longitude, start=start, end=end,
+                                   elevation=elevation or None)
+    except (ValidationError, TypeError, ValueError):
+        pass
+    cell = store.cell(search.latitude, search.longitude, search.elevation)
     return None if cell is None else (search, cell)
 
 
-def words(store: Store, place: str | None, latitude, longitude, start, end) -> tuple[str, str]:
+def words(store: Store, place: str | None, latitude, longitude, start, end,
+          elevation=None) -> tuple[str, str]:
     """The title and the sentence of a results page."""
-    found = searched(store, latitude, longitude, start, end)
+    found = searched(store, latitude, longitude, start, end, elevation)
     place = (place or "").strip()[:80]
     if found is None:
         return f"{place} · {SITE}" if place else SITE, PROMISE
@@ -149,9 +157,9 @@ def tiles(values: list[float | None], first: date) -> np.ndarray:
     return image
 
 
-def card(store: Store, latitude, longitude, start, end) -> bytes | None:
+def card(store: Store, latitude, longitude, start, end, elevation=None) -> bytes | None:
     """The picture of a search, or None for anything a search refuses."""
-    found = searched(store, latitude, longitude, start, end)
+    found = searched(store, latitude, longitude, start, end, elevation)
     if found is None:
         return None
     search, cell = found

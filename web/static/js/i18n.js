@@ -175,6 +175,13 @@ export const texts = {
 
   results: {
     range: (from, to) => `du ${from} au ${to}`,
+    // Under the dates, when the temperatures were brought to the altitude of the place.
+    altitude: (metres) => `Températures à l'altitude du lieu : ${metres}\u00a0m`,
+    altitudeHint: "D'où vient cette altitude",
+    altitudeMethod: (place, cell) =>
+      `Les températures sont connues par mailles d'environ 8 km de côté. Celle de ce lieu est à ` +
+      `${cell}\u00a0m d'altitude moyenne : ses températures sont ramenées à ${place}\u00a0m, altitude du lieu, ` +
+      "par un gradient propre à chaque mois. Les précipitations ne sont pas corrigées.",
     count: (n) => (n === 1 ? "1 journée" : `${n} journées`),
     // The last line of an enlarged day: a click on it opens the map of that day.
     dayOnMap: "Voir ce jour sur la carte d'Europe ›",
@@ -536,6 +543,9 @@ export const texts = {
       "Les journées passées viennent d'observations (E-OBS, températures) et de la " +
       "réanalyse ERA5, non d'un modèle climatique.",
     noGrid: "Aucune journée simulée : ces journées viennent d'E-OBS (températures) et de la réanalyse ERA5.",
+    altitude: (place, cell) =>
+      `Températures ramenées de l'altitude moyenne de la maille (${cell} m) à celle du lieu (${place} m), ` +
+      "par un gradient propre à chaque mois.",
   },
 
   // What a screen showing simulated days has to say, which is the V1 CLAUDE.md rule 1.

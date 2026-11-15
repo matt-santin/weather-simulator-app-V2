@@ -102,6 +102,10 @@
 
         <input type="hidden" id="lat" name="lat" />
         <input type="hidden" id="lon" name="lon" />
+        <!-- Altitude of the place, metres, when the geocoder gives one: the
+             temperatures are brought to it. Disabled while empty, so that the
+             address carries no empty "alt". -->
+        <input type="hidden" id="alt" name="alt" disabled />
 
         <!--
           Two ways of asking for a season, and neither panel showing until one

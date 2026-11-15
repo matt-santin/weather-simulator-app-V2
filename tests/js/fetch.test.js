@@ -66,6 +66,14 @@ describe("every request goes out under a clock", () => {
     assert.match(calls[0].url, /^\/api\/days\?latitude=48\.85&longitude=2\.35&start=2046-07-01&end=2046-07-20$/);
     assert.ok(calls[0].options.signal instanceof AbortSignal, "aucun signal sur /api/days");
   });
+
+  it("sends the altitude of the place when it has one", async () => {
+    stubFetch(() => answers({ days: [] }));
+    await search({ ...SEARCH, elevation: 1035 });
+    assert.match(calls[0].url, /&end=2046-07-20&elevation=1035$/);
+    await search({ ...SEARCH, elevation: null });
+    assert.ok(!calls[1].url.includes("elevation"));
+  });
 });
 
 describe("a clock that ran out is told apart", () => {

@@ -74,6 +74,9 @@ def run(store: Store, period: Period, cell: Cell, start: date, end: date) -> Ser
         start=days[0].date,
         end=days[-1].date,
         has_simulated=simulated,
+        # The place's altitude as it was used: the cell's minus the lift (cut at altitude.MAX_LIFT_M).
+        place_elevation=None if cell.lift is None else round(store.elevation(cell) - cell.lift),
+        cell_elevation=None if store.elevation(cell) is None else round(store.elevation(cell)),
         humid_heat_peak=max((d.humid_heat or 0 for d in days), default=0),
         grid=grid(store, cell) if simulated else None,
         days=days,

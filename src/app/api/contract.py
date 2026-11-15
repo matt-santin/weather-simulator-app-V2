@@ -165,6 +165,10 @@ class Series(BaseModel):
     start: date
     end: date
     has_simulated: bool = Field(description="True when the days come from the climate model")
+    place_elevation: float | None = Field(
+        default=None, description="metres; set when the temperatures were brought to the altitude of the place")
+    cell_elevation: float | None = Field(
+        default=None, description="metres; mean altitude of the temperature cell, when the store knows it")
     humid_heat_peak: int = Field(default=0, description="Highest humid-heat level of the range")
     grid: Grid | None = Field(default=None, description="Null for ERA5 days")
     days: list[Day]

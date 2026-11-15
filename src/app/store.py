@@ -53,6 +53,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 
+from src.app.domain import altitude
 from src.config import DATA
 
 STORE = Path(os.environ.get("WSA_STORE", DATA / "serve" / "point.zarr"))
@@ -141,10 +142,13 @@ class Reference:
 
 @dataclass(frozen=True)
 class Cell:
-    """Where a place is read: its 0.25 deg cell, and its 0.1 deg one, if any."""
+    """Where a place is read: its 0.25 deg cell, and its 0.1 deg one, if any.
+    ``lift`` is how far the temperature cell stands above the place, in metres,
+    when the temperatures are brought to the altitude of the place."""
 
     coarse: tuple[int, int]
     fine: tuple[int, int] | None
+    lift: float | None = None
 
 
 class Store:
@@ -239,8 +243,10 @@ class Store:
         rest = self.references[source, "pr"].name
         return rest if temperatures == rest else f"{temperatures} (températures), {rest}"
 
-    def cell(self, latitude: float, longitude: float) -> Cell | None:
-        """Where to read a place, or None outside the domain."""
+    def cell(self, latitude: float, longitude: float, elevation: float | None = None) -> Cell | None:
+        """Where to read a place, or None outside the domain. With the altitude
+        of the place, the temperatures are brought to it (Cell.lift) where the
+        cell is a 0.1 deg one of known altitude served from E-OBS."""
         step = abs(self.latitude[1] - self.latitude[0])
         i = int(np.abs(self.latitude - latitude).argmin())
         j = int(np.abs(self.longitude - longitude).argmin())
@@ -248,7 +254,19 @@ class Store:
             return None
         if not self.domain[i, j]:
             return None
-        return Cell((i, j), self._fine_cell(latitude, longitude) if self.fine else None)
+        cell = Cell((i, j), self._fine_cell(latitude, longitude) if self.fine else None)
+        if elevation is None or not self.corrects(cell):
+            return cell
+        return Cell(cell.coarse, cell.fine, altitude.lift(self.elevation(cell), elevation))
+
+    def corrects(self, cell: Cell) -> bool:
+        """Whether the temperatures of the cell can be brought to an altitude:
+        a 0.1 deg cell, of known altitude, served from E-OBS (the lapse rates
+        were fitted there, not on the fallback)."""
+        if cell.fine is None or self.elevation(cell) is None:
+            return False
+        ref = self.references[FINE["era5"], "tasmax"]
+        return ref.name == "E-OBS" and True in self.masks and bool(self.masks[True][cell.fine])
 
     def _fine_cell(self, latitude: float, longitude: float) -> tuple[int, int] | None:
         """The nearest 0.1 deg cell with data, within FINE_RADIUS, or None."""
@@ -289,6 +307,10 @@ class Store:
         fine = [n for n in TEMPERATURES if n in names]
         if cell.fine and fine:
             out |= self._read(FINE[source], cell.fine, start, end, fine)
+        if cell.lift:
+            n = (end - start).days + 1
+            for name in fine:
+                out[name] = np.round(out[name] + altitude.shift(name, start, n, cell.lift), 2)
         return out
 
     def series(self, source: str, cell: Cell, start: date, end: date,

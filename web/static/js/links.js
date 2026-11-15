@@ -45,8 +45,19 @@ export function insideMap(box, latitude, longitude) {
 /** Coordinates as they travel in an address: four decimals, about 10 m. */
 const coordinate = (value) => String(Math.round(value * 1e4) / 1e4);
 
+/**
+ * The altitude of a place as it travels (`alt` in an address, `elevation` to
+ * the API): whole metres, or null for anything that is not an altitude the API
+ * accepts. A place without one is read at the altitude of its cell.
+ */
+export function elevationOf(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const metres = Math.round(Number(value));
+  return Number.isFinite(metres) && metres >= -500 && metres <= 6000 ? metres : null;
+}
+
 /** The map of a season, with a place marked on it. */
-export function mapHref({ season, year, place, latitude, longitude, day = null, variable = "tasmax" }) {
+export function mapHref({ season, year, place, latitude, longitude, elevation = null, day = null, variable = "tasmax" }) {
   const query = new URLSearchParams({
     grandeur: variable,
     saison: season,
@@ -55,12 +66,13 @@ export function mapHref({ season, year, place, latitude, longitude, day = null, 
     lat: coordinate(latitude),
     lon: coordinate(longitude),
   });
+  if (elevationOf(elevation) !== null) query.set("alt", String(elevationOf(elevation)));
   if (day) query.set("jour", day);
   return `/cartes?${query}`;
 }
 
 /** The results of a season at a place. */
-export function resultsHref({ season, year, place, latitude, longitude, day = null }) {
+export function resultsHref({ season, year, place, latitude, longitude, elevation = null, day = null }) {
   const range = rangeOf(season, year, MAP_LATITUDE);
   const query = new URLSearchParams({
     lieu: place,
@@ -69,6 +81,7 @@ export function resultsHref({ season, year, place, latitude, longitude, day = nu
     debut: range.start,
     fin: range.end,
   });
+  if (elevationOf(elevation) !== null) query.set("alt", String(elevationOf(elevation)));
   if (day && range.start <= day && day <= range.end) query.set("jour", day);
   return `/resultats?${query}`;
 }

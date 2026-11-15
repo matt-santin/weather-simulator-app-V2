@@ -27,6 +27,7 @@ import { pad } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
 import { texts } from "./i18n.js";
 import { wireHints } from "./hint.js";
+import { elevationOf } from "./links.js";
 import { anyYearOf, dayOf, draw, epochLabel, kindLabels, kindsOf } from "./kinds.js";
 import { rotate } from "./prompt.js";
 import { rangeOf, seasonOf, yearsFor } from "./season.js";
@@ -42,6 +43,7 @@ const chosen = document.getElementById("chosen");
 const chosenName = document.getElementById("chosen-name");
 const change = document.getElementById("change");
 const latitude = document.getElementById("lat");
+const altitude = document.getElementById("alt");
 const longitude = document.getElementById("lon");
 const from = document.getElementById("debut");
 const to = document.getElementById("fin");
@@ -199,6 +201,8 @@ function offer(shown) {
 
 function keep(candidate) {
   latitude.value = candidate.latitude;
+  altitude.value = elevationOf(candidate.elevation) ?? "";
+  altitude.disabled = altitude.value === "";
   longitude.value = candidate.longitude;
   place.value = candidate.name;
   chosenName.textContent = texts.form.chosen(describe(candidate));
@@ -215,6 +219,8 @@ function keep(candidate) {
 /** Back to typing: the coordinates go with the name that produced them. */
 function forget() {
   latitude.value = "";
+  altitude.value = "";
+  altitude.disabled = true;
   longitude.value = "";
   chosen.hidden = true;
   place.hidden = false;
@@ -329,6 +335,7 @@ async function drawSeason(button) {
     const answer = await seasonKinds({
       latitude: latitude.value,
       longitude: longitude.value,
+      elevation: elevationOf(altitude.value),
       start: asked.start,
       end: asked.end,
     });

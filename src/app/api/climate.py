@@ -20,7 +20,8 @@ it is the past count of SNOW_BASELINE times the model's own change since those
 years (ratio method). The baseline is fixed, whatever the reference drawn in
 grey, so that a simulated figure does not move with the menu. No snow above
 thresholds.SNOW_MAX_ELEVATION_M, where the cell's temperature is not the
-place's.
+place's, unless the temperatures were brought to the altitude of the place
+(Cell.lift, src.app.domain.altitude).
 """
 
 from __future__ import annotations
@@ -98,8 +99,9 @@ def snows(store: Store, cell: Cell, period: Period, first: int, last: int,
           ref_first: int, ref_last: int) -> tuple[ClimateSnow | None, ClimateSnow | None]:
     """Snow on the ground over the window and over the reference, or nothing
     where it is not counted."""
+    # The gate is for temperatures left at the altitude of their cell.
     altitude = store.elevation(cell)
-    if altitude is None or altitude > thresholds.SNOW_MAX_ELEVATION_M:
+    if cell.lift is None and (altitude is None or altitude > thresholds.SNOW_MAX_ELEVATION_M):
         return None, None
     days, winters = snow_days(store, normals.SOURCE, cell, ref_first, ref_last)
     reference = ClimateSnow(days=rounded(days), winters=winters)

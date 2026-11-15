@@ -3702,6 +3702,27 @@ body.results > header.banner a {
   text-decoration-color: currentColor;
 }
 
+/* The altitude the temperatures were brought to, under the dates, smaller. */
+body.results > header.banner .altitude {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--space) * 2);
+  font-size: 0.95rem;
+}
+
+body.results > header.banner .altitude .hint {
+  flex: none;
+  color: var(--banner-ink);
+}
+
+body.results > header.banner .altitude .hint-text {
+  right: auto;
+  width: min(36rem, 100%);
+  font-family: var(--font);
+}
+
 /* The warning: one line on a pale ground, the dusk orange of the home page on
    its edge. Ink at 9:1 on its ground. */
 /* The warning, since 5/11/2026: one quiet line and a "?", no longer an orange

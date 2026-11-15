@@ -29,7 +29,7 @@ Les températures passées et futures sont calées sur E-OBS depuis le 13/10/202
 
 Un lieu prend ses températures dans la maille 0,1° la plus proche si elle est à 0,1° au plus (en latitude et en longitude), sinon dans sa maille 0,25° ; le reste vient toujours de la maille 0,25°. 99,9 % des mailles 0,25° majoritairement terrestres ont une maille 0,1° ; les petites îles (île d'Yeu, Belle-Île, Lampedusa) restent à 0,25°. La source de chaque journée le dit, d'après le masque de la maille lue : « E-OBS (températures), ERA5 », « ERA5-Land (températures), ERA5 » ou « ERA5 ». Même libellé pour la référence des journées simulées et pour le diagramme climatique.
 
-Limite connue : en vallée étroite, la maille 0,1° la plus proche peut couvrir surtout les versants (Chamonix, 1 035 m : la maille 45,9 N 6,9 E est à 2 456 m d'altitude moyenne dans E-OBS ; Tx moyen de juillet 2015-2025 13,5 °C). Piste : choisir, parmi les mailles voisines, celle dont l'altitude est la plus proche de celle de la commune.
+Limite connue : en vallée étroite, la maille 0,1° la plus proche peut couvrir surtout les versants (Chamonix, 1 035 m : la maille 45,9 N 6,9 E est à 2 456 m d'altitude moyenne dans E-OBS ; Tx moyen de juillet 2015-2025 13,5 °C). Traité le 14/11/2026 par la correction d'altitude (section 16) quand le lieu arrive avec son altitude : 23,1 °C. La piste de la maille voisine la plus proche en altitude a été testée et écartée.
 
 ## 3. Stockage de service
 
@@ -66,6 +66,7 @@ FastAPI, sans état. `uvicorn src.app.api.app:app --port 8765`.
 | `GET /api/kinds?latitude&longitude&start&end` | les saisons de chaque époque du formulaire, classées en fraîches, normales et chaudes (section 11), mêmes refus |
 | `GET /api/covered?latitude&longitude` (répétés, 20 points au plus) | pour chaque point, s'il est dans le domaine servi : le formulaire ne propose que les lieux qu'une recherche accepterait |
 | `GET /api/card.png?latitude&longitude&start&end` | l'image d'aperçu d'une recherche partagée (section 14), mêmes refus qu'une recherche |
+| paramètre `elevation` (facultatif) | sur `days`, `normals`, `climate`, `years`, `kinds`, `summary`, `card.png` : altitude du lieu en mètres, les températures y sont ramenées (section 16) |
 | `GET /api/health` | le serveur répond : `status`, date de construction du stockage, cartes et lieux servis ou non ; jamais mis en cache |
 | `/`, `/resultats`, `/documentation` | les pages |
 
@@ -290,4 +291,58 @@ Limites :
 - le stockage copié sur le LaCie n'a pas les deux tableaux d'altitude tant que `python -m src.archive` n'a pas été relancé.
 
 Tests : `tests/test_snow.py` (calcul sur séries fabriquées, méthode du rapport, seuils d'altitude et de rareté), `tests/js/climate.test.js`.
+
+## 16. Températures ramenées à l'altitude du lieu (14/11/2026)
+
+Une maille à 0,1° moyenne environ 80 km² : en relief, elle peut être des centaines de mètres au-dessus d'une ville de vallée, ou sous un sommet. Quand le lieu arrive avec son altitude, Tx, Tn et la température moyenne sont décalées de `gradient du mois × (altitude de la maille − altitude du lieu)`.
+
+Essai (`figures/altitude/`, journaux dans `data/altitude/`, hors dépôt) : 1 617 stations ECA&D, Tx et Tn journaliers 1991-2020, contre les températures passées servies à leur maille ; gradients estimés sur une moitié des stations tirée au hasard, chiffres sur l'autre (806 stations). Écart site − station, moyenne (écart absolu moyen), en K :
+
+| Maille 300 m ou plus au-dessus de la station (197 stations) | Brut | 6,5 K/km | Par mois | Maille voisine + par mois |
+|---|---|---|---|---|
+| Tn hiver | −1,72 (1,84) | +1,74 (1,87) | −0,29 (1,08) | −0,14 (0,96) |
+| Tx hiver | −2,43 (2,43) | +1,03 (1,20) | −0,09 (0,80) | −0,04 (0,65) |
+| Tn été | −2,36 (2,36) | +1,10 (1,14) | −0,27 (0,55) | −0,20 (0,51) |
+| Tx été | −3,96 (3,97) | −0,50 (0,85) | +0,19 (0,62) | +0,07 (0,54) |
+
+| Maille 300 m ou plus sous la station (30 stations) | Brut | 6,5 K/km | Par mois | Maille voisine + par mois |
+|---|---|---|---|---|
+| Tn hiver | +1,31 (1,75) | −2,96 (2,96) | −0,45 (0,96) | −0,54 (0,92) |
+| Tx hiver | +3,14 (3,14) | −1,13 (1,25) | +0,25 (0,62) | +0,22 (0,55) |
+| Tn été | +2,34 (2,36) | −1,93 (1,93) | −0,24 (0,60) | −0,41 (0,72) |
+| Tx été | +5,46 (5,46) | +1,18 (1,29) | +0,33 (0,60) | +0,37 (0,58) |
+
+À moins de 100 m d'écart (278 stations), rien ne change (0,2 à 0,4 K). Retenu : le gradient par mois, distinct pour Tx et Tn. Écartés : le gradient fixe (pire que le brut pour Tn en hiver, à cause des inversions) et la maille voisine la plus proche en altitude parmi 9 (gain faible, nul une fois le gradient appliqué).
+
+Gradients retenus (K/km, `LAPSE_K_PER_KM` dans `src/app/domain/altitude.py`) ; la température moyenne prend la moyenne des deux :
+
+| Mois | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Tn | 2,4 | 3,3 | 4,1 | 4,2 | 4,2 | 4,2 | 4,0 | 3,6 | 3,6 | 3,1 | 3,0 | 2,4 |
+| Tx | 3,9 | 5,7 | 7,5 | 8,4 | 8,4 | 8,0 | 7,8 | 7,6 | 7,2 | 6,1 | 4,7 | 3,5 |
+
+Cohérent avec Rolland (2003), lu par son résumé : 5,4 à 5,8 K/km en moyenne annuelle dans les Alpes, gradients plus forts en été, Tn affaiblis par les inversions.
+
+Neige au sol avec `tas` ramené à l'altitude de la station (`figures/altitude/neige.py`, contrôle 2001-2020, jours par hiver) : mailles au-dessus de 800 m (57 stations), erreur 32,2 puis 13,7 pour 108 observés ; mailles à 800 m au plus (1 207 stations), 6,1 puis 4,7. Chamonix : 104 observés, 175 sans correction, 100 avec.
+
+Dans le site :
+
+- L'altitude vient du géocodage (Open-Meteo, champ `elevation`). Le formulaire la met dans l'adresse (`alt=1060`, mètres entiers), à côté de `lat` et `lon` ; elle suit le lieu dans les liens (autre année, carte et retour, image de partage). La page la passe à l'API (`elevation`).
+- `Store.cell(latitude, longitude, elevation)` : la correction s'applique si le lieu a une maille à 0,1°, d'altitude connue, servie depuis E-OBS (`Store.corrects`). Elle est faite à la lecture (`Store.values`), sur le passé comme sur la simulation : journées, normales, synthèse, matrice des années, types de saison, diagramme climatique, neige, image de partage. L'écart d'altitude est borné à 2 500 m.
+- Sans altitude (lien d'avant le 14/11/2026, lien d'exemple de l'accueil, point cliqué sur la carte), ou sur une maille en repli : rien ne change. Une altitude hors de −500 à 6 000 m est refusée par l'API et ignorée par les pages.
+- En tête de page, sous les dates : « Températures à l'altitude du lieu : 1 224 m », avec un « ? » qui donne l'altitude de la maille. Absent sans correction.
+- `/api/days` renvoie `place_elevation` (si corrigé) et `cell_elevation`. « D'où viennent ces journées » le dit aussi : « Températures ramenées de l'altitude moyenne de la maille (2456 m) à celle du lieu (1035 m), par un gradient propre à chaque mois. »
+- Les cartes ne changent pas : elles montrent des mailles.
+
+Exemples (1991-2020, sans puis avec l'altitude) : Chamonix (1 035 m, maille à 2 456 m) Tx de juillet 12,1 puis 23,1 °C, Tn de janvier −9,4 puis −6,0 °C ; Sion (500 m, maille à 1 473 m) 20,4 puis 28,0 °C ; Grenoble (212 m, maille à 600 m) 26,2 puis 29,2 °C ; Lyon (173 m, maille à 251 m) 27,7 puis 28,3 °C.
+
+Limites :
+
+- toutes les stations de l'essai sauf une alimentent E-OBS : pas de contrôle indépendant ;
+- mailles en repli (ERA5-Land, 8 stations de contrôle) : le gradient n'y suffit pas (écart restant −0,5 à −1,5 K), non appliqué ;
+- gradients moyens sur le domaine, dominé par l'Allemagne et les Alpes ; la correction déplace la moyenne, pas la forme : un jour d'inversion reste mal rendu, et Tn d'hiver garde environ 1 K d'écart absolu à 300 m ou plus ;
+- précipitations et autres grandeurs non corrigées de l'altitude (Chamonix : 1 790 mm par an, ceux de la maille à 0,25°) ;
+- un même lieu donne des températures différentes selon que l'adresse porte `alt` ou non.
+
+Tests : `tests/test_altitude.py`, `tests/js/links.test.js`, `tests/js/fetch.test.js`.
 
