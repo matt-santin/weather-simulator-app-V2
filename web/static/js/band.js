@@ -229,6 +229,9 @@ function detail(day) {
     [texts.detail.precipitation, day.precipitation, present.precipitation, millimetres],
     [texts.detail.humidity, day.relative_humidity_mean, present.humidity, percent],
     [texts.detail.wind, day.wind_speed_mean, present.wind, kilometresPerHour],
+    // Only where the server computes it: a line reading "–" on every day of a
+    // store without it would say nothing.
+    ...(present.isMissing(day.soil_water) ? [] : [[texts.detail.soil, day.soil_water, String, percent]]),
   ];
   return el(
     "dl",

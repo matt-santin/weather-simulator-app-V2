@@ -60,6 +60,7 @@ describe("the days as a file", () => {
       "39",
       "0",
       "",
+      "",
       "12,5",
       "63,4",
       "9",
@@ -73,10 +74,21 @@ describe("the days as a file", () => {
     const at = texts.export.columns().indexOf("Neige au sol");
     const read = (over) => cells(lines(toCsv([day(over)]))[1])[at];
 
-    assert.equal(at, texts.export.columns().indexOf("Nébulosité (%)") - 1);
+    assert.equal(at, texts.export.columns().indexOf("Nébulosité (%)") - 2);
     assert.equal(read({ snow_on_ground: true }), "oui");
     assert.equal(read({ snow_on_ground: false }), "non");
     assert.equal(read({ snow_on_ground: null }), "");
+    assert.equal(read({}), "");
+  });
+
+  it("writes the water left in the soil after the snow, empty where it is not served", () => {
+    const at = texts.export.columns().indexOf("Neige au sol") + 1;
+    const read = (over) => cells(lines(toCsv([day(over)]))[1])[at];
+
+    assert.ok(texts.export.columns()[at].startsWith("Eau du sol"));
+    assert.equal(read({ soil_water: 43 }), "43");
+    assert.equal(read({ soil_water: 0 }), "0");
+    assert.equal(read({ soil_water: null }), "");
     assert.equal(read({}), "");
   });
 

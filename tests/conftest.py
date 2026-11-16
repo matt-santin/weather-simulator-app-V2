@@ -4,7 +4,7 @@ without the real one (20 GB, built from the external drive).
 5 x 5 cells at 0.25 deg around Grenoble, the north-west corner outside the
 domain. Every variable holds its day index since the source's first day, times
 the step, modulo 3000: a value tells which day was read. One precipitation day
-is a gap.
+is a gap. The solar radiation, stored beside them, is RSDS everywhere.
 
 Beside it, the 0.1 deg grid of the temperatures, 11 x 11 cells over the same
 area, holding the same index plus FINE_OFFSET steps, so that a value also tells
@@ -38,6 +38,7 @@ VARIABLES = {  # name: dtype, step
     "sfcWind": ("uint16", 0.01),
 }
 GAP = date(2044, 7, 14)  # pr missing that day, in cordex
+RSDS = 150.0  # W m-2
 LATITUDE010 = np.round(np.arange(46.0, 44.95, -0.1), 2)
 LONGITUDE010 = np.round(np.arange(5.0, 6.05, 0.1), 2)
 FINE_OFFSET = 500
@@ -99,6 +100,14 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
                               "reference": REFERENCE[source] if name.startswith("tas") else ERA5})
             if source == "cordex":
                 arr.attrs["simulation"] = SIMULATION
+        # Solar radiation, optional in the store (soil water balance): RSDS everywhere, every day.
+        data = np.full((n, 5, 5), round(RSDS / 0.1), dtype="uint16")
+        data[:, 0, 0] = fill("uint16")
+        arr = group.create_array("rsds", data=data, chunks=(n, 5, 5))
+        arr.attrs.update({"scale_factor": 0.1, "_FillValue": fill("uint16"), "built": "2026-09-30 22:00",
+                          "reference": ERA5})
+        if source == "cordex":
+            arr.attrs["simulation"] = SIMULATION
 
     root.create_array("latitude010", data=LATITUDE010)
     root.create_array("longitude010", data=LONGITUDE010)

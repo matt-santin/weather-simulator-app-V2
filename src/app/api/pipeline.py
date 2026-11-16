@@ -7,13 +7,14 @@
 3. The sky class, the temperature bands and the wet bulb, one function each,
    the same for ERA5 and CORDEX days.
 4. Snow on the ground, day by day (climate.on_ground), and its longest run.
+5. The water left in the soil, day by day (soil.water).
 """
 
 from __future__ import annotations
 
 from datetime import date, timedelta
 
-from src.app.api import climate
+from src.app.api import climate, soil
 from src.app.api.contract import Day, Grid, Series, SnowCover
 from src.app.domain.records import DailyRecord, Origin
 from src.app.domain.sky import classify_record
@@ -85,7 +86,8 @@ def cover(days: list[Day]) -> SnowCover | None:
 def run(store: Store, period: Period, cell: Cell, start: date, end: date) -> Series:
     transformed = block.apply(records(store, period, cell, start, end))
     ground = climate.on_ground(store, period, cell, start, end) or [None] * len(transformed)
-    days = [Day.from_record(r, classify_record(r), g) for r, g in zip(transformed, ground)]
+    water = soil.water(store, period, cell, start, end) or [None] * len(transformed)
+    days = [Day.from_record(r, classify_record(r), g, w) for r, g, w in zip(transformed, ground, water)]
     simulated = period.source == "cordex"
     latitude, longitude = store.position(cell)
     return Series(

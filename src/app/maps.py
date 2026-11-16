@@ -5,6 +5,9 @@ country outlines, web/static/geo/europe.json). Their list is fixed: the
 browser receives it once (`cells`), then each map as the values of those
 cells, day after day, in the store's integers.
 
+`soil`, the water left in the soil (percent of the available water), is not
+copied from the point store but computed for the map store (src.store.soil).
+
 The sea-level pressure (psl) is not one of the variables: it is drawn as
 isobars over any of them, and needs the sea as much as the land. It is served
 on its own grid: every cell of BOX, averaged 2 x 2 to 0.5 deg (a season weighs
@@ -43,7 +46,7 @@ log = logging.getLogger(__name__)
 SOURCES = tuple(p.source for p in PERIODS)
 
 STORE = Path(os.environ.get("WSA_MAP_STORE", DATA / "serve" / "map.zarr"))
-VARIABLES = ("tasmax", "tasmin", "pr", "clt")
+VARIABLES = ("tasmax", "tasmin", "pr", "clt", "soil")
 PRESSURE = "psl"
 COARSEN = 2  # cells of the store averaged, in latitude and longitude, for the isobars
 SMOOTH = 2  # passes of the 1-2-1 filter over the 0.5 deg pressure (1-4-6-4-1, about 1 deg)

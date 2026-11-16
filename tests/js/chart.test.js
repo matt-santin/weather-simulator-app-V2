@@ -27,6 +27,8 @@ const {
   cumulativeCeiling,
   edgeOf,
   frame,
+  hasSoil,
+  SOIL_TICKS,
   middleOf,
   rainCeiling,
   rainTicks,
@@ -763,6 +765,45 @@ describe("snow on the ground, on the rain panel", () => {
       assert.equal(byClass(plain, "chart-snow").length, 0);
       assert.equal(byClass(plain, "chart-legend-label").length, 0);
       assert.equal(plain.attrs["aria-label"], texts.chart.label(null));
+    }
+  });
+});
+
+describe("the water left in the soil", () => {
+  const days = series(10, (index) => ({ soil_water: index === 4 ? null : 100 - 10 * index }));
+  const node = chart(days, SCALE);
+  const geometry = frame(10, BOX, true);
+
+  it("is a fourth panel under the total, as tall as BOX says", () => {
+    assert.equal(node.attrs.viewBox, `0 0 ${BOX.width} ${geometry.height}`);
+    assert.equal(geometry.soil.top, frame(10).cumul.base + BOX.gap);
+    assert.equal(geometry.soil.base - geometry.soil.top, BOX.soil);
+    assert.equal(geometry.height, frame(10).height + BOX.gap + BOX.soil);
+    assert.ok(byClass(node, "chart-title").some((t) => t.textContent === texts.chart.soil));
+  });
+
+  it("is drawn on a fixed axis from 0 to 100 %, and breaks where a day has no value", () => {
+    const areas = byClass(node, "chart-soil");
+    assert.equal(areas.length, 2);
+    const y = (value) => geometry.soil.base - (value / 100) * BOX.soil;
+    assert.ok(areas[0].attrs.d.includes(` ${y(100)} `));
+    assert.ok(areas[1].attrs.d.endsWith(`${geometry.soil.base} Z`));
+    const written = byClass(node, "chart-soil-panel")[0];
+    const labels = byClass(written, "chart-axis").map((t) => t.textContent);
+    assert.deepEqual(labels, ["0", ...SOIL_TICKS.slice(0, -1).map(String), `100 ${texts.units.percent}`]);
+  });
+
+  it("names itself in the sentence of the drawing, and runs the seam down to its foot", () => {
+    assert.equal(node.attrs["aria-label"], texts.chart.label(null, false, true));
+    assert.equal(geometry.last, geometry.soil.base);
+  });
+
+  it("is not drawn when the server serves no soil water", () => {
+    for (const plain of [series(10), series(10, () => ({ soil_water: null }))]) {
+      const drawn = chart(plain, SCALE);
+      assert.equal(byClass(drawn, "chart-soil").length, 0);
+      assert.equal(drawn.attrs.viewBox, `0 0 ${BOX.width} ${frame(10).height}`);
+      assert.equal(hasSoil(plain), false);
     }
   });
 });

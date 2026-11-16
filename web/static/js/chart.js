@@ -113,6 +113,10 @@ export const BOX = {
   // total is the lesser reading, and a taller one that it is the point — and it
   // is neither, it is the other way of looking at the panel above.
   cumul: 140,
+  // The water left in the soil, a fourth panel drawn only when the server
+  // serves it (`soil_water`). Shorter than the millimetre panels: it reads a
+  // level between two fixed bounds, 0 and 100 %, and needs no finer graduation.
+  soil: 100,
   // Room for two rows under the baseline — the days, then the months — where it
   // used to hold one. At 26 the month names sat 18 below the baseline with eight
   // to spare; the second row needs thirty and its descenders need the rest.
@@ -144,15 +148,18 @@ const missing = present.isMissing;
  * have meant three expressions of the same sum, and the fourth would have meant
  * four.
  */
-export function frame(count, box = BOX) {
+export function frame(count, box = BOX, soil = false) {
   const plot = { from: box.left, to: box.width - box.right };
   const temperature = { top: box.top, bottom: box.top + box.temperature };
   const rain = { top: temperature.bottom + box.gap, base: temperature.bottom + box.gap + box.rain };
   const cumul = { top: rain.base + box.gap, base: rain.base + box.gap + box.cumul };
+  const ground = soil ? { top: cumul.base + box.gap, base: cumul.base + box.gap + box.soil } : null;
 
   return {
     box,
-    height: cumul.base + box.bottom,
+    height: (ground ?? cumul).base + box.bottom,
+    // The lowest foot: where the seam ends.
+    last: (ground ?? cumul).base,
     plot,
     // Zero days would divide by zero. It cannot happen — a served series has at
     // least one day — but a column of zero width is a nicer failure than NaN.
@@ -174,8 +181,12 @@ export function frame(count, box = BOX) {
     temperature: { ...temperature, dates: temperature.bottom + 14, months: temperature.bottom + 30 },
     rain: { ...rain, dates: rain.base + 14, months: rain.base + 30 },
     cumul: { ...cumul, dates: cumul.base + 14, months: cumul.base + 30 },
+    soil: ground && { ...ground, dates: ground.base + 14, months: ground.base + 30 },
   };
 }
+
+/** Whether the days carry the water left in the soil: the fourth panel is drawn then. */
+export const hasSoil = (days) => days.some((day) => !missing(day.soil_water));
 
 /** The left edge of a day's column, and its middle, where a point is placed. */
 export const edgeOf = (frame, index) => frame.plot.from + index * frame.column;
@@ -410,7 +421,8 @@ function pastBand(frame, compared, y) {
  * arrives here, so this file never reads a date to place a mark.
  */
 export function chart(days, scale, { compared = null, label = null, box = BOX } = {}) {
-  const geometry = frame(days.length, box);
+  const soil = hasSoil(days);
+  const geometry = frame(days.length, box, soil);
   // One window over both years, or the two curves would each be drawn on their
   // own scale and the gap between them would be a picture of the framing.
   const framed = compared ? [...days, ...compared.filter(Boolean)] : days;
@@ -450,6 +462,14 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
     months(geometry, days, geometry.rain.months),
     dates(geometry, days, geometry.cumul.base, geometry.cumul.dates),
     months(geometry, days, geometry.cumul.months),
+    ...(soil
+      ? [
+          title(geometry, geometry.soil.top, texts.chart.soil),
+          soilPanel(geometry, days),
+          dates(geometry, days, geometry.soil.base, geometry.soil.dates),
+          months(geometry, days, geometry.soil.months),
+        ]
+      : []),
     seamMark(geometry, days),
     ...(legend
       ? [
@@ -469,7 +489,7 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
         // The one sentence, and it names the normals when they are drawn:
         // a reader who gets nothing from a drawing must at least be told what
         // the drawing now holds.
-        "aria-label": texts.chart.label(legend, days.some(snowy)),
+        "aria-label": texts.chart.label(legend, days.some(snowy), soil),
       },
     },
     marks,
@@ -818,6 +838,54 @@ function snowLegend(frame, days) {
   ]);
 }
 
+/** The bounds of the soil panel and its middle, where the plant starts to lack water. */
+export const SOIL_TICKS = [50, 100];
+
+/**
+ * The fourth panel: the water left in the soil at the end of each day, as a
+ * share of its available water (src.app.domain.soil). A filled area under a
+ * line, on a fixed axis from 0 to 100 %: unlike the rain, the bounds mean
+ * something of their own (field capacity, wilting point), so the axis never
+ * follows the period. The hairline at 50 % is where the plant starts to be
+ * short of water.
+ */
+function soilPanel(frame, days) {
+  const y = (value) => round(frame.soil.base - (value / 100) * frame.box.soil);
+  const read = (day) => day?.soil_water;
+  const areas = runs(days, read).map((run) => {
+    const top = run.map((point) => `${round(middleOf(frame, point.index))} ${y(point.value)}`);
+    const from = round(middleOf(frame, run[0].index));
+    const to = round(middleOf(frame, run.at(-1).index));
+    return svg("path", {
+      className: "chart-soil",
+      attrs: { d: `M${from} ${frame.soil.base} L${top.join(" L")} L${to} ${frame.soil.base} Z` },
+    });
+  });
+  const lines = runs(days, read).flatMap((run) => stroke(frame, run, y, "soil", { points: false }));
+  const labels = [0, ...SOIL_TICKS].map((value, index, all) =>
+    svg("text", {
+      className: "chart-axis",
+      text: index === all.length - 1 ? `${value} ${texts.units.percent}` : String(value),
+      attrs: { x: frame.plot.from - 8, y: y(value) + 3, "text-anchor": "end" },
+    }),
+  );
+  return svg("g", { className: "chart-soil-panel" }, [
+    ...SOIL_TICKS.map((value) =>
+      svg("line", {
+        className: "chart-rule",
+        attrs: { x1: frame.plot.from, x2: frame.plot.to, y1: y(value), y2: y(value) },
+      }),
+    ),
+    ...areas,
+    ...lines,
+    svg("line", {
+      className: "chart-baseline",
+      attrs: { x1: frame.plot.from, x2: frame.plot.to, y1: frame.soil.base, y2: frame.soil.base },
+    }),
+    ...labels,
+  ]);
+}
+
 function rain(frame, days) {
   const ceiling = rainCeiling(days);
   const height = (value) => (value / ceiling) * frame.box.rain;
@@ -980,7 +1048,7 @@ function seamMark(frame, days) {
         x1: round(x),
         x2: round(x),
         y1: frame.temperature.top,
-        y2: round(frame.cumul.base),
+        y2: round(frame.last),
       },
     }),
     svg("text", {

@@ -90,6 +90,17 @@ export const VARIABLES = {
     hatchTop: false,
     timeline: "median",
   },
+  // Water left in the soil, percent of the available water: under 50 % the
+  // plant is short of water (src.app.domain.soil, p = 0.5), under 10 % it
+  // takes almost nothing more.
+  soil: {
+    unit: "%",
+    decimals: 0,
+    colors: ["#7a4a1d", "#b9803a", "#e3cc84", "#a9d08e", "#4f9a5a", "#2b6fae"],
+    edges: [10, 30, 50, 70, 90],
+    hatchTop: false,
+    timeline: "median",
+  },
 };
 
 /** Missing value in the integers /api/map serves (tenths of a degree). */

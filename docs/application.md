@@ -37,8 +37,8 @@ Limite connue : en vallée étroite, la maille 0,1° la plus proche peut couvrir
 
 | Groupe | Contenu | Période | Taille |
 |---|---|---|---|
-| `cordex` | CORDEX corrigé, 7 variables et `psl`, 0,25° | 1970-2100 | 21 Go |
-| `era5` | ERA5, 7 variables et `psl` (`msl`) ; températures E-OBS ou repli ERA5, 0,25° | 1970-2025 | 8,4 Go |
+| `cordex` | CORDEX corrigé, 7 variables, `psl` et `rsds`, 0,25° | 1970-2100 | 24 Go |
+| `era5` | ERA5, 7 variables, `psl` (`msl`) et `rsds` (`ssrd`) ; températures E-OBS ou repli ERA5, 0,25° | 1970-2025 | 9,7 Go |
 | `cordex010` | CORDEX corrigé, 3 températures, 0,1° | 1970-2100 | 26 Go |
 | `era5land` | 3 températures, E-OBS ou repli ERA5-Land, 0,1° | 1970-2025 | 10 Go |
 | racine | `latitude`, `longitude`, `domain`, `eobs`, `elevation` (0,25°) ; `latitude010`, `longitude010`, `domain010`, `eobs010`, `elevation010` (0,1°) | | |
@@ -46,9 +46,9 @@ Limite connue : en vallée étroite, la maille 0,1° la plus proche peut couvrir
 Les noms `era5` et `era5land` sont gardés quelle que soit la référence : chaque tableau dit ce qu'il contient, ou ce contre quoi il est corrigé, dans son attribut `reference` (`name`, `version`, `fallback` : par exemple E-OBS, v33.0e, ERA5-Land). `eobs` et `eobs010` valent 1 là où les températures viennent d'E-OBS, 0 pour le repli (`source.nc` de la référence). Les groupes `cordex_rca4` et `cordex010_rca4` (46 Go) gardent l'ancienne simulation, en attendant leur suppression.
 
 - Un bloc contient toute la période pour 2 × 2 mailles : une série en un point, de 3 mois ou de 131 ans, coûte un bloc par variable (2 à 50 ms). Blocs regroupés en paquets de 20 × 20 mailles.
-- Valeurs en entiers de 16 bits : pas de 0,01 (°C, %, m/s), 0,1 mm/j pour `pr`, 0,1 hPa pour `psl`. Filtre delta en temps, compression zstd.
+- Valeurs en entiers de 16 bits : pas de 0,01 (°C, %, m/s), 0,1 mm/j pour `pr`, 0,1 hPa pour `psl`, 0,1 W/m² pour `rsds`. Filtre delta en temps, compression zstd.
 - ERA5 et ERA5-Land sont rangés sous les noms et unités de CORDEX, et masqués au domaine CORDEX de leur grille.
-- L'attribut `built` est écrit en dernier : un tableau sans lui est incomplet, et le serveur refuse de démarrer.
+- L'attribut `built` est écrit en dernier : un tableau sans lui est incomplet, et le serveur refuse de démarrer. `rsds` fait exception : facultatif, il est ignoré tant qu'il n'est pas terminé (section 17).
 
 `python -m src.store.build <groupe> <variables>`, LaCie branché ; `WSA_MODEL` choisit la simulation (MPI / ICON par défaut) ; les températures sont toujours celles d'E-OBS ou calées sur E-OBS. Journal dans `data/serve/build.log`. Durées pour une température (13/10/2026) : 2 à 3 min pour `era5`, 6 min pour `cordex`, 14 à 16 min pour `era5land`, 38 à 45 min pour `cordex010`. Reconstruction des températures : `data/serve/bascule_eobs.sh` (3 h 20 ; purge des instantanés Time Machine avant chaque variable, arrêt sous 15 Go libres), journal `bascule_eobs.log`. `data/serve` est exclu de Time Machine. Le stockage est copié sur le LaCie par `python -m src.archive` ; `--free` ne le supprime jamais du Mac.
 
@@ -142,7 +142,7 @@ Limite visible : une marche entre 2025 et 2027, le modèle corrigé étant plus 
 
 ## 8. Cartes
 
-Page `/cartes`, reliée depuis l'accueil (en haut à droite : contour de l'Europe, « Cartes météos »). Une grandeur, une saison (printemps, été, automne, hiver, bornes du formulaire) et une année, dans l'adresse (`?grandeur=tasmax&saison=summer&annee=2100`, Tx de l'été 2100 par défaut), sur l'Europe. Grandeurs : températures maximales et minimales, précipitations, nébulosité ; la page ne propose que celles que le stockage contient (`variables` de `/api/map/cells`).
+Page `/cartes`, reliée depuis l'accueil (en haut à droite : contour de l'Europe, « Cartes météos »). Une grandeur, une saison (printemps, été, automne, hiver, bornes du formulaire) et une année, dans l'adresse (`?grandeur=tasmax&saison=summer&annee=2100`, Tx de l'été 2100 par défaut), sur l'Europe. Grandeurs : températures maximales et minimales, précipitations, nébulosité, eau du sol (section 17) ; la page ne propose que celles que le stockage contient (`variables` de `/api/map/cells`).
 
 | Grandeur | Bandes | Panneau | Frise |
 |---|---|---|---|
@@ -150,6 +150,7 @@ Page `/cartes`, reliée depuis l'accueil (en haut à droite : contour de l'Europ
 | Tn | 5 °C de -20 à 30 °C (12 couleurs : violets sous -5 °C, bleus jusqu'à 0 °C, orange et rouge au-dessus de 20 °C, seuil des nuits chaudes de `figures/climat/france_indicateurs.py`) | maille la plus froide, médiane | médiane |
 | Précipitations | moins de 1 mm (sec : seuil d'un jour de pluie, DRIAS et Météo-France), 1, 5, 10, 20, 50 mm et plus | maille la plus arrosée, part de mailles sèches | moyenne (la médiane est souvent nulle) |
 | Nébulosité | par 20 % | médiane, part de mailles à moins de 20 % | médiane |
+| Eau du sol | 10, 30, 50, 70, 90 % (du brun au bleu ; sous 50 % la plante manque d'eau) | répartition des mailles | médiane |
 
 - Carte jour par jour (Tx, Tn et pluie : valeur du jour ; nébulosité : moyenne du jour), mailles terrestres de 0,25° (masque terre-mer ERA5 ≥ 0,5, dans le domaine CORDEX), cadre 25° O à 45° E, 34° N à 72° N : 19 249 mailles. Projection azimutale équivalente de Lambert centrée sur 52° N, 10° E (celle des cartes statistiques européennes, ETRS89-LAEA), sur la sphère : méridiens convergents, parallèles courbes, quadrillage tous les 10° ; chaque maille est dessinée en quadrilatère, et la carte est cadrée sur les mailles présentes. Contours des pays : Natural Earth 1:50m (domaine public).
 - Mise en page sur ordinateur (1000 px et plus) : trois colonnes, réglages et lecteur à gauche, carte au centre sur toute la hauteur de la fenêtre, lecture du jour à droite ; rien au-dessus ni au-dessous de la carte. En dessous de 1000 px, tout s'empile.
@@ -163,7 +164,7 @@ Page `/cartes`, reliée depuis l'accueil (en haut à droite : contour de l'Europ
 - Harmonisation avec les résultats (07/11/2026), fond sombre gardé : chiffres en Garamond, unité en petit à côté (`.unit` du calendrier) pour la valeur du lieu, de la bulle et du survol ; bulles de survol et de maille sur la carte claire des notes « ? » (#fbfaf7, encre #14202e, lien bleu #1d5fb4) ; boutons en pastille aux dimensions de ceux des résultats ; titre à la taille des titres de rubrique des résultats (1,75rem).
 - Noms des lieux : `GET /api/place?latitude&longitude` donne la localité la plus proche (distance sur la sphère), son pays (code ISO, nom français dans le navigateur) et sa distance, ou rien au-delà de 50 km (mer, intérieur de la Scandinavie). Liste `data/serve/places.tsv` (690 ko, 20 330 lieux), construite par `python -m src.store.places` depuis GeoNames (`data/fixed/geonames/` : `cities5000.txt`, localités de 5 000 habitants et plus, et `alternate_fr.tsv`, noms français extraits d'`alternateNamesV2.txt` ; téléchargés le 07/11/2026, CC BY 4.0, attribution sur la page de documentation et sous la carte) : cadre de la carte, sans quartiers (PPLX), lieux historiques ni abandonnés ; nom français hors de France quand GeoNames en a un (Vienne, Bruxelles, Londres). Lue au démarrage, en mémoire, réponse en moins d'1 ms. Facultative : sans elle, `/api/place` répond 503 et la bulle ne montre que les coordonnées.
 
-Stockage `data/serve/map.zarr` (`python -m src.store.maps tasmax tasmin pr clt psl`, environ 1 min par grandeur, LaCie branché pour le masque) : copie de `point.zarr` découpée par paquets de 32 jours sur un quart du domaine, mêmes entiers (vérifiés égaux), attributs `simulation` et `reference` recopiés. Par grandeur, ERA5 et CORDEX : `tasmax` 0,81 + 1,6 Go, `tasmin` 0,83 + 1,6, `pr` 0,54 + 0,74, `clt` 1,4 + 1,8, `psl` 0,65 + 0,83 ; 10,7 Go en tout, plus `cordex_rca4` (5,6 Go, à supprimer). Facultatif : sans lui, le site tourne et la page des cartes le dit. Un `map.zarr` présent mais inutilisable (incomplet, groupe manquant) est signalé dans le journal du serveur au démarrage (« cartes non servies »), le site tournant sans cartes.
+Stockage `data/serve/map.zarr` (`python -m src.store.maps tasmax tasmin pr clt psl`, environ 1 min par grandeur, LaCie branché pour le masque) : copie de `point.zarr` découpée par paquets de 32 jours sur un quart du domaine, mêmes entiers (vérifiés égaux), attributs `simulation` et `reference` recopiés. Par grandeur, ERA5 et CORDEX : `tasmax` 0,81 + 1,6 Go, `tasmin` 0,83 + 1,6, `pr` 0,54 + 0,74, `clt` 1,4 + 1,8, `psl` 0,65 + 0,83, `soil` 0,36 + 0,47 (`python -m src.store.soil`, 10 min, sans le LaCie) ; 11,5 Go en tout, plus `cordex_rca4` (5,6 Go, à supprimer). Facultatif : sans lui, le site tourne et la page des cartes le dit. Un `map.zarr` présent mais inutilisable (incomplet, groupe manquant) est signalé dans le journal du serveur au démarrage (« cartes non servies »), le site tournant sans cartes.
 
 | Appel | Rôle |
 |---|---|
@@ -186,7 +187,7 @@ Après la reconstruction sur E-OBS, contre le serveur local :
 
 ## 10. Tests
 
-`python -m pytest` (234 tests au 15/11/2026, hors `tests/test_grass.py`) : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages), suite JavaScript (`node --test`, si `node` est installé) et, depuis le 13/11/2026, calculs de la correction (`tests/test_correction.py`, `docs/correction.md` section 12).
+`python -m pytest` (248 tests au 15/11/2026) : tests Python (API sur un petit stockage construit à la volée par `tests/conftest.py`, règles d'affichage, pages), suite JavaScript (`node --test`, si `node` est installé) et, depuis le 13/11/2026, calculs de la correction (`tests/test_correction.py`, `docs/correction.md` section 12).
 
 ## 11. Formulaire : une année ou un type de saison
 
@@ -374,3 +375,33 @@ Limites :
 
 Tests : `tests/test_altitude.py`, `tests/js/links.test.js`, `tests/js/fetch.test.js`.
 
+
+## 17. Eau du sol (15/11/2026)
+
+Un bilan hydrique journalier donne, pour chaque journée, la part de la réserve utile du sol encore disponible : 100 % à la capacité au champ, 0 % au point de flétrissement. Méthode de FAO-56 (Allen et al., 1998), la même pour les journées passées et simulées.
+
+- **ET0** (`src/app/domain/et0.py`) : évapotranspiration de référence de Penman-Monteith, celle d'un gazon bien arrosé, en mm/jour. Entrées : Tx et Tn du lieu, humidité relative moyenne, vent ramené de 10 m à 2 m, rayonnement solaire `rsds`, altitude (pression, rayonnement par ciel clair). Albédo 0,23 ; flux de chaleur dans le sol nul sur une journée.
+- **Rayonnement infrarouge net** : estimation de FAO-56 (équation 39), à partir des températures, de la pression de vapeur et du rapport entre le rayonnement solaire et celui d'un ciel clair.
+- **Réservoir** (`src/app/domain/soil.py`) : la pluie et la fonte de la neige le remplissent (même stock de neige que la section 15), l'excédent draine. Il perd Ks × ET0 : Ks vaut 1 tant que la moitié de la réserve reste (p = 0,5), puis décroît linéairement jusqu'à 0. Ks est lu sur l'état du début de journée. Une journée sans pluie connue compte comme sèche.
+- **Réserve utile** : 100 mm partout (`SOIL_CAPACITY_MM`), valeur provisoire en attendant une carte par maille.
+- **Calcul à la demande** (`src/app/api/soil.py`) : le bilan part du premier jour de la source (1970), réservoir plein, dans sa propre série (une journée simulée ne part jamais d'une journée passée). La série entière d'un lieu est gardée pour l'appel suivant.
+
+`/api/days` porte le champ `soil_water` par journée (entier, en %), nul si le stockage n'a pas `rsds`.
+
+Affichage (15/11/2026) :
+- **Résultats** : quatrième panneau du graphique, sous le cumul des précipitations, « Eau du sol (part de la réserve utile) », aire sous une courbe, axe fixe de 0 à 100 % avec un trait à 50 % ; dessiné seulement si une journée a une valeur (`hasSoil`, `web/static/js/chart.js`). Ligne « Eau du sol » dans la tuile agrandie d'une journée ; colonne « Eau du sol (% de la réserve utile) » dans l'export, après la neige.
+- **Carte** : grandeur « Eau du sol » (`soil`), précalculée par `python -m src.store.soil` dans `map.zarr` (entiers de 8 bits, en %, 255 pour une maille sans valeur). Même calcul que pour un lieu, mais avec les températures de la maille de 0,25° (un lieu prend celles de sa maille de 0,1°, ramenées à son altitude) : la carte et les résultats peuvent différer de quelques points en relief. Chaque bilan part plein le 1er janvier 1970, y compris pour la simulation, dont la carte garde 2027-2100. Vérification : 20 mailles tirées au hasard, recalculées une à une par les fonctions d'un lieu, doivent donner le même pourcentage tous les jours. Calcul par blocs de 20 × 20 mailles, toutes les mailles d'un bloc à la fois (`liquid_many`, `fill_many`, testées égales aux fonctions d'un lieu).
+
+Contrôle de l'ET0 (`figures/sol/meteofrance.py`) : ET0 calculée depuis ERA5 contre l'ETP des stations de Météo-France (données quotidiennes de meteo.data.gouv.fr, `ETPMON`, et `ETPGRILLE` à Pontarlier), 1991-2020, en mm par an :
+
+| Station | Météo-France | Infrarouge FAO | Infrarouge par flux |
+|---|---|---|---|
+| Paris-Montsouris | 865 | 752 (−13 %) | 592 (−32 %) |
+| Montpellier-Aéroport | 1265 | 1161 (−8 %) | 984 (−22 %) |
+| Grenoble-St Geoirs | 928 | 830 (−11 %) | 658 (−29 %) |
+| Besançon | 771 | 791 (+3 %) | 643 (−17 %) |
+| Pontarlier | 739 | 699 (−5 %) | 609 (−18 %) |
+
+« Par flux » : émission à la température de l'air moins le rayonnement infrarouge descendant de la réanalyse (`strd`). Écarté. Le rayonnement solaire d'ERA5 est 4 à 9 % au-dessus des mesures des stations : la sous-estimation restante ne vient pas de lui (vent d'une maille de 28 km, formule de Météo-France : non vérifié).
+
+Essai du réservoir sur cinq lieux (`figures/sol/lire.py`, `figures/sol/bilan.py`, figures à côté, données dans `data/sol`, hors dépôt) : le modèle corrigé reproduit ERA5 sur 1991-2020 (ET0 à 5 % près, remplissage d'été à 1 point près). Le remplissage d'été sature au sud (Montpellier 9 %, Séville 2 %, quelle que soit la réserve utile de 50 à 300 mm) ; le déficit annuel ET0 − ETR et la durée du stress n'y saturent pas. Limite connue : l'ET0 suppose une résistance de surface fixe, sans effet du CO2 sur les stomates.

@@ -209,12 +209,13 @@ export const texts = {
     // A function of one argument, and the argument is the label of the normals
     // or nothing. Two separate sentences would be the same sentence written twice,
     // to drift the day either is reworded.
-    label: (normals, snow = false) =>
+    label: (normals, snow = false, soil = false) =>
       "Températures et précipitations de la période, jour par jour, " +
       "puis le cumul des précipitations dans un troisième panneau. " +
       "Les valeurs sont écrites dans la bande de journées ci-dessus." +
       (normals ? ` Les ${normals.toLowerCase()} y sont superposées en gris.` : "") +
-      (snow ? " Les jours de neige au sol sont sur fond bleuté dans le panneau des précipitations." : ""),
+      (snow ? " Les jours de neige au sol sont sur fond bleuté dans le panneau des précipitations." : "") +
+      (soil ? " Un quatrième panneau montre l'eau restant dans le sol, de 0 à 100 % de sa réserve utile." : ""),
 
     // The ground under the bars of the rain panel, named on its title line.
     snow: "Neige au sol",
@@ -231,6 +232,10 @@ export const texts = {
     // against the panel it sits under, and there is more than one thing on this
     // drawing a total could be adding up.
     cumulative: "Cumul des précipitations",
+
+    // The fourth panel, when the server serves it: what is left of the water
+    // the soil holds for the plants (src.app.domain.soil).
+    soil: "Eau du sol (part de la réserve utile)",
   },
 
   // The seasonal normals of the temperatures.
@@ -420,6 +425,7 @@ export const texts = {
       tasmin: "Températures minimales",
       pr: "Précipitations",
       clt: "Nébulosité",
+      soil: "Eau du sol",
     },
     eyebrow: "Cartographie, Europe",
     sourceTitle: "Sources et méthode",
@@ -455,6 +461,9 @@ export const texts = {
         ? "Isobares : pression au niveau de la mer, une ligne tous les 5 hPa, sur une " +
           "grille de 0,5°, lissée. "
         : "") +
+      "Eau du sol : part de la réserve utile du sol encore disponible en fin de journée, " +
+      "100 % à la capacité au champ, 0 % au point de flétrissement ; bilan hydrique " +
+      "journalier d'un gazon (FAO-56), réserve utile de 100 mm partout. " +
       "Contours : Natural Earth. Noms des lieux : GeoNames (CC BY 4.0).",
     north: "N",
     south: "S",
@@ -504,6 +513,7 @@ export const texts = {
       `Température maximale (${texts.units.celsius})`,
       `${texts.measure.precipitation} (${texts.units.millimetres})`,
       "Neige au sol",
+      `Eau du sol (${texts.units.percent} de la réserve utile)`,
       "Nébulosité (%)",
       `${texts.measure.humidity} (${texts.units.percent})`,
       `Vent moyen (${texts.units.kilometresPerHour})`,
@@ -723,6 +733,7 @@ export const texts = {
     humidity: "Humidité",
     wind: "Vent moyen",
     snow: "Neige au sol",
+    soil: "Eau du sol",
     yes: "oui",
   },
 

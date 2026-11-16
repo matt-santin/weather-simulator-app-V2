@@ -4009,6 +4009,15 @@ body.results .card--snow:not(.card--zoom)::after {
   }
 }
 
+/* The water left in the soil: the blue of the water panels, as an area. */
+.chart-soil {
+  fill: color-mix(in srgb, var(--cool) 22%, transparent);
+}
+
+.chart-line.soil {
+  color: var(--cool);
+}
+
 .chart-snow {
   fill: color-mix(in srgb, var(--cool) 16%, transparent);
 }

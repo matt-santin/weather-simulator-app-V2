@@ -55,8 +55,14 @@ class Day(BaseModel):
         default=None, description="snow on the ground that day (src.app.domain.snow); null where it is not shown"
     )
 
+    soil_water: int | None = Field(
+        default=None, description="percent of the soil's available water left at the end of the day, 0 at the "
+                                  "wilting point, 100 at field capacity (src.app.domain.soil); null where it is not computed"
+    )
+
     @classmethod
-    def from_record(cls, record: DailyRecord, sky: SkyClass | None, snow: bool | None = None) -> Day:
+    def from_record(cls, record: DailyRecord, sky: SkyClass | None, snow: bool | None = None,
+                    soil_water: int | None = None) -> Day:
         """Values are rounded on the way out, after every rule has read the full ones."""
         low_band, high_band = temperature.bands_of(record)
         wet_bulb = humidity.wet_bulb_of_record(record)
@@ -76,6 +82,7 @@ class Day(BaseModel):
             temperature_min_band=low_band,
             temperature_max_band=high_band,
             snow_on_ground=snow,
+            soil_water=soil_water,
         )
 
 

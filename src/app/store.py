@@ -24,6 +24,9 @@ against (attribute `reference`: ERA5, ERA5-Land, or E-OBS with its fallback).
 Where the temperatures come from E-OBS, the masks `eobs` and `eobs010` tell,
 cell by cell, E-OBS (1) from its fallback (0).
 
+The solar radiation `rsds` (era5 and cordex, 0.25 deg) is optional: without it
+the soil water balance is not computed.
+
 The altitude of the cells, `elevation` and `elevation010` (metres, E-OBS, NaN
 where E-OBS has none), is optional: without it a place has no known altitude.
 
@@ -68,6 +71,10 @@ FIELDS = {
     "hurs": "relative_humidity_mean",
     "sfcWind": "wind_speed_mean",
 }
+
+# Stored beside them when the store has it, and read by name only: the solar
+# radiation of the soil water balance (src.app.api.soil). Never in a daily record.
+EXTRAS = ("rsds",)
 
 EPOCH = date(1970, 1, 1)
 TEMPERATURES = ("tasmax", "tasmin", "tas")
@@ -187,7 +194,9 @@ class Store:
     def _open(self, root, path, source, names, period: Period) -> None:
         group = root[source]
         arrays = {}
-        for name in names:
+        # An optional array is taken once finished: one being built is left out.
+        extras = [n for n in EXTRAS if names is FIELDS and n in group and "built" in group[n].attrs]
+        for name in (*names, *extras):
             if name not in group:
                 raise RuntimeError(f"{path}: {source}/{name} absent")
             arr = group[name]
@@ -231,6 +240,10 @@ class Store:
             if len({out[source, n] for n in TEMPERATURES if n in arrays}) > 1:
                 raise RuntimeError(f"{path}: {source}, temperatures de sources differentes")
         return out
+
+    def has(self, name: str) -> bool:
+        """Whether every served period holds that variable (EXTRAS are optional)."""
+        return all(name in self.arrays[p.source] for p in PERIODS)
 
     def datasets(self, source: str, cell: Cell) -> str:
         """The datasets a day of ``source`` is read from at ``cell``:

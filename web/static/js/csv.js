@@ -51,6 +51,8 @@ const FIELDS = [
   "precipitation",
   // Beside the precipitation it comes from.
   "snow_on_ground",
+  // Beside the water it fills.
+  "soil_water",
   "cloud_cover",
   "relative_humidity_mean",
   "wind_speed_mean",
