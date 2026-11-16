@@ -124,7 +124,7 @@ def test_days_carry_the_water_left_in_the_soil(store_path, source, start, end) -
     first, last = date.fromisoformat(start), date.fromisoformat(end)
     origin = store.first[source]
     demand, v = api_soil.reference(store, source, cell, origin, last)
-    whole = soil.balance(soil.liquid(v["tas"], v["pr"], origin), demand, thresholds.SOIL_CAPACITY_MM)
+    whole = soil.balance(soil.liquid(v["tas"], v["pr"], origin), demand, store.capacity(cell))
     expected = [int(round(100 * f)) for f in whole.fill[(first - origin).days:]]
     got = [d["soil_water"] for d in days(store, start=start, end=end)]
     assert got == expected
@@ -137,8 +137,7 @@ def test_the_soil_dries_when_it_does_not_rain(store_path) -> None:
     store = Store(store_path)
     start = date.fromordinal(date(1970, 1, 1).toordinal() + 3000)
     got = [d["soil_water"] for d in days(store, start=start.isoformat(), end=date.fromordinal(start.toordinal() + 4).isoformat())]
-    assert got[0] == 100 or got[0] > got[1]
-    assert got == sorted(got, reverse=True) and got[-1] < 100
+    assert got == sorted(got, reverse=True) and got[-1] < got[0]
 
 
 def test_a_day_without_precipitation_data_counts_as_a_dry_day(store_path) -> None:
@@ -176,3 +175,22 @@ def test_many_cells_at_once_give_the_numbers_of_one_cell() -> None:
         one = soil.liquid(tas[:, c], pr[:, c], start)
         np.testing.assert_array_equal(water[:, c], one)
         np.testing.assert_array_equal(fill[:, c], soil.balance(one, demand[:, c], capacity[c]).fill)
+
+
+def test_the_reservoir_is_the_store_s_and_the_constant_where_it_has_none(store_path, tmp_path) -> None:
+    from tests.conftest import CAPACITY
+    store = Store(store_path)
+    assert store.capacity(store.cell(**GRENOBLE)) == CAPACITY
+    assert store.capacity(store.cell(45.75, 5.25)) == thresholds.SOIL_CAPACITY_MM
+    path = tmp_path / "point.zarr"
+    shutil.copytree(store_path, path)
+    shutil.rmtree(path / "soil_capacity")
+    bare = Store(path)
+    assert bare.capacity(bare.cell(**GRENOBLE)) == thresholds.SOIL_CAPACITY_MM
+    # The same dry days (the first of a cycle of 3000, conftest.py) take a
+    # smaller share of a larger reservoir.
+    start = date.fromordinal(date(1970, 1, 1).toordinal() + 3000)
+    end = date.fromordinal(start.toordinal() + 9)
+    small = [d["soil_water"] for d in days(bare, start=start.isoformat(), end=end.isoformat())]
+    large = [d["soil_water"] for d in days(store, start=start.isoformat(), end=end.isoformat())]
+    assert all(a >= b for a, b in zip(large, small)) and large[-1] > small[-1]

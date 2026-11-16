@@ -8,7 +8,8 @@ written to the map store (data/serve/map.zarr) as the variable `soil`: percent
 of the available water left at the end of the day, 0 at the wilting point, 100
 at field capacity, 8-bit integers, 255 for no value.
 
-The same arithmetic as for a place, with one difference: the temperatures are
+The reservoir of each cell is the point store's (src.store.capacity), as for a
+place. The same arithmetic as for a place, with one difference: the temperatures are
 those of the 0.25 deg cell, where a place takes them from its 0.1 deg cell,
 brought to its altitude. A map and a place can therefore differ by a few
 points where the relief is marked.
@@ -59,8 +60,16 @@ def read(group: zarr.Group, name: str, rows: slice, cols: slice) -> np.ndarray:
     return out.reshape(raw.shape[0], -1)
 
 
+def capacities(point: zarr.Group) -> np.ndarray:
+    """The reservoir of each cell, in mm, as Store.capacity gives it."""
+    if "soil_capacity" not in point:
+        return np.full(point["domain"].shape, thresholds.SOIL_CAPACITY_MM)
+    found = point["soil_capacity"][:].astype("float64")
+    return np.where(np.isnan(found), thresholds.SOIL_CAPACITY_MM, found)
+
+
 def block(group: zarr.Group, first: date, latitude: np.ndarray, altitude: np.ndarray,
-          rows: slice, cols: slice) -> np.ndarray:
+          capacity: np.ndarray, rows: slice, cols: slice) -> np.ndarray:
     """Fill of the reservoir, days x cells of the block, from ``first``."""
     v = {name: read(group, name, rows, cols) for name in INPUTS}
     n = v["tas"].shape[0]
@@ -74,7 +83,7 @@ def block(group: zarr.Group, first: date, latitude: np.ndarray, altitude: np.nda
     rn = (1 - et0.ALBEDO) * rs - et0.net_longwave(v["tasmax"], v["tasmin"], ea, rs, rso)
     demand = et0.reference(v["tasmax"], v["tasmin"], ea, es, et0.wind_2m(v["sfcWind"]), rn, et0.pressure(alt))
     water = soil.liquid_many(v["tas"], v["pr"], first)
-    return soil.fill_many(water, demand, thresholds.SOIL_CAPACITY_MM)
+    return soil.fill_many(water, demand, capacity[rows, cols].reshape(-1))
 
 
 def build(point: zarr.Group, source: str) -> None:
@@ -85,6 +94,7 @@ def build(point: zarr.Group, source: str) -> None:
     k0, n = (first - origin).days, (last - first).days + 1
     latitude = point["latitude"][:]
     altitude = np.nan_to_num(point["elevation"][:], nan=0.0)  # no altitude known: sea level
+    capacity = capacities(point)
     land = zarr.open_group(STORE, mode="r")["land"][:].astype(bool)
     ny, nx = land.shape
     qy, qx = (ny + 1) // 2, (nx + 1) // 2
@@ -93,7 +103,8 @@ def build(point: zarr.Group, source: str) -> None:
         NAME, shape=(n, ny, nx), dtype="uint8", chunks=(DAYS, qy, qx), fill_value=FILL,
         compressors=[BloscCodec(cname="zstd", clevel=5, shuffle="shuffle")])
     arr.attrs.update({"scale_factor": 1, "_FillValue": FILL, "units": "%", "start": first.isoformat(),
-                      "capacity_mm": thresholds.SOIL_CAPACITY_MM})
+                      "capacity": dict(point["soil_capacity"].attrs) if "soil_capacity" in point
+                      else {"units": "mm", "everywhere": thresholds.SOIL_CAPACITY_MM}})
     for key in ("simulation",):
         if key in group["tasmax"].attrs:
             arr.attrs[key] = group["tasmax"].attrs[key]
@@ -108,7 +119,7 @@ def build(point: zarr.Group, source: str) -> None:
                     rows, cols = slice(a, min(a + BLOCK, i1)), slice(b, min(b + BLOCK, j1))
                     if not land[rows, cols].any():
                         continue
-                    fill = block(group, origin, latitude, altitude, rows, cols)[k0:k0 + n]
+                    fill = block(group, origin, latitude, altitude, capacity, rows, cols)[k0:k0 + n]
                     shape = (n, rows.stop - rows.start, cols.stop - cols.start)
                     pct = np.where(np.isnan(fill), FILL, np.round(100 * fill)).reshape(shape)
                     quarter[:, a - i0:rows.stop - i0, b - j0:cols.stop - j0] = pct.astype("uint8")
@@ -129,6 +140,7 @@ def verify(point: zarr.Group, source: str, arr: zarr.Array, origin: date, k0: in
     rng = np.random.default_rng(0)
     group, latitude = point[source], point["latitude"][:]
     altitude = np.nan_to_num(point["elevation"][:], nan=0.0)
+    capacity = capacities(point)
     cells = np.argwhere(land)
     for i, j in cells[rng.choice(len(cells), samples, replace=False)]:
         rows, cols = slice(i, i + 1), slice(j, j + 1)
@@ -142,7 +154,7 @@ def verify(point: zarr.Group, source: str, arr: zarr.Array, origin: date, k0: in
         rn = (1 - et0.ALBEDO) * rs - et0.net_longwave(v["tasmax"], v["tasmin"], ea, rs, rso)
         demand = et0.reference(v["tasmax"], v["tasmin"], ea, es, et0.wind_2m(v["sfcWind"]), rn,
                                et0.pressure(float(altitude[i, j])))
-        fill = soil.balance(soil.liquid(v["tas"], v["pr"], origin), demand, thresholds.SOIL_CAPACITY_MM).fill
+        fill = soil.balance(soil.liquid(v["tas"], v["pr"], origin), demand, float(capacity[i, j])).fill
         fill = fill[k0:k0 + arr.shape[0]]
         expected = np.where(np.isnan(fill), FILL, np.round(100 * fill)).astype("uint8")
         got = arr[:, i, j]

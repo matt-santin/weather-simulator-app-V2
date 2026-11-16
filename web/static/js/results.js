@@ -64,6 +64,9 @@ const note = document.getElementById("humid-note");
 const snowCoverRow = document.getElementById("snow-cover");
 const snowCoverText = document.getElementById("snow-cover-text");
 const snowCoverMethod = document.getElementById("snow-cover-method");
+const soilNote = document.getElementById("soil-note");
+const soilNoteText = document.getElementById("soil-note-text");
+const soilNoteMethod = document.getElementById("soil-note-method");
 const wait = document.getElementById("wait");
 const failure = document.getElementById("failure");
 const calendar = document.getElementById("calendar");
@@ -344,6 +347,12 @@ async function show(series) {
     drawn = chart(series.days, scale);
     chartPanel.append(drawn);
     chartPanel.hidden = false;
+    const soilLine = present.soilLow(series.days);
+    if (soilLine) {
+      soilNoteText.textContent = soilLine;
+      soilNoteMethod.textContent = texts.soil.method(series.has_simulated);
+      soilNote.hidden = false;
+    }
     offer(series, config);
     // The summary card sits above the calendar: the day is sought once it is
     // laid, so that it does not push the day away.

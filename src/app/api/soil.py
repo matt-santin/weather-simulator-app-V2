@@ -3,7 +3,9 @@
 A daily balance of one reservoir (src.app.domain.soil): rain and snowmelt fill
 it, the reference evapotranspiration ET0 (src.app.domain.et0, FAO-56
 Penman-Monteith) empties it, slowed down as the soil dries. The cover is the
-reference grass and the reservoir holds thresholds.SOIL_CAPACITY_MM everywhere.
+reference grass. The reservoir holds the available water of the soil at the
+cell (Store.capacity: ESDAC, Stocker et al. where it lacks, src.store.capacity),
+thresholds.SOIL_CAPACITY_MM without it.
 
 ET0 is computed here, from what the store serves at the place: its
 temperatures (0.1 deg cell, brought to its altitude when it is given), and the
@@ -29,7 +31,7 @@ from functools import lru_cache
 
 import numpy as np
 
-from src.app.domain import et0, soil, thresholds
+from src.app.domain import et0, soil
 from src.app.store import FINE, Cell, Period, Store
 
 RADIATION = "rsds"
@@ -61,7 +63,7 @@ def _whole(store: Store, source: str, cell: Cell, last: date) -> soil.Balance:
     """The balance of every day the source holds, up to ``last``."""
     first = origin(store, source)
     demand, v = reference(store, source, cell, first, last)
-    return soil.balance(soil.liquid(v["tas"], v["pr"], first), demand, thresholds.SOIL_CAPACITY_MM)
+    return soil.balance(soil.liquid(v["tas"], v["pr"], first), demand, store.capacity(cell))
 
 
 def balance(store: Store, period: Period, cell: Cell) -> tuple[date, soil.Balance] | None:

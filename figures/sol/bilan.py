@@ -1,10 +1,11 @@
 """Essai du bilan hydrique aux lieux de figures/sol/lire.py.
 
-    python figures/sol/bilan.py [réserve utile en mm, 100 par défaut | stocker]
+    python figures/sol/bilan.py [réserve utile en mm, 100 par défaut | stocker | esdac]
 
 Avec « stocker », la réserve utile de chaque lieu est la moyenne, sur sa maille
 de 0,25°, de la capacité de stockage de la zone racinaire de Stocker et al. 2023
-(data/sol/stocker/cwdx80_forcing.nc, 0,05°).
+(data/sol/stocker/cwdx80_forcing.nc, 0,05°). Avec « esdac », celle d'ESDAC ramenée sur
+la maille par figures/sol/esdac.py (data/sol/esdac/reserve_025.nc).
 
 Températures, pluie, humidité et vent : stockage de service (ce que sert le
 site). Rayonnements et évaporation : data/sol/points.npz. ET0 de FAO-56 avec
@@ -28,15 +29,20 @@ from src.app.store import Store  # noqa: E402
 from src.config import DATA  # noqa: E402
 
 ARG = sys.argv[1] if len(sys.argv) > 1 else "100"
-TAG = "stocker" if ARG == "stocker" else f"{float(ARG):.0f}mm"
-LABEL = "réserve utile de Stocker et al. 2023" if ARG == "stocker" else f"réserve utile {float(ARG):.0f} mm"
+NAMED = {"stocker": "réserve utile de Stocker et al. 2023", "esdac": "réserve utile d'ESDAC (Hiederer 2013)"}
+TAG = ARG if ARG in NAMED else f"{float(ARG):.0f}mm"
+LABEL = NAMED.get(ARG) or f"réserve utile {float(ARG):.0f} mm"
 
 
 def capacities(pts):
     """Réserve utile de chaque lieu, en mm."""
+    import xarray as xr
+    if ARG == "esdac":
+        with xr.open_dataset(DATA / "sol" / "esdac" / "reserve_025.nc") as ds:
+            return [float(ds.capacity.sel(latitude=la, longitude=lo, method="nearest"))
+                    for la, lo in zip(pts["lat"], pts["lon"])]
     if ARG != "stocker":
         return [float(ARG)] * len(pts["lat"])
-    import xarray as xr
     with xr.open_dataset(DATA / "sol" / "stocker" / "cwdx80_forcing.nc") as ds:
         da = ds["cwdx80_forcing"]
         return [float(da.sel(lat=slice(la - 0.125, la + 0.125), lon=slice(lo - 0.125, lo + 0.125)).mean())

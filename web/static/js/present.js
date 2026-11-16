@@ -165,6 +165,20 @@ export function snowCover(cover, days) {
 }
 
 /**
+ * The driest day of the range for the soil, in a sentence: "Eau du sol au plus
+ * bas : 6 % de la réserve utile, le 28 juillet." The first of two equal days.
+ * Empty where no day carries a value.
+ */
+export function soilLow(days) {
+  let low = null;
+  for (const day of days) {
+    if (isMissing(day.soil_water)) continue;
+    if (low === null || day.soil_water < low.soil_water) low = day;
+  }
+  return low === null ? "" : texts.soil.lowest(low.soil_water, dayMonth(low.date));
+}
+
+/**
  * A sentence, cut where a footnote call belongs in it.
  *
  * French typography puts the call *before* the full stop — « N'importe quand*. »

@@ -39,6 +39,8 @@ VARIABLES = {  # name: dtype, step
 }
 GAP = date(2044, 7, 14)  # pr missing that day, in cordex
 RSDS = 150.0  # W m-2
+CAPACITY = 160.0  # mm
+NO_CAPACITY = (1, 1)  # 45.75 N 5.25 E
 LATITUDE010 = np.round(np.arange(46.0, 44.95, -0.1), 2)
 LONGITUDE010 = np.round(np.arange(5.0, 6.05, 0.1), 2)
 FINE_OFFSET = 500
@@ -123,6 +125,11 @@ def store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     elevation010[UNKNOWN010] = np.nan
     root.create_array("elevation010", data=elevation010)
     root.create_array("elevation", data=np.full((5, 5), 300.0, dtype="float32"))
+    # Available water of the soil (src.store.capacity): CAPACITY everywhere but one
+    # cell without a value, where the balance takes thresholds.SOIL_CAPACITY_MM.
+    capacity = np.full((5, 5), CAPACITY, dtype="float32")
+    capacity[NO_CAPACITY] = np.nan
+    root.create_array("soil_capacity", data=capacity)
     shape = (LATITUDE010.size, LONGITUDE010.size)
     for source, (start, end) in SOURCES.items():
         group = root.create_group(FINE[source])

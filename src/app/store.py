@@ -27,6 +27,10 @@ cell by cell, E-OBS (1) from its fallback (0).
 The solar radiation `rsds` (era5 and cordex, 0.25 deg) is optional: without it
 the soil water balance is not computed.
 
+The available water of the soil, `soil_capacity` (mm, 0.25 deg, src.store.capacity),
+is optional too: without it, or on a cell without a value, the balance takes
+thresholds.SOIL_CAPACITY_MM. It is read by the balance and never served.
+
 The altitude of the cells, `elevation` and `elevation010` (metres, E-OBS, NaN
 where E-OBS has none), is optional: without it a place has no known altitude.
 
@@ -56,7 +60,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 
-from src.app.domain import altitude
+from src.app.domain import altitude, thresholds
 from src.config import DATA
 
 STORE = Path(os.environ.get("WSA_STORE", DATA / "serve" / "point.zarr"))
@@ -185,6 +189,7 @@ class Store:
         self.references = self._references(path)
         self.masks = {fine: root[key][:].astype(bool) for fine, key in ((False, "eobs"), (True, "eobs010"))
                       if key in root}
+        self.capacities = root["soil_capacity"][:] if "soil_capacity" in root else None
         self.elevations = {fine: root[key][:] for fine, key in ((False, "elevation"), (True, "elevation010"))
                            if key in root}
         for (source, name), ref in self.references.items():
@@ -240,6 +245,14 @@ class Store:
             if len({out[source, n] for n in TEMPERATURES if n in arrays}) > 1:
                 raise RuntimeError(f"{path}: {source}, temperatures de sources differentes")
         return out
+
+    def capacity(self, cell: Cell) -> float:
+        """The available water of the soil at the cell, in mm: the store's,
+        or thresholds.SOIL_CAPACITY_MM where it has none."""
+        if self.capacities is None:
+            return thresholds.SOIL_CAPACITY_MM
+        value = float(self.capacities[cell.coarse])
+        return thresholds.SOIL_CAPACITY_MM if np.isnan(value) else value
 
     def has(self, name: str) -> bool:
         """Whether every served period holds that variable (EXTRAS are optional)."""

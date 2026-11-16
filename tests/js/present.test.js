@@ -293,3 +293,21 @@ describe("the lines of the promise", () => {
     assert.equal(lines.join("\n"), texts.home.promise);
   });
 });
+
+describe("the driest day for the soil", () => {
+  it("names the lowest value and its day, the first of two equal ones", async () => {
+    const { soilLow } = await import("../../web/static/js/present.js");
+    const days = [
+      { date: "2003-07-27", soil_water: 30 },
+      { date: "2003-07-28", soil_water: 6 },
+      { date: "2003-07-29", soil_water: null },
+      { date: "2003-07-30", soil_water: 6 },
+    ];
+    assert.equal(soilLow(days), texts.soil.lowest(6, "28 juillet"));
+  });
+
+  it("says nothing where no day carries a value", async () => {
+    const { soilLow } = await import("../../web/static/js/present.js");
+    assert.equal(soilLow([{ date: "2003-07-27", soil_water: null }, { date: "2003-07-28" }]), "");
+  });
+});

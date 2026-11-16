@@ -224,6 +224,21 @@
       -->
       <div id="chart-panel" class="chart-panel" hidden></div>
 
+      <!-- The water left in the soil, under the chart that draws it: its lowest
+           day and its "?" (results.js). Hidden where the server serves none. -->
+      <div id="soil-note" class="title-row snow-row" hidden>
+        <p id="soil-note-text" class="compare-note"></p>
+        <button
+          type="button"
+          class="hint"
+          data-hint
+          aria-expanded="false"
+          aria-controls="soil-note-method"
+          data-attr-aria-label="soil.hint"
+        >?</button>
+        <p id="soil-note-method" class="hint-text" role="tooltip" hidden></p>
+      </div>
+
       <!--
         Every year from 1970 to 2100: the dates of the search in each, one tile
         per year, coloured by the anomaly to the reference period. Filled by
