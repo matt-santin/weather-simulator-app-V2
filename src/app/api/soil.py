@@ -4,7 +4,7 @@ A daily balance of one reservoir (src.app.domain.soil): rain and snowmelt fill
 it, the reference evapotranspiration ET0 (src.app.domain.et0, FAO-56
 Penman-Monteith) empties it, slowed down as the soil dries. The cover is the
 reference grass. The reservoir holds the available water of the soil at the
-cell (Store.capacity: ESDAC, Stocker et al. where it lacks, src.store.capacity),
+cell (Store.capacity: ESDAC, src.store.capacity),
 thresholds.SOIL_CAPACITY_MM without it.
 
 ET0 is computed here, from what the store serves at the place: its

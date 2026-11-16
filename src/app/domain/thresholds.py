@@ -173,8 +173,8 @@ SNOW_RESET_MONTH = 8
 
 # Soil water balance (src.app.domain.soil): the size of the reservoir, in mm of
 # available water, where the store has none for the cell. Since 2026-11-16 the
-# store holds one per cell (src.store.capacity: ESDAC, Stocker et al. 2023 where
-# it lacks): this is only the last resort (a sea cell, a store without it). The
+# store holds one per cell (src.store.capacity: ESDAC): this is the value where
+# ESDAC has none (a few cells of Iceland and Norway, the sea, a store without it). The
 # trial of figures/sol/bilan.py shows what the size moves: at Paris, 45 days of
 # strong stress per summer with 50 mm, 9 with 300 mm.
 SOIL_CAPACITY_MM = 100.0

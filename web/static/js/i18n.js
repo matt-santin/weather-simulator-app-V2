@@ -464,7 +464,7 @@ export const texts = {
       "Eau du sol : part de la réserve utile du sol encore disponible en fin de journée, " +
       "100 % à la capacité au champ, 0 % au point de flétrissement ; bilan hydrique " +
       "journalier d'une prairie de référence (FAO-56), réserve utile du sol d'ESDAC (Hiederer 2013), " +
-      "de Stocker et al. (2023) là où elle manque. " +
+      "100 mm là où elle manque. " +
       "Contours : Natural Earth. Noms des lieux : GeoNames (CC BY 4.0).",
     north: "N",
     south: "S",
@@ -752,7 +752,7 @@ export const texts = {
       "100 % : le sol tient toute l'eau qu'il peut garder pour les plantes (sa réserve utile, sur un " +
       "mètre au plus) ; 0 % : les racines n'en tirent plus rien. Sous 50 %, l'herbe commence à manquer " +
       "d'eau. Une forêt ou une culture réelle se comporterait autrement. Réserve utile : European Soil " +
-      "Data Centre (ESDAC, Hiederer 2013), Stocker et al. (2023) là où elle manque." +
+      "Data Centre (ESDAC, Hiederer 2013), 100 mm là où elle manque." +
       (simulated ? " Pour une année simulée, c'est le sol d'une année possible du modèle." : ""),
   },
 

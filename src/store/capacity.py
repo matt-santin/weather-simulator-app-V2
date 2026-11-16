@@ -4,8 +4,8 @@
 
 Writes to the point store (data/serve/point.zarr), at the root, on the 0.25 deg
 grid: `soil_capacity`, the size of the reservoir in mm, and
-`soil_capacity_source`, where it comes from (1 ESDAC, 2 Stocker, 0 none: the
-site then takes thresholds.SOIL_CAPACITY_MM). Then rebuild the map
+`soil_capacity_source`, where it comes from (1 ESDAC, 0 none: the site then
+takes thresholds.SOIL_CAPACITY_MM). Then rebuild the map
 (python -m src.store.soil).
 
 - ESDAC (chosen 2026-11-16): European Soil Database Derived data (Hiederer
@@ -19,14 +19,12 @@ site then takes thresholds.SOIL_CAPACITY_MM). Then rebuild the map
   European Soil Database the values come from the HWSD. The licence forbids
   passing the data to third parties: the layer stays on our machines, and the
   site serves the water left in the soil, never the capacity itself.
-- Stocker et al. 2023 (Nature Geoscience, doi:10.1038/s41561-023-01125-2;
-  data doi:10.5281/zenodo.10885724, CC BY 4.0), cwdx80_forcing, 0.05 deg,
-  where ESDAC has nothing: the mean of its cells in the 0.25 deg cell. It is
-  the storage the real vegetation draws on (forests included), larger than a
-  soil's available water: it only fills the few cells ESDAC leaves empty.
+  Where ESDAC has nothing (a few cells of Iceland and Norway, the edges of
+  the domain, the sea), the site takes thresholds.SOIL_CAPACITY_MM: one source
+  only (decided 2026-11-16; Stocker et al. 2023 filled these cells before).
 
-The source files stay out of the repository, in data/sol (esdac/brut,
-stocker). Needs pyproj, at building only.
+The source files stay out of the repository, in data/sol/esdac/brut. Needs
+pyproj, at building only.
 """
 
 from __future__ import annotations
@@ -36,16 +34,14 @@ import sys
 import time
 
 import numpy as np
-import xarray as xr
 import zarr
 
 from src.config import DATA
 from src.store.build import STORE
 
 ESDAC = DATA / "sol" / "esdac" / "brut"
-STOCKER = DATA / "sol" / "stocker" / "cwdx80_forcing.nc"
 ROWS, COLS, X0, Y1, STEP = 4600, 5900, 1500000.0, 5500000.0, 1000.0  # the 1 km rasters (.RDC)
-NONE, FROM_ESDAC, FROM_STOCKER = 0, 1, 2
+NONE, FROM_ESDAC = 0, 1
 
 log = logging.getLogger("capacity")
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO, datefmt="%H:%M:%S")
@@ -95,44 +91,23 @@ def esdac(lat: np.ndarray, lon: np.ndarray, layers: dict[str, np.ndarray] | None
     return out
 
 
-def stocker(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
-    """Mean of the 0.05 deg cells of Stocker et al. in each 0.25 deg cell, NaN without one."""
-    step = abs(lat[1] - lat[0])
-    with xr.open_dataset(STOCKER) as ds:
-        da = ds["cwdx80_forcing"].sel(lat=slice(lat.min() - step, lat.max() + step),
-                                      lon=slice(lon.min() - step, lon.max() + step))
-        values = da.values.astype("float64")
-        glat, glon = np.meshgrid(da.lat.values, da.lon.values, indexing="ij")
-    k, inside = cells(lat, lon, glat, glon)
-    ok = inside & np.isfinite(values)
-    size = lat.size * lon.size
-    n = np.bincount(k[ok], minlength=size)
-    total = np.bincount(k[ok], weights=values[ok], minlength=size)
-    with np.errstate(invalid="ignore", divide="ignore"):
-        return np.where(n > 0, total / n, np.nan).reshape(lat.size, lon.size)
-
-
 def main() -> int:
     t0 = time.time()
     root = zarr.open_group(STORE, mode="a")
     lat, lon = root["latitude"][:], root["longitude"][:]
     domain = root["domain"][:].astype(bool)
     soil = esdac(lat, lon)["capacity"]
-    vegetation = stocker(lat, lon)
-    source = np.where(np.isfinite(soil), FROM_ESDAC, np.where(np.isfinite(vegetation), FROM_STOCKER, NONE))
-    source = np.where(domain, source, NONE).astype("uint8")
-    capacity = np.where(source == FROM_ESDAC, soil, np.where(source == FROM_STOCKER, vegetation, np.nan))
+    source = np.where(domain & np.isfinite(soil), FROM_ESDAC, NONE).astype("uint8")
+    capacity = np.where(source == FROM_ESDAC, soil, np.nan)
     arr = root.create_array("soil_capacity", data=capacity.astype("float32"), overwrite=True)
     arr.attrs.update({"units": "mm", "sources": {
         "1": "ESDAC, European Soil Database Derived data, STU_EU_T_TAWC + STU_EU_S_TAWC (Hiederer 2013, "
-             "doi:10.2788/94128); not to be passed to third parties",
-        "2": "Stocker et al. 2023, cwdx80_forcing (doi:10.5281/zenodo.10885724, CC BY 4.0)"},
+             "doi:10.2788/94128); not to be passed to third parties"},
         "built": time.strftime("%Y-%m-%d %H:%M")})
     root.create_array("soil_capacity_source", data=source, overwrite=True)
-    inside = domain
-    log.info("reserve utile : %d mailles du domaine, ESDAC %d, Stocker %d, aucune %d ; mediane %.0f mm ; %.0f s",
-             inside.sum(), (source == FROM_ESDAC).sum(), (source == FROM_STOCKER).sum(),
-             (inside & (source == NONE)).sum(), np.nanmedian(capacity[inside]), time.time() - t0)
+    log.info("reserve utile : %d mailles du domaine, ESDAC %d, aucune %d ; mediane %.0f mm ; %.0f s",
+             domain.sum(), (source == FROM_ESDAC).sum(), (domain & (source == NONE)).sum(),
+             np.nanmedian(capacity[domain]), time.time() - t0)
     return 0
 
 
