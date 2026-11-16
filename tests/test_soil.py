@@ -194,3 +194,34 @@ def test_the_reservoir_is_the_store_s_and_the_constant_where_it_has_none(store_p
     small = [d["soil_water"] for d in days(bare, start=start.isoformat(), end=end.isoformat())]
     large = [d["soil_water"] for d in days(store, start=start.isoformat(), end=end.isoformat())]
     assert all(a >= b for a, b in zip(large, small)) and large[-1] > small[-1]
+
+
+# --- departure from the normal, for the map (src.store.anomaly) ---------------
+
+def test_the_29th_of_february_takes_the_slot_of_the_28th() -> None:
+    from src.store.anomaly import slots
+    s = slots(date(2020, 2, 27), 4)  # 27, 28, 29 February, 1 March
+    assert s.tolist() == [57, 58, 58, 59]
+    assert slots(date(2021, 12, 31), 1).tolist() == [364]
+    assert slots(date(2100, 3, 1), 1).tolist() == [59]  # 2100 is not a leap year
+
+
+def test_the_normal_is_the_mean_of_the_reference_years_and_the_departure_reads_against_it() -> None:
+    from src.store.anomaly import FILL, departure, normal
+    first = date(1990, 1, 1)
+    n = (date(2021, 12, 31) - first).days + 1
+    years = (np.datetime64("1990-01-01") + np.arange(n)).astype("datetime64[Y]").astype(int) + 1970
+    # Cell 0: 60 % every day of 1991-2020, 0 % outside it (not in the normal).
+    # Cell 1: 40 % on even years, 80 % on odd ones (mean 60), and no value on 1 July 2000.
+    values = np.stack([np.where((years >= 1991) & (years <= 2020), 60, 0),
+                       np.where(years % 2 == 0, 40, 80)], axis=1).astype("uint8")
+    values[(date(2000, 7, 1) - first).days, 1] = 255
+    base = normal(values, first, 255)
+    assert base.shape == (365, 2)
+    assert np.allclose(base[:, 0], 60)
+    assert np.allclose(base[:, 1], 60, atol=1)  # 29 February and the missing day weigh a little
+    out = departure(values, first, 255, base)
+    assert out.dtype == np.int8
+    assert out[0, 0] == -60  # 1990, outside the normal, read against it
+    assert out[(date(2001, 3, 1) - first).days, 1] == 20
+    assert out[(date(2000, 7, 1) - first).days, 1] == FILL

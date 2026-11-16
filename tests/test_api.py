@@ -411,12 +411,20 @@ def test_without_a_map_store_the_maps_say_so(client: TestClient) -> None:
 
 def test_rain_maps_are_tenths_of_a_mm_and_unbuilt_variables_are_absent(map_client: TestClient) -> None:
     import numpy as np
-    assert map_client.get("/api/map/cells").json()["variables"] == ["tasmax", "pr"]
+    assert map_client.get("/api/map/cells").json()["variables"] == ["tasmax", "pr", "soil_anomaly"]
     response = map_client.get("/api/map/pr", params={"start": "2027-01-01", "end": "2027-01-02"})
     values = np.frombuffer(response.content, dtype="<i2").reshape(2, 24)
     assert (values[0] == -32768).all()  # no value on the first day
     assert (values[1] == 1).all()  # day index 1, 0.1 mm
     assert map_client.get("/api/map/clt", params={"start": "2044-07-01", "end": "2044-07-02"}).status_code == 404
+
+
+def test_soil_anomaly_maps_are_signed_tenths_of_a_point(map_client: TestClient) -> None:
+    import numpy as np
+    response = map_client.get("/api/map/soil_anomaly", params={"start": "2027-01-01", "end": "2027-01-03"})
+    values = np.frombuffer(response.content, dtype="<i2").reshape(3, 24)
+    assert (values[0] == -32768).all()  # no value on the first day
+    assert (values[2] == -20).all()  # -2 points
 
 
 # --- the simulation is named by the store --------------------------------------
@@ -508,7 +516,7 @@ def test_maps_of_another_simulation_stop_the_start(store_path, map_store_path, t
     from conftest import SIMULATION
     path = copied(map_store_path, tmp_path, "map.zarr")
     other = SIMULATION | {"regional": "ICON-CLM"}
-    for name in ("tasmax", "pr", "psl"):
+    for name in ("tasmax", "pr", "soil_anomaly", "psl"):
         zarr.open_array(path / "cordex" / name, mode="r+").attrs["simulation"] = other
     store = Store(store_path)
     monkeypatch.setattr(api, "get_store", lambda: store)

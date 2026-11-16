@@ -426,6 +426,7 @@ export const texts = {
       pr: "Précipitations",
       clt: "Nébulosité",
       soil: "Eau du sol",
+      soil_anomaly: "Anomalie d'humidité du sol",
     },
     eyebrow: "Cartographie, Europe",
     sourceTitle: "Sources et méthode",
@@ -465,6 +466,9 @@ export const texts = {
       "100 % à la capacité au champ, 0 % au point de flétrissement ; bilan hydrique " +
       "journalier d'une prairie de référence (FAO-56), réserve utile du sol d'ESDAC (Hiederer 2013), " +
       "100 mm là où elle manque. " +
+      "Anomalie d'humidité du sol : la même eau comparée à sa normale, moyenne ERA5 1991-2020 " +
+      "du même jour de l'année (lissée sur 31 jours), en points de réserve utile ; négative, " +
+      "le sol est plus sec que d'habitude. La même normale sert au passé et à la simulation. " +
       "Contours : Natural Earth. Noms des lieux : GeoNames (CC BY 4.0).",
     north: "N",
     south: "S",

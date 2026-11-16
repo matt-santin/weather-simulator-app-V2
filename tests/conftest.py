@@ -184,6 +184,15 @@ def map_store_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
                           "built": "2026-10-04 21:42"})
         if source == "cordex":
             arr.attrs["simulation"] = SIMULATION
+        # Departure of the soil water (src.store.anomaly): int8 points, -128 for no value;
+        # -(day index modulo 50) everywhere, none on the first day.
+        anomaly = (-(np.arange(n) % 50)[:, None, None] + np.zeros((1, 5, 5), dtype="int64")).astype("int8")
+        anomaly[0] = -128
+        arr = root[source].create_array("soil_anomaly", data=anomaly, chunks=(32, 5, 5))
+        arr.attrs.update({"scale_factor": 1, "_FillValue": -128, "start": first.isoformat(),
+                          "built": "2026-11-16 21:00"})
+        if source == "cordex":
+            arr.attrs["simulation"] = SIMULATION
         pressure = (10000 + 10 * (np.arange(n) % 100)[:, None, None]
                     + 10 * np.arange(5)[None, None, :] + np.zeros((1, 5, 1), dtype="int64")).astype("uint16")
         pressure[:, 0, 0] = 65535

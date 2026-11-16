@@ -101,6 +101,18 @@ export const VARIABLES = {
     hatchTop: false,
     timeline: "median",
   },
+  // The same water against its normal (ERA5 1991-2020, same day of the year,
+  // src.store.anomaly), in points of percent: brown drier, blue wetter, a pale
+  // band within 10 points of the normal.
+  soil_anomaly: {
+    unit: "pts",
+    decimals: 0,
+    signed: true,
+    colors: ["#6b3a12", "#a86a2c", "#dcb77a", "#cfc8b8", "#9cc6e0", "#4a8cc4", "#1f4f8f"],
+    edges: [-40, -25, -10, 10, 25, 40],
+    hatchTop: false,
+    timeline: "median",
+  },
 };
 
 /** Missing value in the integers /api/map serves (tenths of a degree). */

@@ -104,13 +104,15 @@ const PERCENT = new Intl.NumberFormat("fr-FR", { style: "percent", maximumFracti
  * A value as the results page writes it: the figure, its unit smaller beside
  * it (the `.unit` of the calendar).
  */
+const SIGNED = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0, signDisplay: "exceptZero" });
+/** The number format of the variable: one decimal, whole, or whole with its sign (a departure). */
+const numbers = () => (state.spec.signed ? SIGNED : state.spec.decimals ? ONE_DECIMAL : WHOLE_NUMBER);
 const measureNodes = (value) => [
-  document.createTextNode((state.spec.decimals ? ONE_DECIMAL : WHOLE_NUMBER).format(value)),
+  document.createTextNode(numbers().format(value)),
   el("span", { className: "unit", text: state.spec.unit }),
 ];
 /** A value of the variable on screen, with its unit: "27,2 °C", "12,4 mm", "60 %". */
-const measure = (value) =>
-  `${(state.spec.decimals ? ONE_DECIMAL : WHOLE_NUMBER).format(value)} ${state.spec.unit}`;
+const measure = (value) => `${numbers().format(value)} ${state.spec.unit}`;
 const where = (lat, lon) =>
   `${ONE_DECIMAL.format(Math.abs(lat))}° ${lat >= 0 ? texts.maps.north : texts.maps.south}, ` +
   `${ONE_DECIMAL.format(Math.abs(lon))}° ${lon >= 0 ? texts.maps.east : texts.maps.west}`;
@@ -269,12 +271,13 @@ function fillSpeeds() {
 /** The legend and the distribution, one line per band. */
 function fillBands() {
   const { edges, spec } = state;
+  const f = (edge) => (spec.signed ? SIGNED.format(edge) : edge);
   const label = (index) =>
     index === 0
-      ? `< ${edges[0]}`
+      ? `< ${f(edges[0])}`
       : index === edges.length
-        ? `≥ ${edges.at(-1)}`
-        : `${edges[index - 1]} à ${edges[index]}`;
+        ? `≥ ${f(edges.at(-1))}`
+        : `${f(edges[index - 1])} à ${f(edges[index])}`;
   bandList.replaceChildren(
     ...spec.colors.slice(0, edges.length + 1)
       .map((color, index) =>
@@ -900,19 +903,28 @@ function drawTimeline() {
 
   // Each day's bar: the median of the cells, or their mean for rain (whose
   // median is nought most summer days). Temperatures are framed on their
-  // range, rain and cloud cover from zero.
+  // range, rain and cloud cover from zero. A departure (signed) is drawn up or
+  // down from its zero line, on a range that holds both signs.
   const n = state.season.days;
   const column = width / n;
   const stat = (s) => (state.spec.timeline === "mean" ? s.mean : s.median);
   const values = state.summaries.map((s) => stat(s) ?? 0);
   const temperature = state.spec.unit === "°C";
-  const low = temperature ? Math.min(...values) - 2 : 0;
-  const high = temperature ? Math.max(...values) + 1 : Math.max(...values, 1) * 1.05;
+  const signed = Boolean(state.spec.signed);
+  const reach = Math.max(...values.map(Math.abs), 5) * 1.05;
+  const low = temperature ? Math.min(...values) - 2 : signed ? -reach : 0;
+  const high = temperature ? Math.max(...values) + 1 : signed ? reach : Math.max(...values, 1) * 1.05;
+  const y = (value) => height - ((value - low) / (high - low)) * (height - 8);
   state.summaries.forEach((s, k) => {
     const value = stat(s);
     if (value === null) return;
-    const h = Math.max(1, ((value - low) / (high - low)) * (height - 8));
     context.fillStyle = state.spec.colors[band(value, state.edges)];
+    if (signed) {
+      const top = Math.min(y(value), y(0));
+      context.fillRect(k * column + 0.5, top, Math.max(1, column - 1), Math.max(1, Math.abs(y(value) - y(0))));
+      return;
+    }
+    const h = Math.max(1, height - y(value));
     context.fillRect(k * column + 0.5, height - h, Math.max(1, column - 1), h);
   });
   context.fillStyle = "#ece7dd";
