@@ -225,3 +225,41 @@ def test_the_normal_is_the_mean_of_the_reference_years_and_the_departure_reads_a
     assert out[0, 0] == -60  # 1990, outside the normal, read against it
     assert out[(date(2001, 3, 1) - first).days, 1] == 20
     assert out[(date(2000, 7, 1) - first).days, 1] == FILL
+
+
+# --- the normal of the soil water (src.app.api.normals) -----------------------
+
+def test_the_normals_carry_the_soil_water_of_the_reference_years(store_path) -> None:
+    """The mean of the past balance of the place over 1991-2020, every day within
+    7 days of the date, any year; and from the past even for a simulated date."""
+    store = Store(store_path)
+    cell = store.cell(**GRENOBLE)
+    origin = store.first["era5"]
+    last = next(p for p in PERIODS if p.source == "era5").end
+    demand, v = api_soil.reference(store, "era5", cell, origin, last)
+    fill = 100 * soil.balance(soil.liquid(v["tas"], v["pr"], origin), demand, store.capacity(cell)).fill
+    app.dependency_overrides[get_store] = lambda: store
+    try:
+        answer = TestClient(app).get("/api/normals", params=GRENOBLE | {"start": "2051-07-14", "end": "2051-07-15"})
+    finally:
+        app.dependency_overrides.clear()
+    assert answer.status_code == 200, answer.text
+    for served in answer.json()["days"]:
+        day = date.fromisoformat(served["date"])
+        picked = [fill[(date(y, day.month, day.day) - origin).days + k]
+                  for y in range(1991, 2021) for k in range(-7, 8)]
+        assert served["soil_water"] == pytest.approx(np.mean(picked), abs=0.051)
+
+
+def test_without_solar_radiation_the_normals_carry_no_soil_water(store_path, tmp_path) -> None:
+    path = tmp_path / "point.zarr"
+    shutil.copytree(store_path, path)
+    for source in ("era5", "cordex"):
+        shutil.rmtree(path / source / "rsds")
+    store = Store(path)
+    app.dependency_overrides[get_store] = lambda: store
+    try:
+        answer = TestClient(app).get("/api/normals", params=GRENOBLE | {"start": "2051-07-14", "end": "2051-07-14"})
+    finally:
+        app.dependency_overrides.clear()
+    assert answer.json()["days"][0]["soil_water"] is None

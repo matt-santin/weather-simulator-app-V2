@@ -798,6 +798,19 @@ describe("the water left in the soil", () => {
     assert.equal(geometry.last, geometry.soil.base);
   });
 
+  it("carries the normal as a grey line, and its name, when the normals are shown", () => {
+    const normals = series(10, () => ({ soil_water: 60 }));
+    const drawn = chart(days, SCALE, { compared: normals, label: "1991-2020" });
+    const panel = byClass(drawn, "chart-soil-panel")[0];
+    const grey = byClass(panel, "past");
+    assert.equal(grey.length, 1);
+    const y = Math.round((geometry.soil.base - 0.6 * BOX.soil) * 100) / 100;
+    assert.ok(grey[0].attrs.d.includes(` ${y}`));
+    const legends = byClass(drawn, "chart-legend");
+    assert.equal(legends.length, 3);
+    assert.equal(byClass(chart(days, SCALE, { compared: series(10), label: "1991-2020" }), "chart-legend").length, 2);
+  });
+
   it("is not drawn when the server serves no soil water", () => {
     for (const plain of [series(10), series(10, () => ({ soil_water: null }))]) {
       const drawn = chart(plain, SCALE);

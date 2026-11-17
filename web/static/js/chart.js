@@ -465,7 +465,7 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
     ...(soil
       ? [
           title(geometry, geometry.soil.top, texts.chart.soil),
-          soilPanel(geometry, days),
+          soilPanel(geometry, days, compared),
           dates(geometry, days, geometry.soil.base, geometry.soil.dates),
           months(geometry, days, geometry.soil.months),
         ]
@@ -475,6 +475,13 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
       ? [
           pastLegend(geometry, legend, geometry.temperature.top, SAMPLES.band),
           pastLegend(geometry, legend, geometry.cumul.top, SAMPLES.line),
+          ...(soil && compared?.some((day) => !missing(day?.soil_water))
+            ? [
+                hasSoilRange(compared)
+                  ? pastLegend(geometry, texts.chart.soilRange(legend), geometry.soil.top, SAMPLES.soil)
+                  : pastLegend(geometry, legend, geometry.soil.top, SAMPLES.line),
+              ]
+            : []),
         ]
       : []),
   ].filter(Boolean);
@@ -543,6 +550,22 @@ const SAMPLES = {
       }),
       edge(top),
       edge(bottom),
+    ];
+  },
+  // The two halves of the soil range, drier under wetter, and the normal between.
+  soil: (left, baseline) => {
+    const top = baseline - 8;
+    const middle = baseline - 4.5;
+    const bottom = baseline - 1;
+    const half = (className, y, height) =>
+      svg("rect", { className, attrs: { x: round(left), y, width: LEGEND.swatch, height } });
+    return [
+      half("chart-soil-wet", top, middle - top),
+      half("chart-soil-dry", middle, bottom - middle),
+      svg("line", {
+        className: "chart-line past soil",
+        attrs: { x1: round(left), x2: round(left + LEGEND.swatch), y1: middle, y2: middle },
+      }),
     ];
   },
   // A line, which is what a running total is.
@@ -847,12 +870,35 @@ export const SOIL_TICKS = [50, 100];
  * line, on a fixed axis from 0 to 100 %: unlike the rain, the bounds mean
  * something of their own (field capacity, wilting point), so the axis never
  * follows the period. The hairline at 50 % is where the plant starts to be
- * short of water.
+ * short of water. With the normals, theirs is a grey line over the area, as the
+ * normal total is on the panel above.
+ *
+ * **When the normals carry their extremes** (the driest and the wettest of the
+ * reference years, /api/normals), they are drawn as Météo-France draws its soil
+ * moisture index: brown from the driest to the normal, blue from the normal to
+ * the wettest. The days are then a line alone, without their area, so that the
+ * range shows through and a day under the brown reads as drier than any of the
+ * 30 years.
  */
-function soilPanel(frame, days) {
+export const hasSoilRange = (compared) =>
+  Boolean(compared?.some((day) => !missing(day?.soil_water_min) && !missing(day?.soil_water_max)));
+
+function soilPanel(frame, days, compared = null) {
   const y = (value) => round(frame.soil.base - (value / 100) * frame.box.soil);
   const read = (day) => day?.soil_water;
-  const areas = runs(days, read).map((run) => {
+  const ranged = hasSoilRange(compared);
+  // A band between two readings of the normals, one closed path per run where both are known.
+  const band = (lower, upper, className) =>
+    runs(compared, (day) => (missing(day?.[lower]) || missing(day?.[upper]) ? null : day[upper])).map((run) => {
+      const x = (point) => round(middleOf(frame, point.index));
+      const top = run.map((point) => `${x(point)} ${y(point.value)}`);
+      const bottom = [...run].reverse().map((point) => `${x(point)} ${y(compared[point.index][lower])}`);
+      return svg("path", { className, attrs: { d: `M${top.join(" L")} L${bottom.join(" L")} Z` } });
+    });
+  const range = ranged
+    ? [...band("soil_water_min", "soil_water", "chart-soil-dry"), ...band("soil_water", "soil_water_max", "chart-soil-wet")]
+    : [];
+  const areas = ranged ? [] : runs(days, read).map((run) => {
     const top = run.map((point) => `${round(middleOf(frame, point.index))} ${y(point.value)}`);
     const from = round(middleOf(frame, run[0].index));
     const to = round(middleOf(frame, run.at(-1).index));
@@ -862,6 +908,9 @@ function soilPanel(frame, days) {
     });
   });
   const lines = runs(days, read).flatMap((run) => stroke(frame, run, y, "soil", { points: false }));
+  const normal = compared
+    ? runs(compared, read).flatMap((run) => stroke(frame, run, y, "past soil", { points: false }))
+    : [];
   const labels = [0, ...SOIL_TICKS].map((value, index, all) =>
     svg("text", {
       className: "chart-axis",
@@ -876,7 +925,9 @@ function soilPanel(frame, days) {
         attrs: { x1: frame.plot.from, x2: frame.plot.to, y1: y(value), y2: y(value) },
       }),
     ),
+    ...range,
     ...areas,
+    ...normal,
     ...lines,
     svg("line", {
       className: "chart-baseline",

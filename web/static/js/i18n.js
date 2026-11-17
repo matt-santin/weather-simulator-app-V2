@@ -236,6 +236,8 @@ export const texts = {
     // The fourth panel, when the server serves it: what is left of the water
     // the soil holds for the plants (src.app.domain.soil).
     soil: "Eau du sol (part de la réserve utile)",
+    // The legend of the soil panel when the normals carry their extremes.
+    soilRange: (label) => `${label}, plus sec et plus humide`,
   },
 
   // The seasonal normals of the temperatures.
@@ -306,7 +308,8 @@ export const texts = {
     legend: (years) => `Normales ${years}`,
     method: (years, window) =>
       `Normales ${years} : pour chaque date, moyenne des 30 années sur ${window} jours ` +
-      "centrés, au même lieu, d'après E-OBS (températures) et la réanalyse ERA5.",
+      "centrés, au même lieu, d'après E-OBS (températures) et la réanalyse ERA5. " +
+      "Pour l'eau du sol, même moyenne du bilan hydrique de ces 30 années.",
   },
 
   // The climate diagram, under the chart. Its window is said with its source,
