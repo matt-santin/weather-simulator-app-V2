@@ -749,6 +749,84 @@ h1 {
   margin-top: calc(var(--space) * 4);
 }
 
+/* The season word of the summary title, a button opening the menu of the
+   four seasons: it reads as the title, a caret saying it opens. */
+.season-pick {
+  position: relative;
+  display: inline-block;
+}
+
+.season-switch {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--ink) 45%, transparent);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.season-switch:hover,
+.season-switch[aria-expanded="true"] {
+  border-bottom-color: var(--ink);
+}
+
+.season-caret {
+  font-size: 0.6em;
+}
+
+/* The menu: the pale card of the notes, under the word. */
+.season-menu {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + var(--space) * 2);
+  left: 0;
+  min-width: 9rem;
+  margin: 0;
+  padding: calc(var(--space) * 1.5) 0;
+  list-style: none;
+  border-radius: 6px;
+  background: #fbfaf7;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+  font-family: var(--font);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.season-menu[hidden] {
+  display: none;
+}
+
+.season-item {
+  display: block;
+  padding: calc(var(--space) * 2) calc(var(--space) * 4);
+  color: #14202e;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.season-item:hover,
+a.season-item:focus-visible {
+  background: #ece7dd;
+}
+
+.season-item[aria-current="page"] {
+  font-weight: 700;
+}
+
+.season-item[aria-current="page"]::after {
+  content: " ✓";
+}
+
+.season-item[aria-disabled="true"] {
+  color: #8d867a;
+}
+
 /* The promise stands off from the question. The shared rule above was set
    against a one-line site name; under a heading of two or three lines of
    display type it reads as a subtitle stuck to its title. */
@@ -1120,9 +1198,21 @@ select:focus {
   flex: 3 1 17.5rem;
 }
 
-/* Room for "Record de douceur", the longest kind. */
+/* Room for the label "Un printemps plutôt…". */
 .dates.kinds .field:last-child {
-  flex-basis: 10rem;
+  flex-basis: 12rem;
+}
+
+/* The boxes of the record and the extreme day, under the fields. */
+.kind-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 2) calc(var(--space) * 6);
+  margin-bottom: calc(var(--space) * 5);
+}
+
+.kind-extras[hidden] {
+  display: none;
 }
 
 /* A label and its "?" on one line. */

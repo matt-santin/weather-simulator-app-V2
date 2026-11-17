@@ -139,6 +139,9 @@ const state = {
   asking: 0,
   place: null, // { name, latitude, longitude, k }: from the results page, marked
   pick: null, // { latitude, longitude, k, label, turn }: the cell clicked
+  // { latitude, longitude, place }: the last cell clicked, for the place tab of
+  // the bar when the map was opened without a place. Kept when the card closes.
+  lastPick: null,
   wanted: null, // the day of the URL (?jour), shown once its season is loaded
   picking: 0,
 };
@@ -781,13 +784,24 @@ function relink() {
   const place = state.place;
   if (place) hereLink.href = resultsHref({ ...place, place: place.name, ...shownPeriod() });
   if (state.pick) linkPick();
+  bar();
+}
+
+/**
+ * The bar. Its place tab is the place the map came with, else the last cell
+ * clicked: a map opened from home gets one as soon as a point is picked.
+ */
+function bar() {
+  const place = state.place
+    ? { ...state.place, place: state.place.name }
+    : state.lastPick;
   fillNav({
     current: "map",
     season: seasonField.value,
     year: Number(yearField.value),
-    place: place?.name ?? null,
+    place: place?.place ?? null,
     // The tab leads to the top of the results; the link of the panel, to the day.
-    placeHref: place ? resultsHref({ ...place, place: place.name, ...shownPeriod(), day: null }) : null,
+    placeHref: place ? resultsHref({ ...place, ...shownPeriod(), day: null }) : null,
     mapHref: `${window.location.pathname}${window.location.search}`,
   });
 }
@@ -857,6 +871,10 @@ function linkPick() {
     longitude: p.longitude,
     ...shownPeriod(),
   });
+  if (!state.place) {
+    state.lastPick = { latitude: p.latitude, longitude: p.longitude, place: p.label };
+    bar();
+  }
 }
 
 /** The card over its point; hidden when the point is out of the frame. */

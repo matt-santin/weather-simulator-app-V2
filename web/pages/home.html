@@ -190,7 +190,8 @@
             </p>
             <p class="field">
               <span class="label-row">
-                <label for="type" data-text="form.kind"></label>
+                <!-- "Un été plutôt…": follows the season (home.js, fillKinds). -->
+                <label for="type"></label>
                 <!-- The method, behind a "?": shown on hover, focus or tap (hint.js). -->
                 <button
                   type="button"
@@ -204,6 +205,8 @@
               <select id="type"></select>
             </p>
           </div>
+          <!-- The record and the extreme day of the kind chosen, as boxes (home.js, fillExtras). -->
+          <div id="kind-extras" class="kind-extras" hidden></div>
           <p id="kind-note" class="hint-text" role="tooltip" data-text="form.kindNote" hidden></p>
         </div>
 

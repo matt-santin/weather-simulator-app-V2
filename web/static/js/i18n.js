@@ -121,7 +121,26 @@ export const texts = {
     season: "Saison",
     year: "Année",
     epoch: "Époque",
-    kind: "Type",
+    // The label of the kind list follows the season: "Un été plutôt…". The
+    // seasons are all masculine, so the adjectives below agree with each.
+    kindPrompt: (season) => `Un ${season} plutôt…`,
+    // In the list, the drawn kinds only: they read on from the label (un été
+    // plutôt chaud).
+    kindChoices: { cool: "frais", normal: "normal", warm: "chaud" },
+    kindChoicesWinter: { cool: "froid", normal: "normal", warm: "doux" },
+    // Under the list, boxes for the records and the extreme day, on the side
+    // of the kind chosen (kinds.js, extrasOf).
+    kindExtras: {
+      coldRecord: "Voir le record de fraîcheur",
+      record: "Voir le record de chaleur",
+      hottestDay: "Voir le jour le plus chaud",
+      coldestDay: "Voir le jour le plus froid",
+    },
+    kindExtrasWinter: {
+      coldRecord: "Voir le record de froid",
+      record: "Voir le record de douceur",
+      coldestDay: "Voir le jour le plus froid",
+    },
     epochs: {
       old: "Ancien climat",
       new: "Nouveau climat",
@@ -136,6 +155,7 @@ export const texts = {
       warm: "Chaud",
       record: "Record de chaleur",
       hottestDay: "Jour le plus chaud",
+      coldestDay: "Jour le plus froid",
     },
     kindsWinter: {
       coldRecord: "Record de froid",
@@ -187,6 +207,8 @@ export const texts = {
     dayOnMap: "Voir ce jour sur la carte d'Europe ›",
     loading: "Récupération des données…",
     back: "Nouvelle recherche",
+    seasonSwitch: "Changer de saison",
+    seasonUnavailable: "données indisponibles",
     daysMore: (n) => `Afficher les ${n} journées`,
     daysLess: "Replier les journées",
     bandLabel: "Les journées, semaine par semaine, du lundi au dimanche. Flèches pour passer d'un jour à l'autre.",

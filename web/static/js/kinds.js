@@ -14,11 +14,12 @@ import { texts } from "./i18n.js";
 export const KINDS = ["coldRecord", "cool", "normal", "warm", "record"];
 
 /**
- * The kinds a season offers: the five above, then its extreme day: the hottest
- * day in spring, summer and autumn, the coldest night in winter (7/11/2026).
+ * The kinds a season offers: the five above, then its extreme days: the hottest
+ * day and the coldest night in spring, summer and autumn (the coldest night
+ * since 17/11/2026), the coldest night only in winter (7/11/2026).
  */
 export function kindsOf(season) {
-  return [...KINDS, season === "winter" ? "coldestDay" : "hottestDay"];
+  return season === "winter" ? [...KINDS, "coldestDay"] : [...KINDS, "hottestDay", "coldestDay"];
 }
 
 /** The peak of the epoch a day kind asks for, or null for the other kinds. */
@@ -31,6 +32,28 @@ function peakOf(ranked, kind) {
 /** The day a kind leads to (the extreme day), or null: the season opens on it. */
 export function dayOf(ranked, kind) {
   return peakOf(ranked, kind)?.date ?? null;
+}
+
+/** The words of the drawn kinds in the home list, after "Un été plutôt…". */
+export function kindChoices(season) {
+  return season === "winter" ? texts.form.kindChoicesWinter : texts.form.kindChoices;
+}
+
+/**
+ * The kinds offered as boxes under a drawn kind, on its side of the scale: the
+ * coldest record and the coldest night under cool, the hottest record (and the
+ * hottest day out of winter) under warm, nothing under normal.
+ */
+export function extrasOf(season, kind) {
+  const winter = season === "winter";
+  if (kind === "cool") return ["coldRecord", "coldestDay"];
+  if (kind === "warm") return winter ? ["record"] : ["record", "hottestDay"];
+  return [];
+}
+
+/** The words of the boxes: "Voir le record de chaleur". */
+export function extraLabels(season) {
+  return season === "winter" ? texts.form.kindExtrasWinter : texts.form.kindExtras;
 }
 
 /** The words of the kinds: a winter is cold or mild, not cool or warm. */

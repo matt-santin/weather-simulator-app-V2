@@ -28,7 +28,9 @@ import { applyTexts, el } from "./dom.js";
 import { texts } from "./i18n.js";
 import { wireHints } from "./hint.js";
 import { elevationOf } from "./links.js";
-import { anyYearOf, dayOf, draw, epochLabel, kindLabels, kindsOf } from "./kinds.js";
+import {
+  DRAWN, anyYearOf, dayOf, draw, epochLabel, extraLabels, extrasOf, kindChoices,
+} from "./kinds.js";
 import { rotate } from "./prompt.js";
 import { rangeOf, seasonOf, yearsFor } from "./season.js";
 
@@ -62,6 +64,8 @@ const yearPick = document.getElementById("annee");
 const kindSeasonPick = document.getElementById("saison-type");
 const epochPick = document.getElementById("epoque");
 const kindPick = document.getElementById("type");
+const kindLabel = document.querySelector('label[for="type"]');
+const kindExtras = document.getElementById("kind-extras");
 const go = document.getElementById("go");
 const coverage = document.getElementById("coverage");
 
@@ -245,6 +249,7 @@ function describe(candidate) {
 seasonButton.addEventListener("click", () => show("season"));
 kindButton.addEventListener("click", () => show("kind"));
 kindSeasonPick.addEventListener("change", fillKinds);
+kindPick.addEventListener("change", fillExtras);
 
 seasonPick.addEventListener("change", fillYears);
 yearPick.addEventListener("change", () => {
@@ -284,21 +289,57 @@ function fillSeasons() {
   }
 }
 
-/** The three kinds, named for the season: a winter is cold or mild. The kind
- * chosen survives a change of season; warm is the default. */
+/** The three drawn kinds, named for the season: a winter is cold or mild. The
+ * label reads "Un été plutôt…". The kind chosen survives a change of season;
+ * warm is the default. */
 function fillKinds() {
+  const season = kindSeasonPick.value;
   const chosenKind = kindPick.value || "warm";
-  const labels = kindLabels(kindSeasonPick.value);
+  const labels = kindChoices(season);
+  kindLabel.textContent = texts.form.kindPrompt(texts.summary.seasons[season][0]);
   kindPick.replaceChildren(
-    ...kindsOf(kindSeasonPick.value).map((kind) =>
-      el("option", { text: labels[kind], attrs: { value: kind } }),
-    ),
+    ...DRAWN.map((kind) => el("option", { text: labels[kind], attrs: { value: kind } })),
   );
-  // The extreme day changes with the season: the hottest day becomes the
-  // coldest in winter, and the other way round.
-  const day = { hottestDay: "coldestDay", coldestDay: "hottestDay" };
-  const offered = [...kindPick.options].map((option) => option.value);
-  kindPick.value = offered.includes(chosenKind) ? chosenKind : (day[chosenKind] ?? "warm");
+  kindPick.value = chosenKind;
+  fillExtras();
+}
+
+/**
+ * The boxes under the kind: its record, and its extreme day where the season
+ * has one on that side ("Voir le record de chaleur", "Voir le jour le plus
+ * chaud"). One at most is ticked: ticking one unticks the other. A ticked box
+ * survives a change of season or of kind when it is still offered.
+ */
+function fillExtras() {
+  const ticked = tickedExtra();
+  const labels = extraLabels(kindSeasonPick.value);
+  const offered = extrasOf(kindSeasonPick.value, kindPick.value);
+  kindExtras.replaceChildren(
+    ...offered.map((kind) => {
+      const box = el("input", { attrs: { type: "checkbox", value: kind } });
+      box.checked = kind === ticked;
+      box.addEventListener("change", () => {
+        if (!box.checked) return;
+        for (const other of kindExtras.querySelectorAll("input")) {
+          if (other !== box) other.checked = false;
+        }
+      });
+      return el("p", { className: "maps-check" }, [
+        el("label", {}, [box, el("span", { text: labels[kind] })]),
+      ]);
+    }),
+  );
+  kindExtras.hidden = offered.length === 0;
+}
+
+/** The record or extreme day ticked under the kind, or null. */
+function tickedExtra() {
+  return kindExtras.querySelector("input:checked")?.value ?? null;
+}
+
+/** The kind asked for: the box ticked, else the kind of the list. */
+function chosenKind() {
+  return tickedExtra() ?? kindPick.value;
 }
 
 /** The epochs, as /api/config serves them. */
@@ -340,7 +381,8 @@ async function drawSeason(button) {
       end: asked.end,
     });
     const ranked = answer.epochs.find((e) => e.id === epoch.id);
-    const year = draw(ranked, kindPick.value);
+    const kind = chosenKind();
+    const year = draw(ranked, kind);
     const range = year === null ? null : rangeOf(season, year, lat);
     if (!range) {
       say(texts.form.noYear);
@@ -353,10 +395,10 @@ async function drawSeason(button) {
     }
     from.value = range.start;
     to.value = range.end;
-    const day = dayOf(ranked, kindPick.value);
+    const day = dayOf(ranked, kind);
     dayField.value = day ?? "";
     dayField.disabled = !day;
-    kindField.value = kindPick.value;
+    kindField.value = kind;
     epochField.value = epoch.id;
     kindField.disabled = epochField.disabled = false;
     form.submit();

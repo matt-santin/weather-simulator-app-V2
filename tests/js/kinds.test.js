@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  DRAWN, KINDS, anyYearOf, dayOf, draw, drawAnother, epochLabel, kindLabels, kindsOf, record,
+  DRAWN, KINDS, anyYearOf, dayOf, draw, drawAnother, epochLabel, extraLabels, extrasOf, kindChoices, kindLabels, kindsOf, record,
 } from "../../web/static/js/kinds.js";
 import { texts } from "../../web/static/js/i18n.js";
 
@@ -23,6 +23,38 @@ describe("kindLabels", () => {
     assert.equal(kindLabels("winter").record, "Record de douceur");
     assert.equal(kindLabels("winter").coldRecord, "Record de froid");
     assert.equal(kindLabels("summer").coldRecord, "Record de fraîcheur");
+  });
+});
+
+describe("kindChoices", () => {
+  it("names the drawn kinds in the home list, after \"Un été plutôt…\"", () => {
+    for (const season of Object.keys(texts.season)) {
+      assert.deepEqual(Object.keys(kindChoices(season)).sort(), [...DRAWN].sort());
+    }
+    assert.equal(texts.form.kindPrompt("été"), "Un été plutôt…");
+    assert.equal(kindChoices("summer").cool, "frais");
+    assert.equal(kindChoices("winter").warm, "doux");
+  });
+});
+
+describe("extrasOf", () => {
+  it("offers the record and the extreme day on the side of the kind", () => {
+    assert.deepEqual(extrasOf("summer", "warm"), ["record", "hottestDay"]);
+    assert.deepEqual(extrasOf("summer", "cool"), ["coldRecord", "coldestDay"]);
+    assert.deepEqual(extrasOf("winter", "warm"), ["record"]);
+    assert.deepEqual(extrasOf("winter", "cool"), ["coldRecord", "coldestDay"]);
+    assert.deepEqual(extrasOf("summer", "normal"), []);
+  });
+
+  it("offers, over the three kinds, every other kind of the season, each named", () => {
+    for (const season of Object.keys(texts.season)) {
+      const extras = DRAWN.flatMap((kind) => extrasOf(season, kind));
+      const others = kindsOf(season).filter((kind) => !DRAWN.includes(kind));
+      assert.deepEqual(extras.sort(), others.sort());
+      for (const kind of extras) assert.ok(extraLabels(season)[kind].startsWith("Voir "));
+    }
+    assert.equal(extraLabels("summer").record, "Voir le record de chaleur");
+    assert.equal(extraLabels("winter").coldestDay, "Voir le jour le plus froid");
   });
 });
 
@@ -74,8 +106,8 @@ describe("the extreme days", () => {
     coldest: { year: 2056, date: "2057-01-08", value: -14.2 },
   };
 
-  it("are offered one per season: the hottest day, the coldest in winter", () => {
-    assert.deepEqual(kindsOf("summer"), [...KINDS, "hottestDay"]);
+  it("are offered both out of winter, the coldest only in winter", () => {
+    assert.deepEqual(kindsOf("summer"), [...KINDS, "hottestDay", "coldestDay"]);
     assert.deepEqual(kindsOf("winter"), [...KINDS, "coldestDay"]);
   });
 

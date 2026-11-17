@@ -35,6 +35,7 @@ import {
   years as everyYear,
 } from "./fetch.js";
 import { legend, sources, strip } from "./band.js";
+import { refuse } from "./bounds.js";
 import { chart } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
 import { diagram, snow as snowOf, summary, years as yearsOf } from "./climate.js";
@@ -164,6 +165,94 @@ function showKind(config) {
     }
   });
 }
+
+/**
+ * The four seasons of the year shown, for the menu on the season word of the
+ * summary title: `{ name, label, href, current }`, `href` null for a season
+ * without data. Each opens the same place on that season of the same year
+ * (the winter of a year runs into the next, as on the home form); the kind it
+ * was drawn as and the extreme day are left behind: a record summer says
+ * nothing of the autumn after it. Null unless a whole season is shown: dates
+ * written by hand get no menu.
+ */
+let otherSeasons = null;
+
+function offerSeasons(config) {
+  const shown = document.body.dataset.season;
+  if (!season || !wholeSeason(asked.start, asked.end)) return;
+  const year = seasonYear(shown, asked.start, asked.end);
+  if (year === null) return;
+  otherSeasons = Object.entries(texts.season).map(([name, label]) => {
+    const range = rangeOf(name, year, asked.latitude);
+    const item = { name, label, href: null, current: name === shown };
+    if (item.current || !range || refuse(range, config)) return item;
+    const next = new URLSearchParams(query);
+    next.set("debut", range.start);
+    next.set("fin", range.end);
+    for (const key of ["type", "epoque", "jour"]) next.delete(key);
+    item.href = `/resultats?${next}`;
+    return item;
+  });
+}
+
+/**
+ * The summary title, its season word a button opening the menu of the four
+ * seasons when there is one: "[Hiver ▾] 2089-2090 à Paris".
+ */
+function fillSummaryTitle(shown) {
+  const text = summaryHeading(shown, asked.start, asked.end, asked.place);
+  const word = texts.season[shown] ?? "";
+  if (!otherSeasons || !text.startsWith(word)) {
+    summaryTitle.textContent = text;
+    return;
+  }
+  const menu = el(
+    "ul",
+    { className: "season-menu", attrs: { id: "season-menu", "aria-label": texts.results.seasonSwitch } },
+    otherSeasons.map((item) => {
+      if (item.current) {
+        return el("li", {}, [el("span", { className: "season-item", text: item.label, attrs: { "aria-current": "page" } })]);
+      }
+      if (!item.href) {
+        return el("li", {}, [
+          el("span", { className: "season-item", text: `${item.label} (${texts.results.seasonUnavailable})`, attrs: { "aria-disabled": "true" } }),
+        ]);
+      }
+      return el("li", {}, [el("a", { className: "season-item", text: item.label, attrs: { href: item.href } })]);
+    }),
+  );
+  menu.hidden = true;
+  const button = el(
+    "button",
+    {
+      className: "season-switch",
+      attrs: { type: "button", "aria-expanded": "false", "aria-controls": "season-menu", title: texts.results.seasonSwitch },
+    },
+    [el("span", { text: word }), el("span", { className: "season-caret", text: "▾", attrs: { "aria-hidden": "true" } })],
+  );
+  const toggle = (open) => {
+    menu.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+  };
+  button.addEventListener("click", () => toggle(menu.hidden));
+  const wrap = el("span", { className: "season-pick" }, [button, menu]);
+  summaryTitle.replaceChildren(wrap, document.createTextNode(text.slice(word.length)));
+  closeSeasonMenu = () => toggle(false);
+  seasonPick = wrap;
+}
+
+// One listener each for the page, whatever the number of times the title is
+// drawn: a click outside the menu or Escape closes it.
+let closeSeasonMenu = () => {};
+let seasonPick = null;
+document.addEventListener("click", (event) => {
+  if (seasonPick && !seasonPick.contains(event.target)) closeSeasonMenu();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !seasonPick || seasonPick.querySelector(".season-menu").hidden) return;
+  closeSeasonMenu();
+  seasonPick.querySelector("button").focus();
+});
 
 /** From the 21st to the 20th three months on: a season as the form writes it. */
 function wholeSeason(start, end) {
@@ -357,6 +446,8 @@ async function show(series) {
     // The summary card sits above the calendar: the day is sought once it is
     // laid, so that it does not push the day away.
     offerMap(document.body.dataset.season);
+    // Before the summary: its title carries the menu of the seasons.
+    offerSeasons(config);
     showSummary().finally(() => goToDay(query.get("jour")));
     showKind(config);
     showClimate();
@@ -625,7 +716,7 @@ async function showSummary() {
     if (turn !== summaryTurn) return;
     const answer = summaries.get(reference);
     const shownSeason = document.body.dataset.season;
-    summaryTitle.textContent = summaryHeading(shownSeason, asked.start, asked.end, asked.place);
+    fillSummaryTitle(shownSeason);
     // The sentence is for a whole season of the form: other dates have no name
     // to be ranked under.
     const sentence = wholeSeason(asked.start, asked.end)
