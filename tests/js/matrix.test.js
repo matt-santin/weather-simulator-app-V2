@@ -98,13 +98,18 @@ describe("the tiles", () => {
 });
 
 describe("the detail", () => {
-  it("says the mean, the anomaly and the words of both classes", () => {
-    const [temperature, rain] = detail(answer([]), year(2047));
-    assert.equal(
-      temperature,
-      "Température moyenne 20,3 °C, +1,4 °C par rapport à 1991-2020 : plus chaud.",
-    );
-    assert.equal(rain, "Précipitations 142 mm, 83 % de la normale : proche de la normale.");
+  it("gives the verdict first, capitalised, then the figures", () => {
+    const [temperature, rain] = detail(year(2047));
+    assert.deepEqual(temperature, {
+      kind: "temperature",
+      word: "Plus chaud",
+      figures: "20,3\u00a0°C, +1,4\u00a0°C",
+    });
+    assert.deepEqual(rain, {
+      kind: "rain",
+      word: "Proche de la normale",
+      figures: "142\u00a0mm, 83\u00a0%\u00a0de\u00a0la\u00a0normale",
+    });
   });
 
   it("signs a negative anomaly", () => {

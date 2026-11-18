@@ -112,25 +112,33 @@ export function tiles(answer, pick) {
   });
 }
 
-/** The two sentences shown when a tile is clicked. */
-export function detail(answer, year) {
-  const reference = `${answer.reference_start.slice(0, 4)}-${answer.reference_end.slice(0, 4)}`;
+/**
+ * The lines shown when a tile is clicked, the verdict first and the figures
+ * after it (18/11/2026): `{ kind, word, figures }`, kind "temperature" or
+ * "rain", the word capitalised ("Bien plus chaud"). The reference period is
+ * said by the "?" of the matrix, not here.
+ */
+export function detail(year) {
   const lines = [
-    texts.years.temperatureLine(
-      decimal(year.temperature_mean),
-      signed(year.temperature_anomaly),
-      reference,
-      texts.years.temperature[year.temperature_class],
-    ),
+    {
+      kind: "temperature",
+      word: capital(texts.years.temperature[year.temperature_class]),
+      figures: texts.years.temperatureFigures(decimal(year.temperature_mean), signed(year.temperature_anomaly)),
+    },
   ];
   if (year.precipitation !== null && year.precipitation_ratio !== null) {
-    lines.push(
-      texts.years.rainLine(
+    lines.push({
+      kind: "rain",
+      word: capital(texts.years.rain[year.precipitation_class]),
+      figures: texts.years.rainFigures(
         String(Math.round(year.precipitation)),
         String(Math.round(year.precipitation_ratio * 100)),
-        texts.years.rain[year.precipitation_class],
       ),
-    );
+    });
   }
   return lines;
+}
+
+function capital(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

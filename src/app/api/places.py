@@ -40,6 +40,21 @@ class Places:
         self.lat = np.radians([float(row["latitude"]) for row in rows])
         self.lon = np.radians([float(row["longitude"]) for row in rows])
         self.degrees = [(float(row["latitude"]), float(row["longitude"])) for row in rows]
+        self.populations = [int(row["population"] or 0) for row in rows]
+
+    def largest(self, minimum: int) -> dict:
+        """The towns of `minimum` people or more, the largest first, as columns:
+        the names written on the map (/api/cities)."""
+        order = sorted(
+            (k for k, people in enumerate(self.populations) if people >= minimum),
+            key=lambda k: -self.populations[k],
+        )
+        return {
+            "name": [self.names[k] for k in order],
+            "latitude": [self.degrees[k][0] for k in order],
+            "longitude": [self.degrees[k][1] for k in order],
+            "population": [self.populations[k] for k in order],
+        }
 
     def nearest(self, latitude: float, longitude: float) -> dict | None:
         """The nearest place and how far it is (km), or None past MAX_KM."""

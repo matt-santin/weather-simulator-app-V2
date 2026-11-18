@@ -21,7 +21,7 @@
 import { DAY, at, iso } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
 import { wireHints } from "./hint.js";
-import { loadConfig, mapCells, mapDays, mapIsobars, nearestPlace, outlines, SearchError } from "./fetch.js";
+import { cityList, loadConfig, mapCells, mapDays, mapIsobars, nearestPlace, outlines, SearchError } from "./fetch.js";
 import { texts } from "./i18n.js";
 import {
   FILL,
@@ -62,6 +62,8 @@ const seasonField = document.getElementById("maps-season");
 const yearField = document.getElementById("maps-year");
 const isobarsField = document.getElementById("maps-isobars");
 const isobarsBox = document.getElementById("maps-isobars-field");
+const citiesField = document.getElementById("maps-cities");
+const citiesBox = document.getElementById("maps-cities-field");
 const warning = document.getElementById("maps-warning");
 const warningNote = document.getElementById("maps-warning-note");
 const sourceNote = document.getElementById("maps-source");
@@ -142,6 +144,7 @@ const state = {
   // { latitude, longitude, place }: the last cell clicked, for the place tab of
   // the bar when the map was opened without a place. Kept when the card closes.
   lastPick: null,
+  cities: null, // { name, latitude, longitude, population }: /api/cities, the largest first
   wanted: null, // the day of the URL (?jour), shown once its season is loaded
   picking: 0,
 };
@@ -186,6 +189,24 @@ async function boot() {
   isobarsBox.hidden = !state.cells.isobars;
   isobarsField.checked = state.cells.isobars && asked.isobars;
   isobarsField.addEventListener("change", load);
+  citiesField.checked = asked.cities;
+  citiesField.addEventListener("change", () => {
+    const url = new URL(window.location.href);
+    if (citiesField.checked) url.searchParams.delete("villes");
+    else url.searchParams.set("villes", "0");
+    history.replaceState(null, "", url);
+    draw();
+  });
+  // The towns come on their own: the map does not wait for them, and is drawn
+  // without them if they do not come.
+  cityList().then(
+    (cities) => {
+      state.cities = cities;
+      citiesBox.hidden = false;
+      draw();
+    },
+    () => {},
+  );
   wirePlayer();
   wireMap();
   // The column, not the map: maps.js sets the map's width, the layout sets the column's.
@@ -202,7 +223,12 @@ function fromUrl() {
   const season = SEASONS.includes(query.get("saison")) ? query.get("saison") : DEFAULT.season;
   const year = Number(query.get("annee")) || DEFAULT.year;
   const day = /^\d{4}-\d{2}-\d{2}$/.test(query.get("jour") ?? "") ? query.get("jour") : null;
-  return { variable, season, year, isobars: query.get("isobares") === "1", place: placeOf(query), day };
+  return {
+    variable, season, year, day,
+    isobars: query.get("isobares") === "1",
+    cities: query.get("villes") !== "0",
+    place: placeOf(query),
+  };
 }
 
 /**
@@ -305,6 +331,7 @@ async function load() {
   const isobars = isobarsField.checked;
   const query = { grandeur: variable, saison: season, annee: String(year) };
   if (isobars) query.isobares = "1";
+  if (!citiesField.checked) query.villes = "0";
   if (state.place) {
     query.lieu = state.place.name;
     query.lat = String(state.place.latitude);
@@ -549,6 +576,7 @@ function draw() {
   if (isobarsField.checked && state.pressure) drawIsobars(context, view, z);
 
   state.view = view;
+  if (citiesField.checked && state.cities) drawCities(context, view, z);
   if (state.place) mark(context, view, z, state.place);
   if (state.pick) mark(context, view, z, state.pick);
   placePick();
@@ -616,6 +644,56 @@ function drawIsobars(context, view, z) {
       context.strokeText(String(level), x, y);
       context.fillText(String(level), x, y);
     }
+  }
+  context.restore();
+}
+
+/**
+ * The towns, a dot and a name: the largest at the scale of Europe, smaller
+ * ones as the map zooms in (1.2 million people and more at the whole map, half
+ * as many at each doubling, 150 000 at the least). The largest are placed
+ * first; a name that would run over one already written, or a town under the
+ * marked place, is left out. Sizes are divided by the zoom: they stay the same
+ * on screen.
+ */
+function drawCities(context, view, z) {
+  const c = state.cities;
+  const least = Math.max(150_000, 1_200_000 / z.scale);
+  const size = 11.5 / z.scale;
+  const dot = 2.2 / z.scale;
+  const gap = 4 / z.scale;
+  // The part of the map on screen, in the coordinates of the map drawn whole.
+  const left = -z.x * view.width / z.scale;
+  const top = -z.y * view.height / z.scale;
+  const right = left + view.width / z.scale;
+  const bottom = top + view.height / z.scale;
+  const marks = [state.place, state.pick].filter(Boolean).map((p) => view.project(p.longitude, p.latitude));
+  context.save();
+  context.font = `500 ${size}px system-ui, sans-serif`;
+  context.textAlign = "left";
+  context.textBaseline = "middle";
+  context.lineJoin = "round";
+  const taken = [];
+  for (let k = 0; k < c.name.length && c.population[k] >= least; k += 1) {
+    const [x, y] = view.project(c.longitude[k], c.latitude[k]);
+    if (x < left || x > right || y < top || y > bottom) continue;
+    if (marks.some(([mx, my]) => Math.hypot(mx - x, my - y) < 10 / z.scale)) continue;
+    const width = context.measureText(c.name[k]).width;
+    const box = [x - dot - gap / 2, y - size * 0.7, x + dot + gap + width + gap / 2, y + size * 0.7];
+    if (box[2] > right) continue;
+    if (taken.some((t) => box[0] < t[2] && box[2] > t[0] && box[1] < t[3] && box[3] > t[1])) continue;
+    taken.push(box);
+    context.beginPath();
+    context.arc(x, y, dot, 0, 2 * Math.PI);
+    context.fillStyle = "#faf7f0";
+    context.strokeStyle = "rgba(11, 28, 48, 0.85)";
+    context.lineWidth = 1.2 / z.scale;
+    context.fill();
+    context.stroke();
+    context.lineWidth = 3 / z.scale;
+    context.strokeStyle = "rgba(11, 28, 48, 0.8)";
+    context.strokeText(c.name[k], x + dot + gap, y);
+    context.fillText(c.name[k], x + dot + gap, y);
   }
   context.restore();
 }

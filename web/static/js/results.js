@@ -79,7 +79,10 @@ const provenanceGrid = document.getElementById("provenance-grid");
 
 const compare = document.getElementById("compare");
 const compareToggle = document.getElementById("compare-toggle");
-const compareReference = document.getElementById("compare-reference");
+// The reference period of the normals, the summary, the climate diagram and the
+// matrix: 1991-2020, `normals_default` of /api/config, the one period offered
+// since 17/11/2026 (the API still serves the others). Set by `offer`.
+let referenceFirst = "";
 const compareStatus = document.getElementById("compare-status");
 const compareMethod = document.getElementById("compare-method");
 const compareFailure = document.getElementById("compare-failure");
@@ -105,8 +108,17 @@ const yearsGrid = document.getElementById("years-grid");
 const yearsDetail = document.getElementById("years-detail");
 const yearsHeading = document.getElementById("years-heading");
 const yearsClose = document.getElementById("years-close");
-const yearsTemperature = document.getElementById("years-temperature");
-const yearsRain = document.getElementById("years-rain");
+const yearsLines = document.getElementById("years-lines");
+
+// The icons of the lines of a year, in colour (18/11/2026): a thermometer, a
+// cloud and its rain. Named for screen readers, which would otherwise read the
+// emoji's own name.
+const YEAR_ICONS = { temperature: "\u{1F321}\uFE0F", rain: "\u{1F327}\uFE0F" };
+
+function yearIcon(kind) {
+  const label = kind === "rain" ? texts.years.iconRain : texts.years.iconTemperature;
+  return el("span", { className: "years-icon", text: YEAR_ICONS[kind], attrs: { role: "img", "aria-label": label } });
+}
 const yearsSimulated = document.getElementById("years-simulated");
 const yearsLink = document.getElementById("years-link");
 const yearsStatus = document.getElementById("years-status");
@@ -564,26 +576,12 @@ function goToDay(day) {
 }
 
 /**
- * Fill the menu of reference periods and show the control. The normals exist for
- * every place and date the API serves.
+ * Set the reference period and show the control. The normals exist for every
+ * place and date the API serves.
  */
 function offer(series, config) {
-  compareReference.append(
-    ...config.normals.map((reference) =>
-      el("option", { text: reference.label, attrs: { value: String(reference.first) } }),
-    ),
-  );
-  compareReference.value = String(config.normals_default);
-
+  referenceFirst = String(config.normals_default);
   compareToggle.addEventListener("click", () => toggle(series));
-  // One menu for all three: the normals, the grey of the climate diagram and
-  // the colours of the matrix share their period.
-  compareReference.addEventListener("change", () => {
-    if (shown()) lay(series);
-    showSummary();
-    showClimate();
-    showYears();
-  });
   compare.hidden = false;
   // The normals are drawn from the start since 5/11/2026: they are the yardstick
   // a day is read against. The button now takes them off.
@@ -613,7 +611,7 @@ function toggle(series) {
 
 /** Fetch the chosen normals if they have not been fetched, then redraw. */
 async function lay(series) {
-  const reference = compareReference.value;
+  const reference = referenceFirst;
   const turn = (asking += 1);
   compareFailure.hidden = true;
 
@@ -706,7 +704,7 @@ const summaries = new Map();
 let summaryTurn = 0;
 
 async function showSummary() {
-  const reference = compareReference.value;
+  const reference = referenceFirst;
   const turn = (summaryTurn += 1);
   try {
     if (!summaries.has(reference)) {
@@ -782,7 +780,7 @@ let climateTurn = 0;
  * menu. A failure stays in its own section: the days are already on screen.
  */
 async function showClimate() {
-  const reference = compareReference.value;
+  const reference = referenceFirst;
   const turn = (climateTurn += 1);
   climateFailure.hidden = true;
   climateSection.hidden = false;
@@ -839,7 +837,7 @@ let yearsTurn = 0;
  * year shown in the detail is kept across a change of reference.
  */
 async function showYears() {
-  const reference = compareReference.value;
+  const reference = referenceFirst;
   const turn = (yearsTurn += 1);
   yearsFailure.hidden = true;
   yearsSection.hidden = false;
@@ -896,14 +894,19 @@ async function showYears() {
 
 /** The detail of the year clicked, in its window, anchored to `tile`. */
 function describe(answer, year, tile, { focus = true } = {}) {
-  const [temperature, rain] = detail(answer, year);
+  const lines = detail(year);
   yearsDetail.dataset.year = String(year.year);
   yearsHeading.textContent = `${year.year} : ${texts.years.heading(
     present.dayMonth(year.start),
     present.dayMonth(year.end),
   ).toLowerCase()}`;
-  yearsTemperature.textContent = temperature;
-  yearsRain.textContent = rain ?? "";
+  yearsLines.replaceChildren(
+    ...lines.flatMap(({ kind, word, figures }) => [
+      yearIcon(kind),
+      el("strong", { className: "years-word", text: word }),
+      el("span", { className: "years-figures", text: figures }),
+    ]),
+  );
   yearsSimulated.hidden = year.origin !== "simulated";
   yearsLink.href = url(year);
   yearsLink.textContent = texts.years.see(year.year);

@@ -248,6 +248,11 @@ export function nearestPlace(latitude, longitude) {
   return getJson(`/api/place?${query}`, SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
 }
 
+/** The towns written on the map, the largest first, as columns. */
+export function cityList() {
+  return getJson("/api/cities", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
+}
+
 /** The country outlines, a static file. */
 export function outlines() {
   return getJson("/static/geo/europe.json", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });

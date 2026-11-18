@@ -269,7 +269,7 @@ export const texts = {
     hint: "Comment ces chiffres sont calculés",
     method: (reference) =>
       `Chaque chiffre est comparé à sa normale : sa moyenne sur les mêmes dates des années ` +
-      `${reference}, au même lieu (période de référence choisie au-dessus du graphique). ` +
+      `${reference}, au même lieu. ` +
       "Seuils de DRIAS (Météo-France) : 35\u00a0°C pour les jours de très forte chaleur, " +
       "20\u00a0°C pour les nuits tropicales, 25\u00a0°C pour les journées estivales, 0\u00a0°C pour le " +
       "gel. Le seuil de 40\u00a0°C est propre au site.",
@@ -325,7 +325,6 @@ export const texts = {
   compare: {
     open: "Comparer aux normales de saison",
     hint: "Comment les normales sont calculées",
-    reference: "Période de référence",
     loading: "Calcul des normales…",
     legend: (years) => `Normales ${years}`,
     method: (years, window) =>
@@ -400,9 +399,9 @@ export const texts = {
       `Du ${from} au ${to}, chaque année de 1970 à 2100. Couleur : écart de la température ` +
       `moyenne à celle de ${reference} (${normal} °C). Cliquez sur une année.`,
     hint: "Seuils des commentaires",
-    legendCold: "Plus froid",
+    legendCold: "+ froid",
     legendNear: "Normale",
-    legendWarm: "Plus chaud",
+    legendWarm: "+ chaud",
     legendSimulated: "Simulation (2027-2100)",
     legendNone: "Indisponible",
     temperature: {
@@ -421,10 +420,13 @@ export const texts = {
     },
     heading: (from, to) => `Du ${from} au ${to}`,
     simulated: "Simulation, pas une prévision.",
-    temperatureLine: (mean, anomaly, reference, word) =>
-      `Température moyenne ${mean} °C, ${anomaly} °C par rapport à ${reference} : ${word}.`,
-    rainLine: (total, percent, word) =>
-      `Précipitations ${total} mm, ${percent} % de la normale : ${word}.`,
+    // After the verdict and an icon: "Bien plus chaud [thermometer] 23,3 °C, +4,0 °C".
+    temperatureFigures: (mean, anomaly) => `${mean}\u00a0°C, ${anomaly}\u00a0°C`,
+    // No break inside "111 % de la normale": the line wraps after the comma or not at all.
+    rainFigures: (total, percent) => `${total}\u00a0mm, ${percent}\u00a0%\u00a0de\u00a0la\u00a0normale`,
+    // The names of the icons, read aloud in their place.
+    iconTemperature: "Température moyenne",
+    iconRain: "Précipitations",
     tileLabel: (year, mean, word) => `${year} : ${mean} °C, ${word}`,
     unavailable: (year) => `${year} : données indisponibles`,
     see: (year) => `Voir cette période en ${year}`,
@@ -445,6 +447,7 @@ export const texts = {
     title: (variable, season, year) => `${variable}, ${season.toLowerCase()} ${year}`,
     variable: "Grandeur",
     isobars: "Isobares",
+    cities: "Villes",
     variables: {
       tasmax: "Températures maximales",
       tasmin: "Températures minimales",

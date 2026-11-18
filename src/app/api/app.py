@@ -436,6 +436,20 @@ def nearest_place(
     return Place(name=near["name"], country=near["country"], distance_km=near["distance_km"])
 
 
+# The towns written on the map: 150 000 people or more, about 570 in the frame
+# (some 15 kB). The page writes the largest at the scale of Europe and more as
+# it zooms in.
+CITY_MINIMUM = 150_000
+
+
+@app.get("/api/cities")
+def cities(found: PlacesDep) -> dict:
+    """The towns to write on the map, the largest first, as columns."""
+    if found is None:
+        raise errors.PlacesUnavailable()
+    return found.largest(CITY_MINIMUM)
+
+
 @app.get("/api/map/cells")
 def map_cells(store: MapStoreDep) -> dict:
     """The land cells every map is drawn on, sent once."""

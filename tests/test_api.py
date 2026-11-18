@@ -638,6 +638,13 @@ def test_a_place_needs_a_point_on_the_earth(places_client: TestClient) -> None:
     assert places_client.get("/api/place", params={"latitude": 45}).status_code == 422
 
 
+def test_the_cities_of_the_map_are_the_large_towns_largest_first(places_client: TestClient) -> None:
+    cities = places_client.get("/api/cities").json()
+    assert cities["name"] == ["Vienne", "Lyon", "Grenoble"]
+    assert cities["population"] == [1691468, 522969, 158198]
+    assert cities["latitude"][1] == 45.7485 and cities["longitude"][1] == 4.8467
+
+
 def test_without_a_list_of_places_the_server_says_so(client: TestClient) -> None:
     from src.app.api.app import get_places
     app.dependency_overrides[get_places] = lambda: None

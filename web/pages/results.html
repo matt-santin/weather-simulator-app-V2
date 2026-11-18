@@ -183,9 +183,8 @@
       </div>
 
       <!--
-        The seasonal normals: one button over the chart, and the menu of the
-        reference period beside it, which also sets the grey of the climate
-        diagram. On the chart's paper and against its top edge, so that it reads
+        The seasonal normals: one button over the chart, on 1991-2020 (the
+        menu of the reference period went on 17/11/2026). On the chart's paper and against its top edge, so that it reads
         as the chart's own control. The periods and the method note come from
         the API, so results.js writes them.
       -->
@@ -206,10 +205,6 @@
             aria-controls="compare-method"
             data-attr-aria-label="compare.hint"
           >?</button>
-          <p class="compare-field">
-            <label for="compare-reference" data-text="compare.reference"></label>
-            <select id="compare-reference"></select>
-          </p>
         </div>
         <p id="compare-status" class="compare-note" aria-live="polite"></p>
         <p id="compare-method" class="hint-text" role="tooltip" hidden></p>
@@ -260,7 +255,16 @@
         <p id="years-intro" class="compare-note"></p>
         <div id="years-grid" class="years-grid"></div>
         <ul class="climate-legend">
-          <li><span class="years-scale" aria-hidden="true"></span><span data-text="years.legendCold"></span>, <span data-text="years.legendNear"></span>, <span data-text="years.legendWarm"></span></li>
+          <!-- The scale, its three words under it: cold at the left, the
+               normal in the middle, warm at the right. -->
+          <li class="years-scale-item">
+            <span class="years-scale" aria-hidden="true"></span>
+            <span class="years-scale-words">
+              <span data-text="years.legendCold"></span>
+              <span data-text="years.legendNear"></span>
+              <span data-text="years.legendWarm"></span>
+            </span>
+          </li>
           <li><span class="climate-swatch years-simulated" aria-hidden="true"></span><span data-text="years.legendSimulated"></span></li>
           <li><span class="climate-swatch years-none" aria-hidden="true"></span><span data-text="years.legendNone"></span></li>
         </ul>
@@ -275,8 +279,9 @@
         <div id="years-detail" class="years-popup" role="dialog" aria-labelledby="years-heading" hidden>
           <button type="button" id="years-close" class="years-close" data-attr-aria-label="years.close"><span aria-hidden="true">×</span></button>
           <p id="years-heading" class="years-heading"></p>
-          <p id="years-temperature"></p>
-          <p id="years-rain"></p>
+          <!-- Icon, verdict, figures: one row each for the temperature and the
+               rain, in three columns (results.js, describe). -->
+          <div id="years-lines" class="years-lines"></div>
           <p id="years-simulated" class="compare-note" data-text="years.simulated" hidden></p>
           <p><a id="years-link" href="/"></a></p>
         </div>
