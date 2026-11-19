@@ -322,6 +322,24 @@ export const texts = {
     ways: "Aller plus loin",
   },
 
+  // The "Partager" pill and its window (sharing.js), the foot of the picture
+  // (sharecard.js).
+  share: {
+    open: "Partager cette saison",
+    title: "Partager cette saison",
+    close: "Fermer",
+    formats: "Format de l'image",
+    square: "Carré",
+    story: "Story",
+    native: "Partager…",
+    copy: "Copier le lien",
+    download: "Télécharger l'image",
+    copied: "Lien copié.",
+    copyFailed: (url) => `Copie impossible : ${url}`,
+    downloaded: "Image téléchargée.",
+    failed: "Partage impossible.",
+  },
+
   compare: {
     open: "Comparer aux normales de saison",
     hint: "Comment les normales sont calculées",

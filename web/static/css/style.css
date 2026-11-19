@@ -4679,3 +4679,118 @@ body.maps .maps-step:focus-visible {
 .maps-play.is-playing .pause {
   display: inline;
 }
+
+
+/* --- results page: the "Partager" pill and its window (18/11/2026) ---------
+ *
+ * The pill is a button among links: the same dress, the browser's own button
+ * look taken off. The window is a native <dialog>, white on a darkened page,
+ * the picture shown whole within the height of the screen.
+ */
+.ways button.pill,
+.share-actions .pill {
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.share-dialog {
+  width: min(34rem, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: calc(var(--space) * 5) calc(var(--space) * 6);
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+  color: #14202e;
+  font-family: var(--font);
+  font-size: 0.875rem;
+  overflow-y: auto;
+}
+
+.share-dialog::backdrop {
+  background: rgb(20 32 46 / 0.55);
+}
+
+.share-dialog .climate-title {
+  margin: 0 calc(var(--space) * 8) 0 0;
+}
+
+.share-close {
+  position: absolute;
+  top: calc(var(--space) * 3);
+  right: calc(var(--space) * 3);
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #14202e;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.share-close:hover,
+.share-close:focus-visible {
+  background: #eef1f5;
+}
+
+.share-formats {
+  display: flex;
+  gap: calc(var(--space) * 2);
+  margin-top: calc(var(--space) * 4);
+}
+
+.share-frame {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(var(--space) * 4);
+  padding: calc(var(--space) * 3);
+  border-radius: 8px;
+  background: #eef1f5;
+}
+
+/* The picture whole: as wide as the window lets it, as high as the screen
+   leaves room for the rest of the window. */
+.share-preview {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 22rem);
+  min-height: 8rem;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 2);
+  margin-top: calc(var(--space) * 4);
+}
+
+.share-actions .pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid #1d5fb4;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d5fb4;
+  line-height: 1.2;
+}
+
+.share-actions .pill:hover,
+.share-actions .pill:focus-visible {
+  background: #1d5fb4;
+  color: #fff;
+}
+
+.share-actions .pill[hidden] {
+  display: none;
+}
+
+.share-dialog #share-status:empty {
+  display: none;
+}

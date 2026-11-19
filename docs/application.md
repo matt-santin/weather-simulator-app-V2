@@ -412,3 +412,24 @@ Contrôle de l'ET0 (`figures/sol/meteofrance.py`) : ET0 calculée depuis ERA5 co
 « Par flux » : émission à la température de l'air moins le rayonnement infrarouge descendant de la réanalyse (`strd`). Écarté. Le rayonnement solaire d'ERA5 est 4 à 9 % au-dessus des mesures des stations : la sous-estimation restante ne vient pas de lui (vent d'une maille de 28 km, formule de Météo-France : non vérifié).
 
 Essai du réservoir sur cinq lieux (`figures/sol/lire.py`, `figures/sol/bilan.py`, figures à côté, données dans `data/sol`, hors dépôt) : le modèle corrigé reproduit ERA5 sur 1991-2020 (ET0 à 5 % près, remplissage d'été à 1 point près). Le remplissage d'été sature au sud (Montpellier 9 %, Séville 2 %, quelle que soit la réserve utile de 50 à 300 mm) ; le déficit annuel ET0 − ETR et la durée du stress n'y saturent pas. Limite connue : l'ET0 suppose une résistance de surface fixe, sans effet du CO2 sur les stomates.
+
+## 18. Bouton « Partager » et image à télécharger (18/11/2026)
+
+Première pastille sous la synthèse des résultats : « Partager cette saison ». Elle ouvre une fenêtre (`<dialog>`, `#share` dans `web/pages/results.html`) avec l'aperçu de l'image, le choix du format et trois actions :
+
+- « Partager… » : le menu de partage de l'appareil (Web Share), avec l'image et le lien, le lien répété dans le texte (certaines applications ne gardent pas l'adresse quand un fichier l'accompagne) ; affiché seulement si le navigateur le propose (en général sur téléphone et dans Safari ; pas dans Chromium sans interface, où il n'a pas été vu) ;
+- « Copier le lien » : l'adresse de la page ; si la copie est refusée, l'adresse s'affiche pour une copie à la main ;
+- « Télécharger l'image » : un PNG, `meteo-2100-ete-2075-a-paris-carre.png`.
+
+Image (`web/static/js/sharecard.js`), dessinée dans le navigateur sur un canevas, sans appel au serveur, après chargement des polices du site :
+
+| Format | Taille |
+|---|---|
+| Carré | 1080 × 1080 |
+| Story | 1080 × 1920 |
+
+En haut, le bandeau de la saison (couleurs de l'en-tête des résultats), « MÉTÉO 2100 » et le titre de la synthèse (« Été 2075 à Paris », « à » lié au lieu, sur une ligne s'il y tient à 60 px ou plus). Dessous, en bandes sur toute la largeur (19/11/2026) : la phrase de rang ; les trois premiers chiffres de la synthèse côte à côte, valeur au-dessus du libellé, sans leur normale ; un petit calendrier par mois, côte à côte (quatre par ligne dans le carré, deux dans la story), chacun avec son nom et l'en-tête L M M J V S D, lu comme celui de la page : une case par jour dans la couleur de sa Tx (dix classes du calendrier), sept colonnes du lundi au dimanche, une ligne par semaine, un mois coupé par les dates commençant à la ligne de son premier jour montré ; l'échelle chiffrée, centrée ; le pied, « Simulation : une météo plausible, pas une prévision. » pour une saison simulée, puis le nom du site et son adresse. La hauteur restante est répartie à parts égales entre les bandes. Dans le carré, quatre mois côte à côte donnent des cases d'environ 26 px de côté. Retirés le 18/11/2026, inutiles pour un partage (la page liée les donne) : les normales des chiffres, la légende des cases, la période des normales et la source. Sans synthèse (dates hors saison, échec de `/api/summary`) : titre, calendrier centré et pied.
+
+Le texte envoyé avec le lien : titre, phrase de rang, et la mention « simulation » pour une saison simulée (`message`). Couleurs des cases et bandeaux tenus égaux à la feuille de style par `tests/js/sharecard.test.js`, qui vérifie aussi que la mention « simulation » est sur toute image simulée et qu'aucun texte ne sort du cadre.
+
+Fenêtre : `web/static/js/sharing.js`, branchée par `offerShare` dans `web/static/js/results.js` ; libellés `share` dans `web/static/js/i18n.js`.

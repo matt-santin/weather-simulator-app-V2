@@ -50,6 +50,8 @@ import { elevationOf, insideMap, MAP_LATITUDE, mapHref, seasonOfDay, seasonYear 
 import { fillNav } from "./nav.js";
 import { DRAWN, drawAnother, kindLabels, kindsOf } from "./kinds.js";
 import { dominantSeason, rangeOf, yearsFor } from "./season.js";
+import { content as shareCard } from "./sharecard.js";
+import { wireShare } from "./sharing.js";
 import { figures as summaryFigures, heading as summaryHeading, snowFigure, standing } from "./summary.js";
 
 const place = document.getElementById("place");
@@ -455,6 +457,7 @@ async function show(series) {
       soilNote.hidden = false;
     }
     offer(series, config);
+    offerShare(series, config);
     // The summary card sits above the calendar: the day is sought once it is
     // laid, so that it does not push the day away.
     offerMap(document.body.dataset.season);
@@ -742,6 +745,38 @@ async function showSummary() {
   } finally {
     if (turn === summaryTurn) summaryStatus.textContent = "";
   }
+}
+
+/**
+ * The "Partager" pill: the picture and the link of what the page shows. The
+ * card is gathered at the click, so that it carries the summary once it is in;
+ * without it, the picture has the title and the days.
+ */
+function offerShare(series, config) {
+  const opener = document.getElementById("share-open");
+  const dialog = document.getElementById("share");
+  if (typeof dialog.showModal !== "function") return;
+  wireShare(opener, dialog, () => {
+    const shownSeason = document.body.dataset.season;
+    const whole = wholeSeason(asked.start, asked.end);
+    const answer = summaries.get(referenceFirst);
+    const title = whole
+      ? summaryHeading(shownSeason, asked.start, asked.end, asked.place)
+      : `${asked.place}, ${range.textContent}`;
+    return shareCard({
+      title,
+      rank: summaryRank.hidden ? "" : summaryRank.textContent,
+      figures: answer && !summarySection.hidden ? summaryFigures(answer, shownSeason) : [],
+      days: series.days,
+      simulated: series.has_simulated,
+      season: shownSeason,
+      edges: config.temperature_band_edges,
+      site: texts.nav.home,
+      host: window.location.host,
+      notAForecast: texts.warning.notAForecast,
+    });
+  });
+  opener.hidden = false;
 }
 
 /**
