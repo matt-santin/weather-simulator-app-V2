@@ -436,6 +436,29 @@ def nearest_place(
     return Place(name=near["name"], country=near["country"], distance_km=near["distance_km"])
 
 
+class Contrast(BaseModel):
+    name: str | None
+    latitude: float | None
+    longitude: float | None
+
+
+@app.get("/api/contrast", response_model=Contrast)
+def contrast(
+    store: StoreDep,
+    found: PlacesDep,
+    latitude: Annotated[float, Query(ge=-90, le=90)],
+    longitude: Annotated[float, Query(ge=-180, le=180)],
+) -> Contrast:
+    """The large city of another climate, for "À voir aussi" on the results
+    page (places.Places.contrast): nulls when there is none."""
+    if found is None:
+        raise errors.PlacesUnavailable()
+    city = found.contrast(latitude, longitude, lambda lat, lon: store.cell(lat, lon) is not None)
+    if city is None:
+        return Contrast(name=None, latitude=None, longitude=None)
+    return Contrast(**city)
+
+
 # The towns written on the map: 150 000 people or more, about 570 in the frame
 # (some 15 kB). The page writes the largest at the scale of Europe and more as
 # it zooms in.

@@ -248,6 +248,15 @@ export function nearestPlace(latitude, longitude) {
   return getJson(`/api/place?${query}`, SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
 }
 
+/**
+ * The large city of another climate (/api/contrast), for "À voir aussi":
+ * `{ name, latitude, longitude }`, the three null when there is none.
+ */
+export function contrastCity(latitude, longitude) {
+  const query = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) });
+  return getJson(`/api/contrast?${query}`, SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
+}
+
 /** The towns written on the map, the largest first, as columns. */
 export function cityList() {
   return getJson("/api/cities", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });

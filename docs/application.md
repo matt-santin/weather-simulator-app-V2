@@ -415,7 +415,7 @@ Essai du réservoir sur cinq lieux (`figures/sol/lire.py`, `figures/sol/bilan.py
 
 ## 18. Bouton « Partager » et image à télécharger (18/11/2026)
 
-Première pastille sous la synthèse des résultats : « Partager cette saison ». Elle ouvre une fenêtre (`<dialog>`, `#share` dans `web/pages/results.html`) avec l'aperçu de l'image, le choix du format et trois actions :
+Bouton « Partager cette saison », à droite du titre de la synthèse depuis le 19/11/2026 (première des pastilles sous la synthèse le 18/11, qui passaient alors sur deux lignes) ; pictogramme seul sous 560 px. Il ouvre une fenêtre (`<dialog>`, `#share` dans `web/pages/results.html`) avec l'aperçu de l'image, le choix du format et trois actions :
 
 - « Partager… » : le menu de partage de l'appareil (Web Share), avec l'image et le lien, le lien répété dans le texte (certaines applications ne gardent pas l'adresse quand un fichier l'accompagne) ; affiché seulement si le navigateur le propose (en général sur téléphone et dans Safari ; pas dans Chromium sans interface, où il n'a pas été vu) ;
 - « Copier le lien » : l'adresse de la page ; si la copie est refusée, l'adresse s'affiche pour une copie à la main ;
@@ -433,3 +433,22 @@ En haut, le bandeau de la saison (couleurs de l'en-tête des résultats), « MÉ
 Le texte envoyé avec le lien : titre, phrase de rang, et la mention « simulation » pour une saison simulée (`message`). Couleurs des cases et bandeaux tenus égaux à la feuille de style par `tests/js/sharecard.test.js`, qui vérifie aussi que la mention « simulation » est sur toute image simulée et qu'aucun texte ne sort du cadre.
 
 Fenêtre : `web/static/js/sharing.js`, branchée par `offerShare` dans `web/static/js/results.js` ; libellés `share` dans `web/static/js/i18n.js`.
+
+## 19. « À voir aussi » en bas des résultats (19/11/2026)
+
+Un bloc « À voir aussi » (`#suggest` dans `web/pages/results.html`), après le climat du lieu et avant l'export, propose quatre autres pages choisies pour celle qui est affichée. Chaque carte est un lien : une étiquette, un titre, une ligne de chiffres, une flèche. Toutes les cartes sur une ligne à partir de 1000 px, quel que soit leur nombre, deux par deux en dessous (une carte seule en fin de grille prend la ligne), l'une sous l'autre sous 560 px ; la flèche à droite, à mi-hauteur. Le bloc n'est construit qu'à l'approche du bas de la page (le climat du lieu à moins de 800 px de la fenêtre) : un visiteur qui ne descend pas ne coûte aucune requête. Sans aucune carte, il reste caché.
+
+| Carte | Choix |
+|---|---|
+| Saison suivante | La saison qui suit, même lieu, même année (après l'hiver, le printemps de l'année suivante) ; la précédente (« Saison précédente ») si la suivante n'est pas servie (2026). |
+| Un été moyen de 1991-2020 | Pour une saison simulée, l'année de 1991-2020 dont la moyenne des Tx sur les dates de la saison est la plus proche de la moyenne des 30 années (la plus récente à égalité, jamais l'année affichée) ; pour une saison observée, la même chose sur 2071-2100. Ligne : « Maximales : 27,0 °C en moyenne, contre 31,9 °C ». |
+| Record | Hors hiver, le record de chaleur du climat futur (2051-2100) ; en hiver, le record de froid de l'ancien climat (1970-2010). Si la page montre déjà ce record, le jour le plus chaud (la nuit la plus froide en hiver) de la même époque, ouvert sur ce jour (`type`, `epoque`, `jour`) ; rien si ce jour est aussi à l'écran. |
+| Mêmes dates, ailleurs | Les mêmes dates dans une grande ville d'un autre climat (`/api/contrast`). Ligne : sa Tx moyenne, contre celle du lieu (deux appels à `/api/summary`). |
+
+- Critère des cartes 2 et 3 : celui des types de saison et du rang, la moyenne des Tx sur les dates de la saison, lue dans les `values` de `/api/kinds` (section 11) ; rien de nouveau côté serveur pour ces cartes.
+- Ville de contraste (`Places.contrast`, `src/app/api/places.py`) : parmi les villes de 500 000 habitants et plus de `places.tsv` (GeoNames), pays européens seulement (la Turquie est écartée : la liste nomme les arrondissements d'Istanbul comme des villes ; Alger, Rabat, Tunis le seraient sinon), à 300 km au moins du lieu et dont les données sont servies, celle qui est la plus proche du point situé 7,2° de latitude (environ 800 km) au sud du lieu, au nord pour un lieu au sud de 44° N. Exemples : Lyon, Paris, Grenoble → Barcelone ; Marseille → Bruxelles ; Madrid → Paris ; Berlin → Zagreb ; Londres → Toulouse ; Athènes → Bucarest ; Lisbonne → Madrid. Les villes n'ont pas d'altitude dans la liste : leur page est lue à l'altitude de la maille.
+- Les liens gardent `lieu`, `lat`, `lon` et `alt` (sauf la ville de contraste) et perdent `type`, `epoque` et `jour`, comme le menu des saisons (section 14), sauf la carte du record.
+- Dates libres (pas une saison entière) : seule la carte « Mêmes dates, ailleurs » reste.
+- Choix décidés le 19/11/2026 : saison moyenne plutôt que la plus chaude des années observées, grandes villes seulement, titre « À voir aussi ».
+
+Code : `web/static/js/suggest.js` (choix, sans DOM, `tests/js/suggest.test.js`), câblé par `watchSuggestions` et `suggestions` dans `web/static/js/results.js` ; libellés `suggest` dans `web/static/js/i18n.js` ; `/api/contrast` testé dans `tests/test_api.py`.

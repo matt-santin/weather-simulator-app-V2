@@ -4364,6 +4364,154 @@ body.results .ways[hidden] {
   }
 }
 
+/* "Partager cette saison", at the right of the summary title (19/11/2026):
+   the pill of the ways, a little smaller; the pictogram alone on a phone. */
+.summary-share {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  margin-left: auto;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--cool);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--cool);
+  font: inherit;
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.summary-share:hover,
+.summary-share:focus-visible {
+  background: var(--cool);
+  color: #fff;
+}
+
+.summary-share:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+
+.summary-share[hidden] {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .summary-share {
+    padding: 0.45rem;
+  }
+
+  .summary-share-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* "À voir aussi" at the foot of the results page: four cards in a row on a wide
+   screen, two by two below, one under the other on a phone. Each card is a
+   link, outlined in the blue of the pills, filled on hover. */
+.suggest-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--space) * 3);
+  margin: calc(var(--space) * 3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* An odd card out on two columns takes the whole row. */
+.suggest-list > li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* Wide: every card on one row, whatever their number (--cards, results.js). */
+@media (min-width: 1000px) {
+  .suggest-list {
+    grid-template-columns: repeat(var(--cards, 4), minmax(0, 1fr));
+  }
+
+  .suggest-list > li:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+/* Flat: the arrow on the right, at mid height, rather than on a row of its own. */
+.suggest-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 2.2rem 0.6rem 0.9rem;
+  border: 1px solid var(--cool);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font);
+  text-decoration: none;
+}
+
+.suggest-kicker {
+  color: var(--cool);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.suggest-name {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.suggest-line {
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.suggest-arrow {
+  position: absolute;
+  top: 50%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  color: var(--cool);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.suggest-card:hover,
+.suggest-card:focus-visible {
+  background: var(--cool);
+  color: #fff;
+}
+
+.suggest-card:hover > span,
+.suggest-card:focus-visible > span {
+  color: #fff;
+}
+
+.suggest-card:focus-visible {
+  outline: 2px solid var(--cool);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .suggest-list {
+    grid-template-columns: 1fr;
+    gap: calc(var(--space) * 2);
+  }
+}
+
 /* The link of the summary glides down to the matrix, unless motion is reduced. */
 @media (prefers-reduced-motion: no-preference) {
   html:has(body.results) {

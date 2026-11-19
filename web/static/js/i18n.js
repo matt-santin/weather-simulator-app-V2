@@ -322,6 +322,22 @@ export const texts = {
     ways: "Aller plus loin",
   },
 
+  // "À voir aussi", at the foot of the results page (suggest.js, results.js).
+  suggest: {
+    title: "À voir aussi",
+    next: "Saison suivante",
+    previous: "Saison précédente",
+    // "Un été moyen de 1991-2020"; every season name is masculine.
+    typical: (singular, first, last) => `Un ${singular} moyen de ${first}-${last}`,
+    elsewhere: "Mêmes dates, ailleurs",
+    meanMaximum: (value) => `Maximales : ${value} en moyenne`,
+    against: (value) => `, contre ${value}`,
+    againstPlace: (value, place) => `, contre ${value} à ${place}`,
+    maximum: (value) => `Maximale : ${value}`,
+    minimum: (value) => `Minimale : ${value}`,
+    dayTitle: (date, place) => `${date} à ${place}`,
+  },
+
   // The "Partager" pill and its window (sharing.js), the foot of the picture
   // (sharecard.js).
   share: {

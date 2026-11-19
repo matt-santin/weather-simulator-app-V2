@@ -27,6 +27,26 @@ EARTH_KM = 6371.0
 # from any town of the list.
 MAX_KM = 50.0
 
+# The city of another climate (Places.contrast): a large European city, about
+# 800 km south of the place, or north of a place already in the south. Turkey
+# is left out: the list names the districts of Istanbul as towns.
+CONTRAST_MINIMUM = 500_000
+CONTRAST_SHIFT = 7.2  # degrees of latitude, about 800 km
+CONTRAST_SOUTH = 44.0
+CONTRAST_AWAY_KM = 300.0
+EUROPE = frozenset(
+    "AD AL AT BA BE BG BY CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IS IT LI LT LU "
+    "LV MC MD ME MK MT NL NO PL PT RO RS RU SE SI SK SM UA VA XK".split()
+)
+
+
+def km_between(a: tuple[float, float], b: tuple[float, float]) -> float:
+    """The distance on the sphere (haversine) between two points in degrees."""
+    lat1, lon1, lat2, lon2 = map(np.radians, (a[0], a[1], b[0], b[1]))
+    h = (np.sin((lat2 - lat1) / 2) ** 2
+         + np.cos(lat1) * np.cos(lat2) * np.sin((lon2 - lon1) / 2) ** 2)
+    return float(2 * EARTH_KM * np.arcsin(np.sqrt(min(h, 1.0))))
+
 
 class Places:
     def __init__(self, path: Path = PATH) -> None:
@@ -55,6 +75,30 @@ class Places:
             "longitude": [self.degrees[k][1] for k in order],
             "population": [self.populations[k] for k in order],
         }
+
+    def contrast(self, latitude: float, longitude: float, served) -> dict | None:
+        """The large city of another climate, for "À voir aussi" on the results
+        page (19/11/2026): the European city of CONTRAST_MINIMUM people or more
+        nearest the point CONTRAST_SHIFT degrees (about 800 km) south of the
+        place, north for a place south of CONTRAST_SOUTH, at least CONTRAST_AWAY_KM
+        from it, whose data the site serves (`served(latitude, longitude)`).
+        None if there is none. Choices of the project, not a norm."""
+        shift = CONTRAST_SHIFT if latitude < CONTRAST_SOUTH else -CONTRAST_SHIFT
+        target = (latitude + shift, longitude)
+        best = None
+        for k, people in enumerate(self.populations):
+            if people < CONTRAST_MINIMUM or self.countries[k] not in EUROPE:
+                continue
+            here = self.degrees[k]
+            if km_between((latitude, longitude), here) < CONTRAST_AWAY_KM:
+                continue
+            far = km_between(target, here)
+            if (best is None or far < best[0]) and served(*here):
+                best = (far, k)
+        if best is None:
+            return None
+        k = best[1]
+        return {"name": self.names[k], "latitude": self.degrees[k][0], "longitude": self.degrees[k][1]}
 
     def nearest(self, latitude: float, longitude: float) -> dict | None:
         """The nearest place and how far it is (km), or None past MAX_KM."""

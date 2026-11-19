@@ -645,6 +645,41 @@ def test_the_cities_of_the_map_are_the_large_towns_largest_first(places_client: 
     assert cities["latitude"][1] == 45.7485 and cities["longitude"][1] == 4.8467
 
 
+def test_the_city_of_contrast_is_a_large_european_city_far_south() -> None:
+    from src.app.api.places import Places
+    import tempfile
+    from pathlib import Path
+    rows = (
+        "name\tlatitude\tlongitude\tcountry\tpopulation\n"
+        "Paris\t48.8534\t2.3488\tFR\t2138551\n"
+        "Lyon\t45.7485\t4.8467\tFR\t522969\n"
+        "Barcelone\t41.3888\t2.159\tES\t1620343\n"
+        "Toulouse\t43.6043\t1.4437\tFR\t433055\n"
+        "Alger\t36.7525\t3.042\tDZ\t1977663\n"
+        "Bruxelles\t50.8505\t4.3488\tBE\t1019022\n"
+    )
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "places.tsv"
+        path.write_text(rows, encoding="utf-8")
+        found = Places(path)
+    served = lambda lat, lon: True  # noqa: E731
+    # Algiers is nearer 800 km south of Paris, but not in Europe; Toulouse is too small.
+    assert found.contrast(48.86, 2.35, served)["name"] == "Barcelone"
+    # Lyon is less than 300 km from Lyon: never itself.
+    assert found.contrast(45.76, 4.84, served)["name"] == "Barcelone"
+    # A place of the south looks north.
+    assert found.contrast(43.3, 5.37, served)["name"] == "Bruxelles"
+    # A city whose data are not served is passed over.
+    assert found.contrast(48.86, 2.35, lambda lat, lon: lat > 45)["name"] == "Lyon"
+    assert found.contrast(48.86, 2.35, lambda lat, lon: False) is None
+
+
+def test_the_city_of_contrast_is_served_with_its_point(places_client: TestClient) -> None:
+    answer = places_client.get("/api/contrast", params={"latitude": 45.18, "longitude": 5.71}).json()
+    assert set(answer) == {"name", "latitude", "longitude"}
+    assert places_client.get("/api/contrast", params={"latitude": 95, "longitude": 5}).status_code == 422
+
+
 def test_without_a_list_of_places_the_server_says_so(client: TestClient) -> None:
     from src.app.api.app import get_places
     app.dependency_overrides[get_places] = lambda: None

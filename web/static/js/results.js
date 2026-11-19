@@ -26,6 +26,7 @@
 
 import {
   climate as climateOf,
+  contrastCity,
   loadConfig,
   normals,
   search,
@@ -52,6 +53,9 @@ import { DRAWN, drawAnother, kindLabels, kindsOf } from "./kinds.js";
 import { dominantSeason, rangeOf, yearsFor } from "./season.js";
 import { content as shareCard } from "./sharecard.js";
 import { wireShare } from "./sharing.js";
+import {
+  allValues, degrees, nextSeason, previousSeason, recordPick, recordWords, typical, typicalSpan,
+} from "./suggest.js";
 import { figures as summaryFigures, heading as summaryHeading, snowFigure, standing } from "./summary.js";
 
 const place = document.getElementById("place");
@@ -467,6 +471,7 @@ async function show(series) {
     showKind(config);
     showClimate();
     showYears();
+    watchSuggestions(config);
   }
 
   if (!config) goToDay(query.get("jour"));
@@ -997,6 +1002,159 @@ document.addEventListener("click", (event) => {
   closeDetail();
 });
 window.addEventListener("resize", placeDetail);
+
+// --- "À voir aussi" ------------------------------------------------------------
+
+const suggestSection = document.getElementById("suggest");
+const suggestList = document.getElementById("suggest-list");
+
+/**
+ * The block is laid when the climate section nears the window: a visitor who
+ * never scrolls down costs no request.
+ */
+function watchSuggestions(config) {
+  const start = () => offerSuggestions(config).catch(() => {
+    suggestSection.hidden = true;
+  });
+  if (!("IntersectionObserver" in window)) {
+    start();
+    return;
+  }
+  const watcher = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    watcher.disconnect();
+    start();
+  }, { rootMargin: "0px 0px 800px 0px" });
+  watcher.observe(climateSection);
+}
+
+/** Whether every date of a range is past data. */
+function isObserved(range, config) {
+  return config.periods.some((p) => p.origin === "observed" && range.start >= p.start && range.end <= p.end);
+}
+
+/**
+ * The address of a season of the same place, or null when it is not served:
+ * `{ href, range }`. The kind and the day of the page are left behind, unless
+ * given.
+ */
+function seasonLink(config, name, year, { kind = null, epoch = null, day = null } = {}) {
+  const range = rangeOf(name, year, asked.latitude);
+  if (!range || refuse(range, config)) return null;
+  const next = new URLSearchParams(query);
+  next.set("debut", range.start);
+  next.set("fin", range.end);
+  for (const key of ["type", "epoque", "jour"]) next.delete(key);
+  if (kind) {
+    next.set("type", kind);
+    next.set("epoque", epoch);
+  }
+  if (day) next.set("jour", day);
+  return { href: `/resultats?${next}`, range };
+}
+
+/** The cards: `{ kicker, title, line, href }`, in the order they are shown. */
+async function suggestions(config) {
+  const w = texts.suggest;
+  const shownSeason = document.body.dataset.season;
+  const whole = wholeSeason(asked.start, asked.end);
+  const year = whole ? seasonYear(shownSeason, asked.start, asked.end) : null;
+  const [kinds, city] = await Promise.all([
+    year !== null ? seasonKinds(asked).catch(() => null) : null,
+    contrastCity(asked.latitude, asked.longitude).catch(() => null),
+  ]);
+  const cards = [];
+  const values = allValues(kinds);
+  const here = year !== null ? values[year] : undefined;
+
+  if (year !== null) {
+    // 1. The next season, or the previous one when the next is not served.
+    for (const [step, kicker] of [[nextSeason, w.next], [previousSeason, w.previous]]) {
+      const other = step(shownSeason, year);
+      const link = other && seasonLink(config, other.season, other.year);
+      if (!link) continue;
+      cards.push({
+        kicker,
+        title: summaryHeading(other.season, link.range.start, link.range.end, asked.place),
+        href: link.href,
+      });
+      break;
+    }
+
+    // 2. A typical season of the other period.
+    const [first, last] = typicalSpan(isObserved(asked, config));
+    const pick = typical(values, first, last, year);
+    const link = pick && seasonLink(config, shownSeason, pick.year);
+    if (link) {
+      cards.push({
+        kicker: w.typical(texts.summary.seasons[shownSeason][0], first, last),
+        title: summaryHeading(shownSeason, link.range.start, link.range.end, asked.place),
+        line: w.meanMaximum(degrees(pick.value)) + (here === undefined ? "" : w.against(degrees(here))),
+        href: link.href,
+      });
+    }
+
+    // 3. The record here, or its extreme day.
+    const record = recordPick(kinds, shownSeason, year, query.get("type"));
+    const recordLink = record && seasonLink(config, shownSeason, record.year, record);
+    if (recordLink) {
+      const { kicker, line } = recordWords(record, shownSeason);
+      cards.push({
+        kicker,
+        title: record.day
+          ? w.dayTitle(present.fullDate(record.day), asked.place)
+          : summaryHeading(shownSeason, recordLink.range.start, recordLink.range.end, asked.place),
+        line,
+        href: recordLink.href,
+      });
+    }
+  }
+
+  // 4. The same dates in a large city of another climate.
+  if (city?.name) {
+    const there = { latitude: city.latitude, longitude: city.longitude, start: asked.start, end: asked.end };
+    const answer = await summaryOf(there, referenceFirst).catch(() => null);
+    const value = answer?.figures?.tasmax_mean?.value;
+    const mine = summaries.get(referenceFirst)?.figures?.tasmax_mean?.value;
+    const address = new URLSearchParams({
+      lieu: city.name,
+      lat: String(city.latitude),
+      lon: String(city.longitude),
+      debut: asked.start,
+      fin: asked.end,
+    });
+    cards.push({
+      kicker: w.elsewhere,
+      title: whole
+        ? summaryHeading(shownSeason, asked.start, asked.end, city.name)
+        : `${city.name}, ${range.textContent}`,
+      line: value === null || value === undefined
+        ? ""
+        : w.meanMaximum(degrees(value)) + (mine === null || mine === undefined ? "" : w.againstPlace(degrees(mine), asked.place)),
+      href: `/resultats?${address}`,
+    });
+  }
+  return cards;
+}
+
+async function offerSuggestions(config) {
+  const cards = await suggestions(config);
+  suggestList.replaceChildren(
+    ...cards.map((card) =>
+      el("li", {}, [
+        el("a", { className: "suggest-card", attrs: { href: card.href } }, [
+          el("span", { className: "suggest-kicker", text: card.kicker }),
+          el("span", { className: "suggest-name", text: card.title }),
+          ...(card.line ? [el("span", { className: "suggest-line", text: card.line })] : []),
+          el("span", { className: "suggest-arrow", text: "→", attrs: { "aria-hidden": "true" } }),
+        ]),
+      ]),
+    ),
+  );
+  // The number of columns of a wide window: one row, whatever the number of cards.
+  suggestList.style.setProperty("--cards", String(cards.length));
+  suggestSection.hidden = cards.length === 0;
+}
 
 /** This page's own URL, on the dates of another year. */
 function url({ start, end }) {
