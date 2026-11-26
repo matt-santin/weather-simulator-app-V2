@@ -673,6 +673,12 @@ def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
                          "ce que les chiffres veulent dire et ce qu'ils ne disent pas.")
         return HTMLResponse(page, headers=REVALIDATE)
 
+    @target.get("/mentions-legales", include_in_schema=False)
+    def legal(request: Request) -> HTMLResponse:
+        page = with_head(read("legal.html"), request, f"Mentions légales · {share.SITE}",
+                         "Éditeur, hébergeur et données personnelles du site.")
+        return HTMLResponse(page, headers=REVALIDATE)
+
     return True
 
 

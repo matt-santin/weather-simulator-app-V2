@@ -109,7 +109,7 @@ Calcul (`src/app/api/normals.py`), à la volée, sans précalcul (30 ans en un p
 - calendrier de 366 jours, 29 février compris (8 années) ; la fenêtre passe le 1er janvier ;
 - sommes et effectifs sont cumulés sur la fenêtre avant division : chaque valeur pèse autant.
 
-La normale d'un jour futur est celle du climat observé sur la période de référence, pas celle du modèle. Une période inconnue est refusée (« Période de référence inconnue… »). Les normales ne vont pas dans le fichier CSV.
+La normale d'un jour futur est celle du climat observé sur la période de référence, pas celle du modèle. Une période inconnue est refusée (« Période de référence inconnue… »).
 
 ## 6. Diagramme climatique
 
@@ -291,7 +291,6 @@ La même neige, pour les journées de la recherche : quelles tuiles sont enneig�
 - Tuiles : le bas de la tuile en blanc, coupé à 40 % de sa hauteur, juste au-dessus du pictogramme et du maximum ; la teinte de la température reste sur le bandeau du haut (`card--snow`, feuille de style). Sur écran étroit, où les journées sont en liste, une barre blanche au pied de la ligne. Les mots « Neige au sol » lus par un lecteur d'écran, une ligne « Neige au sol : oui » dans la tuile agrandie. Ce n'est pas le pictogramme de neige, qui dit qu'il neige ce jour-là (seuil de 1,5 °C). La légende du calendrier nomme la marque quand la période en porte une.
 - Graphique : fond bleuté sur toute la hauteur du panneau des précipitations, un rectangle par suite de jours enneigés, nommé « Neige au sol » sur la ligne du titre (`snowGround`, `snowLegend` dans `web/static/js/chart.js`).
 - Phrase sous le calendrier : « Neige au sol 75 jours, dont 27 de suite du 2 au 28 février. » ; « Aucun jour de neige au sol sur la période. » si la période touche les mois de novembre à avril, rien sinon (`snowCover` dans `web/static/js/present.js`). Son « ? » donne la méthode et ses limites.
-- Export : colonne « Neige au sol » (oui, non, vide), après les précipitations.
 - Pas d'épaisseur. Essai du 14/11/2026 (`figures/neige/epaisseur.py`, journal `data/neige/epaisseur.log`) : le stock converti en centimètres (neige fraîche à 100 kg/m³, tassement vers 300 kg/m³ en 20 jours, valeurs calées sur 1971-2000) tient sous 800 m (4 à 6 cm d'erreur sur le maximum d'hiver, contrôle 2001-2020, 1 229 stations) mais sous-estime de 30 % entre 800 et 1 500 m (31 stations) et de moitié sur les sommets (5 stations), les précipitations de la maille n'étant pas corrigées de l'altitude. Non intégré.
 
 Contrôle sur le stockage réel (hiver de décembre à février, altitude du lieu donnée) :
@@ -307,7 +306,7 @@ Contrôle sur le stockage réel (hiver de décembre à février, altitude du lie
 | Strasbourg | 2093-2094 | 0 | |
 | Bordeaux | 2060-2061 | non montrée | |
 
-Tests : `tests/test_snow.py` (journées, suite la plus longue, seuils, 1970, rareté), `tests/js/band.test.js`, `chart.test.js`, `present.test.js`, `csv.test.js`.
+Tests : `tests/test_snow.py` (journées, suite la plus longue, seuils, 1970, rareté), `tests/js/band.test.js`, `chart.test.js`, `present.test.js`.
 
 Contrôle du bloc climat sur le stockage réel (jours par hiver) :
 
@@ -395,7 +394,7 @@ Un bilan hydrique journalier donne, pour chaque journée, la part de la réserve
 `/api/days` porte le champ `soil_water` par journée (entier, en %), nul si le stockage n'a pas `rsds`.
 
 Affichage (15/11/2026) :
-- **Résultats** : sous le graphique, « Eau du sol au plus bas : 6 % de la réserve utile, le 28 juillet. » et son « ? » (méthode, prairie de référence, sources). Quatrième panneau du graphique, sous le cumul des précipitations, « Eau du sol (part de la réserve utile) », aire sous une courbe, axe fixe de 0 à 100 % avec un trait à 50 % ; dessiné seulement si une journée a une valeur (`hasSoil`, `web/static/js/chart.js`). Avec les normales (affichées par défaut, 17/11/2026) : trait gris de l'eau du sol normale sur ce panneau, légende « Normales 1991-2020 » ; `/api/normals` sert `soil_water` (`src/app/api/normals.py`), moyenne du bilan ERA5 du lieu sur les 30 années de référence choisies, fenêtre de 15 jours comme les autres normales (la carte d'anomalie lisse sur 31 jours), à une décimale ; nulle sans `rsds`. Paris : normale d'environ 55 % début juin, 28 % mi-août. Extrêmes (17/11/2026) : `soil_water_min` et `soil_water_max`, plus basse et plus haute valeur des mêmes 30 années × 15 jours, dessinés en bande, brune du minimum à la normale, bleue de la normale au maximum (à la manière de l'indicateur national de sécheresse des sols de Météo-France) ; la courbe de l'année est alors un trait sans aire ; légende « Normales 1991-2020, plus sec et plus humide ». Grenoble, 12 août 2022 : 7 % contre un minimum 1991-2020 de 12 %. Ligne « Eau du sol » dans la tuile agrandie d'une journée ; colonne « Eau du sol (% de la réserve utile) » dans l'export, après la neige.
+- **Résultats** : sous le graphique, « Eau du sol au plus bas : 6 % de la réserve utile, le 28 juillet. » et son « ? » (méthode, prairie de référence, sources). Quatrième panneau du graphique, sous le cumul des précipitations, « Eau du sol (part de la réserve utile) », aire sous une courbe, axe fixe de 0 à 100 % avec un trait à 50 % ; dessiné seulement si une journée a une valeur (`hasSoil`, `web/static/js/chart.js`). Avec les normales (affichées par défaut, 17/11/2026) : trait gris de l'eau du sol normale sur ce panneau, légende « Normales 1991-2020 » ; `/api/normals` sert `soil_water` (`src/app/api/normals.py`), moyenne du bilan ERA5 du lieu sur les 30 années de référence choisies, fenêtre de 15 jours comme les autres normales (la carte d'anomalie lisse sur 31 jours), à une décimale ; nulle sans `rsds`. Paris : normale d'environ 55 % début juin, 28 % mi-août. Extrêmes (17/11/2026) : `soil_water_min` et `soil_water_max`, plus basse et plus haute valeur des mêmes 30 années × 15 jours, dessinés en bande, brune du minimum à la normale, bleue de la normale au maximum (à la manière de l'indicateur national de sécheresse des sols de Météo-France) ; la courbe de l'année est alors un trait sans aire ; légende « Normales 1991-2020, plus sec et plus humide ». Grenoble, 12 août 2022 : 7 % contre un minimum 1991-2020 de 12 %. Ligne « Eau du sol » dans la tuile agrandie d'une journée .
 - **Carte** : grandeur « Eau du sol » (`soil`), précalculée par `python -m src.store.soil` dans `map.zarr` (entiers de 8 bits, en %, 255 pour une maille sans valeur). Même calcul que pour un lieu, même réserve utile par maille, mais avec les températures de la maille de 0,25° (un lieu prend celles de sa maille de 0,1°, ramenées à son altitude) : la carte et les résultats peuvent différer de quelques points en relief. Chaque bilan part plein le 1er janvier 1970, y compris pour la simulation, dont la carte garde 2027-2100. Vérification : 20 mailles tirées au hasard, recalculées une à une par les fonctions d'un lieu, doivent donner le même pourcentage tous les jours. Calcul par blocs de 20 × 20 mailles, toutes les mailles d'un bloc à la fois (`liquid_many`, `fill_many`, testées égales aux fonctions d'un lieu).
 - **Carte, anomalie** (16/11/2026) : grandeur « Anomalie d'humidité du sol » (`soil_anomaly`), précalculée par `python -m src.store.anomaly` depuis `soil` : remplissage du jour moins la normale du même jour de l'année, en points de réserve utile (entiers signés de 8 bits, −128 sans valeur). Normale choisie par l'utilisateur : ERA5 1991-2020 pour le passé comme pour la simulation (2085 se lit par rapport au climat actuel), moyenne par jour de l'année lissée sur 31 jours, le 29 février pris sur le 28. Idée reprise de la couche « Anomalie d'humidité » de Windy (CzechGlobe, SoilClim, en mm par rapport à 1961-2010) ; ici en points, comparables d'un sol à l'autre. Limite : là où le sol est normalement vide l'été (sud de l'Espagne, Maghreb, Grèce, Turquie), l'anomalie d'août ne peut pas descendre et reste proche de zéro. 10 août 2003 : 15 % des mailles à −25 points ou moins ; 10 août 2085 : 33 %.
 
@@ -436,7 +435,7 @@ Fenêtre : `web/static/js/sharing.js`, branchée par `offerShare` dans `web/stat
 
 ## 19. « À voir aussi » en bas des résultats (19/11/2026)
 
-Un bloc « À voir aussi » (`#suggest` dans `web/pages/results.html`), après le climat du lieu et avant l'export, propose quatre autres pages choisies pour celle qui est affichée. Chaque carte est un lien : une étiquette, un titre, une ligne de chiffres, une flèche. Toutes les cartes sur une ligne à partir de 1000 px, quel que soit leur nombre, deux par deux en dessous (une carte seule en fin de grille prend la ligne), l'une sous l'autre sous 560 px ; la flèche à droite, à mi-hauteur. Le bloc n'est construit qu'à l'approche du bas de la page (le climat du lieu à moins de 800 px de la fenêtre) : un visiteur qui ne descend pas ne coûte aucune requête. Sans aucune carte, il reste caché.
+Un bloc « À voir aussi » (`#suggest` dans `web/pages/results.html`), après le climat du lieu, propose quatre autres pages choisies pour celle qui est affichée. Chaque carte est un lien : une étiquette, un titre, une ligne de chiffres, une flèche. Toutes les cartes sur une ligne à partir de 1000 px, quel que soit leur nombre, deux par deux en dessous (une carte seule en fin de grille prend la ligne), l'une sous l'autre sous 560 px ; la flèche à droite, à mi-hauteur. Le bloc n'est construit qu'à l'approche du bas de la page (le climat du lieu à moins de 800 px de la fenêtre) : un visiteur qui ne descend pas ne coûte aucune requête. Sans aucune carte, il reste caché.
 
 | Carte | Choix |
 |---|---|
@@ -452,3 +451,7 @@ Un bloc « À voir aussi » (`#suggest` dans `web/pages/results.html`), après l
 - Choix décidés le 19/11/2026 : saison moyenne plutôt que la plus chaude des années observées, grandes villes seulement, titre « À voir aussi ».
 
 Code : `web/static/js/suggest.js` (choix, sans DOM, `tests/js/suggest.test.js`), câblé par `watchSuggestions` et `suggestions` dans `web/static/js/results.js` ; libellés `suggest` dans `web/static/js/i18n.js` ; `/api/contrast` testé dans `tests/test_api.py`.
+
+## 20. Export retiré (26/11/2026)
+
+Le bouton « Exporter mes données » (fichier CSV des journées affichées) est retiré de la page de résultats, avec `web/static/js/csv.js` et ses tests. Retrouvable dans l'historique git.

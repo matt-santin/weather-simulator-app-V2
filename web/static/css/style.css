@@ -557,6 +557,21 @@ body.home footer .doc-link a {
   text-decoration-color: currentColor;
 }
 
+/* The legal notice beside the documentation link, after a dot. Where the two
+   do not fit on one line, the dot would hang at the end of the first: the
+   notice goes under it instead, and the dot goes away. */
+@media (max-width: 480px) {
+  body.home footer .doc-sep {
+    display: none;
+  }
+
+  body.home footer .doc-legal {
+    display: block;
+    width: fit-content;
+    margin: calc(var(--space) * 2) auto 0;
+  }
+}
+
 /* The banner sits lower than the page's own top padding would put it, so the
    question and its promise fall nearer the middle of the screen than the top
    edge. Only here: the results page leads with a place name and a range, which
@@ -655,7 +670,6 @@ main {
 .warning,
 .doc-link,
 .provenance,
-.export,
 .failure,
 .search {
   max-width: var(--measure);
@@ -2412,20 +2426,6 @@ body.results [data-band="9"] { --tile: #1a1a1a; --tile-ink: #fff; }
 
 #years-status:empty {
   display: none;
-}
-
-/* The way out of the page: the days as a file. On the page ground rather than
-   in a box of its own — a control the visitor finds when looking for it, and one
-   that does not compete with the days. It falls in the dark end of the results
-   page, so its ink turns over with the provenance below it; see that block. */
-.export {
-  /* No `width: 100%`, unlike `.doc-link`, and the difference is what it lines up
-     with. This page's `main` is a column flex container, so a flex item with an
-     auto inline margin shrinks to its content and centres — which is what the
-     provenance under it does, and these two are the foot of the page read
-     together. Stretched to the measure it started two hundred pixels left of the
-     provenance and made a staircase of three left edges. */
-  margin-top: calc(var(--space) * 8);
 }
 
 /* --- where the days come from ---------------------------------------------- */

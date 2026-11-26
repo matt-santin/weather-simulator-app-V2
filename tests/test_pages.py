@@ -33,7 +33,7 @@ def client(store_path) -> TestClient:
     app.dependency_overrides.clear()
 
 
-@pytest.mark.parametrize("path", ["/", "/resultats", "/documentation"])
+@pytest.mark.parametrize("path", ["/", "/resultats", "/documentation", "/mentions-legales"])
 def test_pages_are_served_as_html(client: TestClient, path: str) -> None:
     response = client.get(path)
     assert response.status_code == 200
@@ -131,7 +131,7 @@ def test_the_results_page_carries_a_season_of_its_own() -> None:
     assert 'data-season="summer"' in (WEB / "pages/results.html").read_text()
 
 
-@pytest.mark.parametrize("page", ["home.html", "results.html", "documentation.html"])
+@pytest.mark.parametrize("page", ["home.html", "results.html", "documentation.html", "legal.html"])
 def test_every_in_page_link_lands_somewhere(page: str) -> None:
     """A `href="#x"` with no `id="x"` under it scrolls nowhere, and says nothing.
 
@@ -254,3 +254,11 @@ def test_nothing_is_mounted_without_the_web_directory(tmp_path) -> None:
     bare = FastAPI()
     assert mount_web(bare, tmp_path / "absent") is False
     assert TestClient(bare).get("/").status_code == 404
+
+
+def test_the_legal_notice_is_reachable_from_the_home_page_and_the_documentation() -> None:
+    """The LCEN asks that the notice be easy to reach: the home page is where
+    every visit starts, the documentation where a reader looks for who is behind
+    the site."""
+    for page in ("home.html", "documentation.html"):
+        assert 'href="/mentions-legales"' in (WEB / "pages" / page).read_text(), page

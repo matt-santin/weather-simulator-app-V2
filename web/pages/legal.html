@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Météo 2100&nbsp;: mentions légales</title>
+    <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+
+  <!--
+    The legal notice the LCEN asks of every site (loi n° 2004-575 du 21 juin
+    2004). Built like the documentation page: prose in the file, no script, on
+    white. The publisher is a private person acting on a non-professional basis,
+    under LCEN article 1-1, II (SREN law, 2024): only the host's name and
+    address are due, the publisher's identity being held by the host. That is
+    the minimum; the publisher chose on 2026-11-26 to add their name and e-mail,
+    without home address or phone (which I, 1° would ask of a publisher using
+    the full regime). Not checked by a lawyer.
+
+    A blank left to fill reads "à" followed by "compléter" in the page;
+    deploy/envoyer.sh refuses to send pages that still hold one.
+
+    The fourteen days of the access log are set on the server by
+    deploy/preparer_serveur.sh (logrotate): change both together.
+  -->
+  <body class="doc">
+    <header class="banner">
+      <h1>Mentions légales</h1>
+    </header>
+
+    <main class="doc-body">
+      <section>
+        <h2>Éditeur</h2>
+        <p>
+          Ce site est édité par Matthieu Santin, à titre personnel et non
+          professionnel. Conformément à l'article 1-1, II de la loi
+          n°&nbsp;2004-575 du 21&nbsp;juin 2004 pour la confiance dans
+          l'économie numérique, ses éléments d'identification ont été
+          communiqués à l'hébergeur.
+        </p>
+        <p>
+          Contact&nbsp;:
+          <a href="mailto:matthieu.santin@gmail.com">matthieu.santin@gmail.com</a>
+        </p>
+      </section>
+
+      <section>
+        <h2>Hébergeur</h2>
+        <p>
+          Scaleway SAS, 8&nbsp;rue de la Ville-l'Évêque, 75008 Paris, France,
+          <a href="https://www.scaleway.com">www.scaleway.com</a>
+        </p>
+      </section>
+
+      <section>
+        <h2>Données personnelles</h2>
+        <p>
+          Le site ne demande aucun compte, ne dépose aucun cookie et n'enregistre
+          rien dans votre navigateur.
+        </p>
+        <p>
+          Comme tout serveur web, celui du site note chaque demande qu'il reçoit&nbsp;:
+          adresse IP, date et heure, adresse de la page ou des données demandées,
+          type de navigateur. Ce journal sert au bon fonctionnement du site et à
+          sa sécurité&nbsp;; son responsable est l'éditeur. Il n'est transmis à
+          personne et il est effacé au bout de 14&nbsp;jours.
+        </p>
+        <p>
+          La recherche d'un lieu est faite par votre navigateur auprès
+          d'<a href="https://open-meteo.com/">Open-Meteo</a>, qui reçoit le nom
+          tapé et votre adresse IP. Les données météo, elles, viennent du
+          serveur du site.
+        </p>
+        <p>
+          Vous pouvez demander l'accès à ces données ou leur effacement à
+          l'adresse de contact ci-dessus, et adresser une réclamation à la
+          <a href="https://www.cnil.fr">CNIL</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>Responsabilité</h2>
+        <p>
+          La météo affichée après 2025 est une simulation, pas une prévision&nbsp;:
+          c'est un temps possible, compte tenu du climat attendu, et non le temps
+          qu'il fera. Celle d'avant 2026 vient de réanalyses et
+          d'observations interpolées, avec leurs incertitudes. Ces données ne doivent servir à
+          aucune décision, notamment de sécurité, d'agriculture ou
+          d'investissement, et l'éditeur décline toute responsabilité quant à
+          l'usage qui en est fait.
+        </p>
+        <p>
+          Une erreur, un oubli&nbsp;? Merci de le signaler à l'adresse de
+          contact ci-dessus.
+        </p>
+      </section>
+
+      <section>
+        <h2>Sources et licences</h2>
+        <p>
+          Ce site est gratuit et non commercial. Les données qu'il affiche, leurs
+          auteurs et leurs licences sont listés sur la page
+          <a href="/documentation">Comment ça fonctionne</a>.
+        </p>
+      </section>
+
+      <p class="doc-back"><a href="/">Retour à l'accueil</a></p>
+    </main>
+  </body>
+</html>

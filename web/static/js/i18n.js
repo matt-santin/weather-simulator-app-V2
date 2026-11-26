@@ -29,6 +29,8 @@ export const texts = {
     // It sits under the warning on both pages, so it is worded as the answer to
     // the question that warning raises rather than as a menu entry.
     documentation: "Tout comprendre sur les données affichées",
+    // The legal notice (LCEN), under the documentation link of the home page.
+    legal: "Mentions légales",
   },
 
   // The bar of the results and the map (nav.js).
@@ -547,64 +549,6 @@ export const texts = {
       link: "Voir cette saison ici",
       close: "Fermer",
       hint: "Cliquez sur une maille pour voir sa saison en détail.",
-    },
-  },
-
-  // The file the visitor takes away, and the words written in it.
-  //
-  // **`origin` is a column, so its three words are dictionary entries like any
-  // other.** A file outlives the page it left: a temperature with no origin
-  // beside it can be read years later as a measurement, which is the leak
-  // the V1 CLAUDE.md rule 1 exists to close. The words are the site's own — a forecast
-  // named a forecast, a projection named a simulation — which is why `forecast`
-  // joins the sentences `present.test.js` exempts from the ban.
-  //
-  // **`columns` is a function, and that is what lets it borrow.** Two of its
-  // headers are labels the page already declares: the unit, and « vent
-  // maximal », which `docs/application.md` fixes as the label for a sustained
-  // wind and forbids shortening to « vent ». Written out a second time here,
-  // they would drift the day one of them is edited — and a header nobody rereads
-  // is exactly where a drift survives. A literal cannot read the object it is
-  // being declared in; a function called later can.
-  //
-  // The other headers are written out rather than borrowed: « Minimale » says
-  // which of the two temperatures on a card that carries both, and says nothing
-  // at all at the top of a column in a spreadsheet.
-  export: {
-    button: "Exporter mes données",
-    columns: () => [
-      "Date",
-      "Origine",
-      "Source",
-      `Température minimale (${texts.units.celsius})`,
-      `Température maximale (${texts.units.celsius})`,
-      `${texts.measure.precipitation} (${texts.units.millimetres})`,
-      "Neige au sol",
-      `Eau du sol (${texts.units.percent} de la réserve utile)`,
-      "Nébulosité (%)",
-      `${texts.measure.humidity} (${texts.units.percent})`,
-      `Vent moyen (${texts.units.kilometresPerHour})`,
-      `Température humide moyenne (${texts.units.celsius})`,
-      "Chaleur humide",
-      "Ciel",
-    ],
-    snow: { true: "oui", false: "non" },
-    origin: {
-      observed: "Réanalyse",
-      simulated: "Simulation",
-    },
-
-    // **Le niveau part avec le nombre, et pour la raison qui fait partir
-    // l'origine.** Un fichier survit à la page qu'il a quittée. « 31,2 » dans un
-    // tableur, des années plus tard, se lit comme une douceur — c'est
-    // exactement la fuite que la colonne d'origine existe pour fermer, et le
-    // même remède la ferme : la qualification voyage sur la ligne, contre le
-    // nombre qu'elle qualifie. Vide là où il n'y a rien à signaler, comme là
-    // où il n'y a rien eu à mesurer.
-    humidHeat: {
-      0: "",
-      1: "Chaleur humide",
-      2: "Chaleur humide extrême",
     },
   },
 

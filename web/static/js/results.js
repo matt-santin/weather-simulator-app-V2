@@ -41,7 +41,6 @@ import { chart } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
 import { diagram, snow as snowOf, summary, years as yearsOf } from "./climate.js";
 import { alignByDate, gapTone, referenceYears } from "./compare.js";
-import { toCsv, fileName } from "./csv.js";
 import { applyTexts, el } from "./dom.js";
 import { wireHints } from "./hint.js";
 import { decimal, detail, tiles } from "./matrix.js";
@@ -278,8 +277,6 @@ function wholeSeason(start, end) {
   return start.slice(8) === "21" && end.slice(8) === "20" && months === 3;
 }
 
-const exportBlock = document.getElementById("export");
-const exportButton = document.getElementById("export-button");
 
 applyTexts();
 wireHints();
@@ -438,12 +435,6 @@ async function show(series) {
     snowCoverMethod.textContent = texts.snow.method(series.has_simulated);
     snowCoverRow.hidden = false;
   }
-
-  // Offered as soon as the days are on screen, and before the chart: what the
-  // file carries is the series, and a config that never arrives costs the
-  // drawing without costing the days.
-  exportButton.addEventListener("click", () => take(series));
-  exportBlock.hidden = false;
 
   // After the strip, always: the days are what the visitor came for, and the
   // drawing waits on a call of its own.
@@ -1181,40 +1172,6 @@ function redraw(series, compared, label = null) {
   const next = chart(series.days, scale, { compared, label });
   drawn.replaceWith(next);
   drawn = next;
-}
-
-/**
- * What the visitor takes away: the days on screen.
- *
- * **The normals are not in the file.** They are not days: a row of means dated
- * 14 July would be read, in a spreadsheet years later, as a 14 July that
- * happened.
- */
-function take(series) {
-  download(toCsv(series.days), fileName(asked.place, asked.start, asked.end));
-}
-
-/**
- * Hand the file to the browser.
- *
- * **The byte order mark is not decoration.** Without it a French spreadsheet
- * reads the accented headers as mojibake, and the reader this file is written
- * for is the one who double-clicks it. It is the same trade the separator makes
- * — `read_csv` wants `encoding="utf-8-sig"` where a spreadsheet wants the mark.
- *
- * The anchor is made, clicked and dropped rather than left in the markup: its
- * href is a blob that does not exist until the button is pressed, and the object
- * URL has to be revoked or the file is held in memory until the page is left.
- */
-function download(text, name) {
-  const blob = new Blob([`\uFEFF${text}`], { type: "text/csv;charset=utf-8" });
-  const href = URL.createObjectURL(blob);
-  const link = el("a", { attrs: { href, download: name } });
-
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(href);
 }
 
 function fail(message) {

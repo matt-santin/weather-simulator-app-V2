@@ -1,0 +1,38 @@
+# Le site, lancé par systemd sur le serveur : démarré avec la machine, relancé
+# s'il s'arrête. Installé par deploy/preparer_serveur.sh dans
+# /etc/systemd/system/meteo2100.service.
+#
+# uvicorn n'écoute que la machine elle-même (127.0.0.1) : nginx est seul à
+# parler aux visiteurs, et lui transmet leur adresse (--proxy-headers), pour
+# que les liens de partage soient en https. Le journal des visites est celui de
+# nginx : uvicorn n'en écrit pas un second (--no-access-log).
+#
+# Deux processus : un par vCPU de la DEV1-S. Chacun ouvre les stockages et
+# garde au plus environ 25 Mo de séries en mémoire (src/app/store.py, KEPT).
+
+[Unit]
+Description=Météo 2100 (uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=meteo
+Group=meteo
+WorkingDirectory=/srv/meteo2100/app
+Environment=WSA_DATA=/srv/meteo2100/data
+ExecStart=/srv/meteo2100/venv/bin/uvicorn src.app.api.app:app \
+    --host 127.0.0.1 --port 8000 --workers 2 \
+    --proxy-headers --forwarded-allow-ips 127.0.0.1 \
+    --no-access-log
+Restart=always
+RestartSec=5
+
+# Le site ne fait que lire : rien d'autre que son dossier ne lui est ouvert.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/srv/meteo2100
+
+[Install]
+WantedBy=multi-user.target
