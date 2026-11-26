@@ -15,8 +15,11 @@
     under LCEN article 1-1, II (SREN law, 2024): only the host's name and
     address are due, the publisher's identity being held by the host. That is
     the minimum; the publisher chose on 2026-11-26 to add their name and e-mail,
-    without home address or phone (which I, 1° would ask of a publisher using
-    the full regime). Not checked by a lawyer.
+    without home address or phone. The e-mail is a pattern to fill from the
+    name above, so that address harvesters, which look for "x@domain" in the
+    source, never find it (tests/test_pages.py). Phone and home address, which
+    I, 1° would ask of a publisher using the full regime, are left out. Not
+    checked by a lawyer.
 
     A blank left to fill reads "à" followed by "compléter" in the page;
     deploy/envoyer.sh refuses to send pages that still hold one.
@@ -40,8 +43,8 @@
           communiqués à l'hébergeur.
         </p>
         <p>
-          Contact&nbsp;:
-          <a href="mailto:matthieu.santin@gmail.com">matthieu.santin@gmail.com</a>
+          Contact&nbsp;: prénom.nom@gmail.com (prénom et nom de l'éditeur, en
+          minuscules, sans accent).
         </p>
       </section>
 

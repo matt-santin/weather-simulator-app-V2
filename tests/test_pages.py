@@ -262,3 +262,18 @@ def test_the_legal_notice_is_reachable_from_the_home_page_and_the_documentation(
     the site."""
     for page in ("home.html", "documentation.html"):
         assert 'href="/mentions-legales"' in (WEB / "pages" / page).read_text(), page
+
+
+# What an address harvester looks for in a page's source.
+ADDRESS = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+
+
+def test_no_real_e_mail_address_is_served() -> None:
+    """The legal notice gives its contact as a pattern, prénom.nom@gmail.com,
+    to fill from the publisher's name: robots that harvest addresses read the
+    source and look for a whole one. Any other address in a page or a script
+    would be theirs."""
+    allowed = {"prénom.nom@gmail.com"}
+    for path in [*(WEB / "pages").glob("*.html"), *(WEB / "static").rglob("*.js")]:
+        found = set(ADDRESS.findall(path.read_text())) - allowed
+        assert not found, f"{path.name} : {found}"
