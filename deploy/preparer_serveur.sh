@@ -3,7 +3,10 @@
 # en root, sur le serveur, depuis le Mac :
 #
 #     scp -r deploy root@<adresse>:/root/
-#     ssh root@<adresse> bash /root/deploy/preparer_serveur.sh meteo2100.fr
+#     ssh root@<adresse> bash /root/deploy/preparer_serveur.sh meteo2100.fr meteo2100.eu
+#
+# Le premier nom est l'adresse principale ; les suivants, et les www de tous,
+# redirigent vers elle.
 #
 # Ce que fait le script, dans l'ordre (docs/deploiement.md, étape 3) :
 #   1. mises à jour du système, et leur installation automatique par la suite ;
@@ -18,7 +21,12 @@
 
 set -euo pipefail
 
-DOMAINE="${1:?usage : preparer_serveur.sh DOMAINE (ex. meteo2100.fr)}"
+DOMAINE="${1:?usage : preparer_serveur.sh DOMAINE [AUTRES...] (ex. meteo2100.fr meteo2100.eu)}"
+shift
+REDIRIGES="www.$DOMAINE"
+for autre in "$@"; do REDIRIGES="$REDIRIGES $autre www.$autre"; done
+CERTBOT=""
+for nom in $DOMAINE $REDIRIGES; do CERTBOT="$CERTBOT -d $nom"; done
 ICI="$(cd "$(dirname "$0")" && pwd)"
 RACINE=/srv/meteo2100
 PYTHON=3.14
@@ -70,7 +78,8 @@ install -m 644 "$ICI/meteo2100.service" /etc/systemd/system/meteo2100.service
 systemctl daemon-reload
 systemctl enable meteo2100
 install -m 644 "$ICI/nginx_proxy.conf" /etc/nginx/snippets/meteo2100_proxy.conf
-sed "s/DOMAINE/$DOMAINE/g" "$ICI/nginx.conf" > /etc/nginx/sites-available/meteo2100
+sed -e "s/REDIRIGES/$REDIRIGES/g" -e "s/DOMAINE/$DOMAINE/g" "$ICI/nginx.conf" \
+  > /etc/nginx/sites-available/meteo2100
 ln -sf /etc/nginx/sites-available/meteo2100 /etc/nginx/sites-enabled/meteo2100
 rm -f /etc/nginx/sites-enabled/default
 # Journal des visites : un fichier par jour, 14 jours (mentions légales).
@@ -80,4 +89,4 @@ systemctl reload nginx
 
 echo
 echo "Prêt. Ensuite, depuis le Mac : deploy/envoyer.sh meteo@<adresse> tout"
-echo "puis, une fois le domaine pointé ici : certbot --nginx -d $DOMAINE -d www.$DOMAINE"
+echo "puis, une fois les domaines pointés ici : certbot --nginx --redirect$CERTBOT"

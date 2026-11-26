@@ -1,6 +1,6 @@
 # Déploiement
 
-Le site en ligne : une instance Scaleway (Paris), Ubuntu 24.04, les stockages sur un volume Block attaché. nginx reçoit les visiteurs (HTTPS, limites par adresse IP) et transmet à uvicorn, qui lit les stockages. Choix du 25/11/2026 : Scaleway, données sur disque ; l'Object Storage est gardé pour le passage au monde.
+Le site en ligne : une instance Scaleway (Paris), Ubuntu 24.04, les stockages sur un volume Block attaché. nginx reçoit les visiteurs (HTTPS, limites par adresse IP) et transmet à uvicorn, qui lit les stockages. Choix du 25/11/2026 : Scaleway, données sur disque ; l'Object Storage est gardé pour le passage au monde. Domaines (26/11/2026, achetés chez Scaleway) : `meteo2100.fr`, adresse principale ; `meteo2100.eu` et les `www.` redirigent vers elle (301, même chemin).
 
 | Fichier | Rôle |
 |---|---|
@@ -41,18 +41,18 @@ Envoyés : `point.zarr` sans `era5/psl` ni `cordex/psl` (jamais lus), `map.zarr`
 3. **Préparer le serveur**, depuis le Mac :
    ```
    scp -r deploy root@<adresse>:/root/
-   ssh root@<adresse> bash /root/deploy/preparer_serveur.sh meteo2100.fr
+   ssh root@<adresse> bash /root/deploy/preparer_serveur.sh meteo2100.fr meteo2100.eu
    ```
 4. **Envoyer le site**, depuis le Mac (les données prennent plusieurs heures ; une coupure se rattrape en relançant) :
    ```
    deploy/envoyer.sh meteo@<adresse> tout
    ```
    Le site est alors visible à `http://<adresse>`.
-5. **Domaine** : chez le registrar, enregistrements A de `meteo2100.fr` et `www.meteo2100.fr` vers l'adresse IPv4. Une fois pris en compte (`dig +short meteo2100.fr`) :
+5. **Domaines** : dans la console Scaleway (Domains & DNS), enregistrements A de `meteo2100.fr`, `www.meteo2100.fr`, `meteo2100.eu` et `www.meteo2100.eu` vers l'adresse IPv4. Une fois pris en compte (`dig +short meteo2100.fr`, de même pour les trois autres) :
    ```
-   ssh root@<adresse> certbot --nginx -d meteo2100.fr -d www.meteo2100.fr
+   ssh root@<adresse> certbot --nginx --redirect -d meteo2100.fr -d www.meteo2100.fr -d meteo2100.eu -d www.meteo2100.eu
    ```
-   certbot ajoute le HTTPS à nginx et le renouvelle seul.
+   certbot ajoute le HTTPS à nginx, redirige http vers https et renouvelle seul.
 
 ## Mises à jour
 
