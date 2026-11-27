@@ -192,6 +192,7 @@ def test_the_normals_are_the_1991_2020_mean_over_15_days(client: TestClient, sta
         assert served["temperature_max"] == pytest.approx(brute_normal(day, "tasmax", True), abs=0.051)
         assert served["temperature_min"] == pytest.approx(brute_normal(day, "tasmin", True), abs=0.051)
         assert served["precipitation"] == pytest.approx(brute_normal(day, "pr", False), abs=0.006)
+        assert served["cloud_cover"] == pytest.approx(brute_normal(day, "clt", False), abs=0.006)
 
 
 def test_the_normals_follow_the_rules_of_a_search(client: TestClient) -> None:

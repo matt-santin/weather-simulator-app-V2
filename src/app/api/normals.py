@@ -36,7 +36,8 @@ DEFAULT = 1991
 YEARS = 30
 HALF_WINDOW = 7  # days either side: a 15-day window
 SOURCE = "era5"
-NAMES = {"tasmax": "temperature_max", "tasmin": "temperature_min", "pr": "precipitation"}
+# Cloud cover since 27/11/2026, for the sky panel of the chart.
+NAMES = {"tasmax": "temperature_max", "tasmin": "temperature_min", "pr": "precipitation", "clt": "cloud_cover"}
 SOIL = "soil_water"
 SOIL_LOW, SOIL_HIGH = "soil_water_min", "soil_water_max"
 

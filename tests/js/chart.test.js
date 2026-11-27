@@ -37,6 +37,7 @@ const {
   ticks,
 } = chartModule;
 const { texts } = await import("../../web/static/js/i18n.js");
+const present = await import("../../web/static/js/present.js");
 
 /** The ladder as /api/config serves it: eight boundaries, five degrees apart. */
 const SCALE = { edges: [5, 10, 15, 20, 25, 30, 35, 40], step: 5 };
@@ -282,7 +283,8 @@ describe("the third panel", () => {
 
     assert.equal(byClass(panel, "chart-line").length, 0);
     assert.equal(byClass(panel, "chart-rule").length, 2);
-    assert.equal(byClass(blank, "chart-title").length, 3);
+    // Three panels and the folded title of the cloud cover.
+    assert.equal(byClass(blank, "chart-title").length, 4);
   });
 });
 
@@ -384,7 +386,7 @@ describe("the drawing as a whole", () => {
 
     assert.deepEqual(
       titles.map((node) => node.textContent),
-      [texts.chart.temperatures, texts.chart.precipitation, texts.chart.cumulative],
+      [texts.chart.temperatures, texts.chart.precipitation, texts.chart.sky, texts.chart.cumulative],
     );
     // Over the plot, not in it: each sits above the panel it names.
     assert.ok(Number(titles[0].attrs.y) < frame(8).temperature.top);
@@ -542,6 +544,10 @@ describe("the drawing as a whole", () => {
       texts.chart.temperatures,
       texts.chart.precipitation,
       texts.chart.cumulative,
+      // The cloud cover panel: its title and the names of its three bands.
+      texts.chart.sky,
+      ...Object.values(texts.chart.skyZones),
+      ...["clear", "cloudy", "overcast"].map((kind) => present.SKY[kind].emoji),
       ...byClass(node, "chart-axis").map((child) => child.textContent),
       ...byClass(node, "chart-date").map((child) => child.textContent),
       ...byClass(node, "chart-month").map((child) => child.textContent),
@@ -689,6 +695,10 @@ describe("the normals laid under the days", () => {
       texts.chart.temperatures,
       texts.chart.precipitation,
       texts.chart.cumulative,
+      // The cloud cover panel: its title and the names of its three bands.
+      texts.chart.sky,
+      ...Object.values(texts.chart.skyZones),
+      ...["clear", "cloudy", "overcast"].map((kind) => present.SKY[kind].emoji),
       LABEL,
       ...byClass(node, "chart-axis").map((child) => child.textContent),
       ...byClass(node, "chart-date").map((child) => child.textContent),
@@ -818,5 +828,58 @@ describe("the water left in the soil", () => {
       assert.equal(drawn.attrs.viewBox, `0 0 ${BOX.width} ${frame(10).height}`);
       assert.equal(hasSoil(plain), false);
     }
+  });
+});
+
+describe("the folded total and soil panels", () => {
+  const { folds } = chartModule;
+  const days = series(10, (index) => ({ soil_water: 100 - 5 * index }));
+  const shut = { sky: false, cumul: false, soil: false };
+
+  it("keeps the titles alone, and a shorter drawing", () => {
+    const node = chart(days, SCALE, { open: shut });
+    assert.equal(byClass(node, "chart-cumul").length, 0);
+    assert.equal(byClass(node, "chart-soil").length, 0);
+    const titles = byClass(node, "chart-title").map((title) => title.textContent);
+    assert.ok(titles.includes(texts.chart.cumulative));
+    assert.ok(titles.includes(texts.chart.soil));
+    assert.ok(frame(10, BOX, true, shut).height < frame(10, BOX, true).height);
+  });
+
+  it("draws a panel once opened, the other staying folded", () => {
+    const node = chart(days, SCALE, { open: { sky: false, cumul: true, soil: false } });
+    assert.equal(byClass(node, "chart-cumul").length, 1);
+    assert.equal(byClass(node, "chart-soil").length, 0);
+    assert.equal(byClass(node, "chart-sky-panel").length, 0);
+  });
+
+  it("draws the cloud cover on 0 to 100 %, ruled at the bounds of the pictograms", () => {
+    const cloudy = series(10, (index) => ({ cloud_cover: index * 10 }));
+    const node = chart(cloudy, SCALE, { open: { sky: true, cumul: false, soil: false } });
+    const [panel] = byClass(node, "chart-sky-panel");
+    const geometry = frame(10, BOX, false, { sky: true, cumul: false, soil: false });
+    const axis = byClass(panel, "chart-axis").map((label) => label.textContent);
+    assert.deepEqual(axis, ["0", "30", "70", `100 ${texts.units.percent}`]);
+    const rules = byClass(panel, "chart-rule").map((rule) => Number(rule.attrs.y1));
+    assert.deepEqual(rules, [geometry.sky.base - 30, geometry.sky.base - 70]);
+    assert.deepEqual(
+      byClass(panel, "chart-zone").map((zone) => zone.textContent),
+      Object.values(texts.chart.skyZones),
+    );
+    assert.deepEqual(
+      byClass(panel, "chart-zone-icon").map((icon) => icon.textContent),
+      ["clear", "cloudy", "overcast"].map((kind) => present.SKY[kind].emoji),
+    );
+    assert.equal(byClass(panel, "chart-sky").length, 1);
+  });
+
+  it("places one fold per panel, on its title line, the soil only where served", () => {
+    const placed = folds(days, shut);
+    assert.deepEqual(
+      placed.map((fold) => [fold.key, fold.open]),
+      [["sky", false], ["cumul", false], ["soil", false]],
+    );
+    assert.ok(placed[0].y < placed[1].y && placed[1].y < placed[2].y && placed[2].y < 1);
+    assert.deepEqual(folds(series(10), shut).map((fold) => fold.key), ["sky", "cumul"]);
   });
 });

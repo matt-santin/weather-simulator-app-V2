@@ -114,6 +114,7 @@ class NormalDay(BaseModel):
     temperature_min: float | None = Field(default=None, description="degrees Celsius")
     temperature_max: float | None = Field(default=None, description="degrees Celsius")
     precipitation: float | None = Field(default=None, description="millimetres per day")
+    cloud_cover: float | None = Field(default=None, description="percent, daily mean")
     soil_water: float | None = Field(
         default=None, description="percent of the soil's available water left at the end of the day "
                                   "(src.app.domain.soil); null where it is not computed")

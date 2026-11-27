@@ -237,12 +237,17 @@ export const texts = {
   // it draws is written out up there, which is what makes a drawing acceptable
   // to a reader who gets nothing from a drawing.
   chart: {
+    // The "+" that opens a folded panel, and the "−" that folds it again.
+    folds: { sky: "la nébulosité", cumul: "le cumul des précipitations", soil: "l'eau du sol" },
+    foldShow: (name) => `Afficher ${name}`,
+    foldHide: (name) => `Masquer ${name}`,
     // A function of one argument, and the argument is the label of the normals
     // or nothing. Two separate sentences would be the same sentence written twice,
     // to drift the day either is reworded.
-    label: (normals, snow = false, soil = false) =>
-      "Températures et précipitations de la période, jour par jour, " +
-      "puis le cumul des précipitations dans un troisième panneau. " +
+    label: (normals, snow = false, soil = false, cumul = true, sky = false) =>
+      "Températures et précipitations de la période, jour par jour" +
+      (sky ? ", la nébulosité de 0 à 100 %" : "") +
+      (cumul ? ", puis le cumul des précipitations. " : ". ") +
       "Les valeurs sont écrites dans la bande de journées ci-dessus." +
       (normals ? ` Les ${normals.toLowerCase()} y sont superposées en gris.` : "") +
       (snow ? " Les jours de neige au sol sont sur fond bleuté dans le panneau des précipitations." : "") +
@@ -267,6 +272,10 @@ export const texts = {
     // The fourth panel, when the server serves it: what is left of the water
     // the soil holds for the plants (src.app.domain.soil).
     soil: "Eau du sol (part de la réserve utile)",
+    // The cloud cover panel, and its three bands named at the right edge: the
+    // bounds of the pictograms of the sky, 30 and 70 %.
+    sky: "Nébulosité (couverture nuageuse)",
+    skyZones: { clear: "dégagé", cloudy: "nuageux", overcast: "couvert" },
     // The legend of the soil panel when the normals carry their extremes.
     soilRange: (label) => `${label}, plus sec et plus humide`,
   },

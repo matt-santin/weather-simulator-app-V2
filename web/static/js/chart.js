@@ -117,6 +117,9 @@ export const BOX = {
   // serves it (`soil_water`). Shorter than the millimetre panels: it reads a
   // level between two fixed bounds, 0 and 100 %, and needs no finer graduation.
   soil: 100,
+  // The cloud cover, between the rain and its total (27/11/2026): a level
+  // between fixed bounds, 0 and 100 %, as the soil.
+  sky: 100,
   // Room for two rows under the baseline — the days, then the months — where it
   // used to hold one. At 26 the month names sat 18 below the baseline with eight
   // to spare; the second row needs thirty and its descenders need the rest.
@@ -125,6 +128,19 @@ export const BOX = {
 
 /** How far a panel's title sits above it. */
 const TITLE_LIFT = 12;
+
+/**
+ * A folded panel keeps its title line alone (27/11/2026: the total and the soil
+ * are folded at first, a "+" opens them; results.js). This is the room from its
+ * title to the next one, and under the last.
+ */
+const FOLDED = { step: 44, bottom: 10 };
+
+/**
+ * What a caller not folding gets: the total and the soil shown, the cloud cover
+ * folded to its title. The page always says what it wants (results.js).
+ */
+const ALL_OPEN = { sky: false, cumul: true, soil: true };
 
 /** Below this, the rain axis stops following the period. */
 export const RAIN_FLOOR_MM = 10;
@@ -148,18 +164,28 @@ const missing = present.isMissing;
  * have meant three expressions of the same sum, and the fourth would have meant
  * four.
  */
-export function frame(count, box = BOX, soil = false) {
+export function frame(count, box = BOX, soil = false, open = ALL_OPEN) {
   const plot = { from: box.left, to: box.width - box.right };
   const temperature = { top: box.top, bottom: box.top + box.temperature };
   const rain = { top: temperature.bottom + box.gap, base: temperature.bottom + box.gap + box.rain };
-  const cumul = { top: rain.base + box.gap, base: rain.base + box.gap + box.cumul };
-  const ground = soil ? { top: cumul.base + box.gap, base: cumul.base + box.gap + box.soil } : null;
+  // A folded panel is its title alone: its top is where the title hangs from,
+  // its base the same line, and the next title comes FOLDED.step lower.
+  const below = (above, height, shown) => {
+    const top = above.folded ? above.top + FOLDED.step : above.base + box.gap;
+    return shown ? { top, base: top + height, folded: false } : { top, base: top, folded: true };
+  };
+  const sky = below(rain, box.sky, open.sky);
+  const cumul = below(sky, box.cumul, open.cumul);
+  const ground = soil ? below(cumul, box.soil, open.soil) : null;
+  const lowest = ground ?? cumul;
+  // The seam ends at the foot of the lowest panel still drawn.
+  const drawnFoot = [ground, cumul, sky, rain].find((panel) => panel && !panel.folded).base;
 
   return {
     box,
-    height: (ground ?? cumul).base + box.bottom,
+    height: lowest.folded ? lowest.top + FOLDED.bottom : lowest.base + box.bottom,
     // The lowest foot: where the seam ends.
-    last: (ground ?? cumul).base,
+    last: drawnFoot,
     plot,
     // Zero days would divide by zero. It cannot happen — a served series has at
     // least one day — but a column of zero width is a nicer failure than NaN.
@@ -180,6 +206,7 @@ export function frame(count, box = BOX, soil = false) {
     // panel being read. A row of bare numbers is not a date.
     temperature: { ...temperature, dates: temperature.bottom + 14, months: temperature.bottom + 30 },
     rain: { ...rain, dates: rain.base + 14, months: rain.base + 30 },
+    sky: { ...sky, dates: sky.base + 14, months: sky.base + 30 },
     cumul: { ...cumul, dates: cumul.base + 14, months: cumul.base + 30 },
     soil: ground && { ...ground, dates: ground.base + 14, months: ground.base + 30 },
   };
@@ -187,6 +214,23 @@ export function frame(count, box = BOX, soil = false) {
 
 /** Whether the days carry the water left in the soil: the fourth panel is drawn then. */
 export const hasSoil = (days) => days.some((day) => !missing(day.soil_water));
+
+/**
+ * The panels that fold, where their titles stand on the drawing: one entry per
+ * panel with `key`, `open`, and `x`, `y` as fractions of the drawing's width
+ * and height (the line of the title), for the "+" laid over it (results.js).
+ */
+export function folds(days, open, box = BOX) {
+  const soil = hasSoil(days);
+  const geometry = frame(days.length, box, soil, open);
+  const at = (key) => ({
+    key,
+    open: !geometry[key].folded,
+    x: box.left / box.width,
+    y: (geometry[key].top - TITLE_LIFT) / geometry.height,
+  });
+  return soil ? [at("sky"), at("cumul"), at("soil")] : [at("sky"), at("cumul")];
+}
 
 /** The left edge of a day's column, and its middle, where a point is placed. */
 export const edgeOf = (frame, index) => frame.plot.from + index * frame.column;
@@ -420,9 +464,12 @@ function pastBand(frame, compared, y) {
  * per day drawn, `null` where they have no such day. It is aligned before it
  * arrives here, so this file never reads a date to place a mark.
  */
-export function chart(days, scale, { compared = null, label = null, box = BOX } = {}) {
+export function chart(days, scale, { compared = null, label = null, box = BOX, open = ALL_OPEN } = {}) {
   const soil = hasSoil(days);
-  const geometry = frame(days.length, box, soil);
+  const geometry = frame(days.length, box, soil, open);
+  const showCumul = !geometry.cumul.folded;
+  const showSky = !geometry.sky.folded;
+  const showSoil = soil && !geometry.soil.folded;
   // One window over both years, or the two curves would each be drawn on their
   // own scale and the gap between them would be a picture of the framing.
   const framed = compared ? [...days, ...compared.filter(Boolean)] : days;
@@ -444,6 +491,7 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
   const marks = [
     title(geometry, geometry.temperature.top, texts.chart.temperatures),
     title(geometry, geometry.rain.top, texts.chart.precipitation),
+    title(geometry, geometry.sky.top, texts.chart.sky),
     title(geometry, geometry.cumul.top, texts.chart.cumulative),
     ...(span ? [graduation(geometry, span, scale.edges, scale.step, y)] : []),
     ...(span && compared ? pastBand(geometry, compared, y) : []),
@@ -451,7 +499,14 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
     ...(span ? curves(geometry, days, y) : []),
     rain(geometry, days),
     snowLegend(geometry, days),
-    cumul(geometry, days, compared),
+    ...(showSky
+      ? [
+          skyPanel(geometry, days, compared),
+          dates(geometry, days, geometry.sky.base, geometry.sky.dates),
+          months(geometry, days, geometry.sky.months),
+        ]
+      : []),
+    ...(showCumul ? [cumul(geometry, days, compared)] : []),
     ...(span
       ? [
           dates(geometry, days, geometry.temperature.bottom, geometry.temperature.dates),
@@ -460,11 +515,15 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
       : []),
     dates(geometry, days, geometry.rain.base, geometry.rain.dates),
     months(geometry, days, geometry.rain.months),
-    dates(geometry, days, geometry.cumul.base, geometry.cumul.dates),
-    months(geometry, days, geometry.cumul.months),
-    ...(soil
+    ...(showCumul
       ? [
-          title(geometry, geometry.soil.top, texts.chart.soil),
+          dates(geometry, days, geometry.cumul.base, geometry.cumul.dates),
+          months(geometry, days, geometry.cumul.months),
+        ]
+      : []),
+    ...(soil ? [title(geometry, geometry.soil.top, texts.chart.soil)] : []),
+    ...(showSoil
+      ? [
           soilPanel(geometry, days, compared),
           dates(geometry, days, geometry.soil.base, geometry.soil.dates),
           months(geometry, days, geometry.soil.months),
@@ -474,8 +533,11 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
     ...(legend
       ? [
           pastLegend(geometry, legend, geometry.temperature.top, SAMPLES.band),
-          pastLegend(geometry, legend, geometry.cumul.top, SAMPLES.line),
-          ...(soil && compared?.some((day) => !missing(day?.soil_water))
+          ...(showSky && compared.some((day) => !missing(day?.cloud_cover))
+            ? [pastLegend(geometry, legend, geometry.sky.top, SAMPLES.line)]
+            : []),
+          ...(showCumul ? [pastLegend(geometry, legend, geometry.cumul.top, SAMPLES.line)] : []),
+          ...(showSoil && compared?.some((day) => !missing(day?.soil_water))
             ? [
                 hasSoilRange(compared)
                   ? pastLegend(geometry, texts.chart.soilRange(legend), geometry.soil.top, SAMPLES.soil)
@@ -496,7 +558,7 @@ export function chart(days, scale, { compared = null, label = null, box = BOX } 
         // The one sentence, and it names the normals when they are drawn:
         // a reader who gets nothing from a drawing must at least be told what
         // the drawing now holds.
-        "aria-label": texts.chart.label(legend, days.some(snowy), soil),
+        "aria-label": texts.chart.label(legend, days.some(snowy), showSoil, showCumul, showSky),
       },
     },
     marks,
@@ -858,6 +920,77 @@ function snowLegend(frame, days) {
       className: "chart-snow sample",
       attrs: { x: round(left), y: baseline - 8, width: LEGEND.swatch, height: 8 },
     }),
+  ]);
+}
+
+/**
+ * The cloud cover panel: the daily mean cover, a line over a pale grey area on
+ * a fixed axis from 0 to 100 %. Ruled at the two bounds of the pictograms of
+ * the sky (thresholds.CLOUDY_PERCENT and OVERCAST_PERCENT, 30 and 70 %), each
+ * band named at the right edge: clear, cloudy, overcast. A run of grey days
+ * reads as a long stretch above the upper rule. With the normals, theirs is a
+ * grey line, as on the other panels.
+ */
+export const SKY_TICKS = [30, 70];
+
+function skyPanel(frame, days, compared = null) {
+  const y = (value) => round(frame.sky.base - (value / 100) * frame.box.sky);
+  const read = (day) => day?.cloud_cover;
+  const areas = runs(days, read).map((run) => {
+    const top = run.map((point) => `${round(middleOf(frame, point.index))} ${y(point.value)}`);
+    const from = round(middleOf(frame, run[0].index));
+    const to = round(middleOf(frame, run.at(-1).index));
+    return svg("path", {
+      className: "chart-sky",
+      attrs: { d: `M${from} ${frame.sky.base} L${top.join(" L")} L${to} ${frame.sky.base} Z` },
+    });
+  });
+  const lines = runs(days, read).flatMap((run) => stroke(frame, run, y, "sky", { points: false }));
+  const normal = compared
+    ? runs(compared, read).flatMap((run) => stroke(frame, run, y, "past sky", { points: false }))
+    : [];
+  const labels = [0, ...SKY_TICKS, 100].map((value, index, all) =>
+    svg("text", {
+      className: "chart-axis",
+      text: index === all.length - 1 ? `${value} ${texts.units.percent}` : String(value),
+      attrs: { x: frame.plot.from - 8, y: y(value) + 3, "text-anchor": "end" },
+    }),
+  );
+  const [cloudy, overcast] = SKY_TICKS;
+  // Each band named with the pictogram the cards give it (present.SKY), the
+  // pictogram at the edge and the word before it.
+  const zones = [
+    ["clear", cloudy / 2],
+    ["cloudy", (cloudy + overcast) / 2],
+    ["overcast", (overcast + 100) / 2],
+  ].flatMap(([kind, value]) => [
+    svg("text", {
+      className: "chart-zone",
+      text: texts.chart.skyZones[kind],
+      attrs: { x: frame.plot.to - 24, y: y(value) + 3, "text-anchor": "end" },
+    }),
+    svg("text", {
+      className: "chart-zone-icon",
+      text: present.SKY[kind].emoji,
+      attrs: { x: frame.plot.to - 4, y: y(value) + 4, "text-anchor": "end", "aria-hidden": "true" },
+    }),
+  ]);
+  return svg("g", { className: "chart-sky-panel" }, [
+    ...SKY_TICKS.map((value) =>
+      svg("line", {
+        className: "chart-rule",
+        attrs: { x1: frame.plot.from, x2: frame.plot.to, y1: y(value), y2: y(value) },
+      }),
+    ),
+    ...areas,
+    ...normal,
+    ...lines,
+    svg("line", {
+      className: "chart-baseline",
+      attrs: { x1: frame.plot.from, x2: frame.plot.to, y1: frame.sky.base, y2: frame.sky.base },
+    }),
+    ...labels,
+    ...zones,
   ]);
 }
 

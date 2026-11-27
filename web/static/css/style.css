@@ -1935,6 +1935,33 @@ body.results [data-band="9"] { --tile: #1a1a1a; --tile-ink: #fff; }
   scrollbar-color: var(--rule-strong) transparent;
 }
 
+/* The drawing and the "+" over its folded titles, which scroll with it. */
+.chart-stage {
+  position: relative;
+  min-width: 58rem;
+}
+
+.chart-fold {
+  position: absolute;
+  width: 1.375rem;
+  height: 1.375rem;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--ink);
+  font: 600 1rem/1 var(--font);
+  cursor: pointer;
+  /* Centred on the title's line, in the margin left of it. */
+  transform: translate(calc(-100% - 6px), -80%);
+}
+
+.chart-fold:hover,
+.chart-fold:focus-visible {
+  background: var(--ink);
+  color: var(--raised);
+}
+
 .chart {
   display: block;
   width: 100%;
@@ -4154,6 +4181,35 @@ body.results .card--snow:not(.card--zoom)::after,
 
 .chart-line.soil {
   color: var(--cool);
+}
+
+/* The cloud cover: a slate line over a pale grey, the colour of the sky it
+   counts; the names of its three bands small and soft at the right edge, with
+   a halo of the paper where the line crosses them. */
+.chart-sky {
+  fill: color-mix(in srgb, var(--ink-soft) 14%, transparent);
+}
+
+.chart-line.sky {
+  color: var(--ink-soft);
+}
+
+.chart-line.past.sky {
+  color: var(--past);
+}
+
+.chart-zone-icon {
+  font-size: 12px;
+}
+
+.chart-zone {
+  fill: var(--ink-soft);
+  font-family: var(--font);
+  font-size: 10px;
+  paint-order: stroke;
+  stroke: var(--raised);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 /* The range of the reference years around the normal, as Météo-France draws

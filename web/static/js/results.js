@@ -37,7 +37,7 @@ import {
 } from "./fetch.js";
 import { legend, showTemperature, sources, strip, temperaturePick } from "./band.js";
 import { refuse } from "./bounds.js";
-import { chart } from "./chart.js";
+import { chart, folds } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
 import { diagram, snow as snowOf, summary, years as yearsOf } from "./climate.js";
 import { alignByDate, gapTone, referenceYears } from "./compare.js";
@@ -420,6 +420,47 @@ function rowBottom(top, gap) {
 // config is in (show).
 let drawLegend = () => {};
 
+// The total and the soil panels of the chart, folded at first so as not to
+// weigh on the page (27/11/2026): a "+" laid over each title opens it. The
+// drawing and its buttons share one box, so that they scroll together.
+const unfolded = { sky: false, cumul: false, soil: false };
+const chartStage = el("div", { className: "chart-stage" });
+let shownDays = [];
+let lastCompared = null;
+let lastLabel = null;
+let hasSoilNote = false;
+
+/** The "+" or "−" over each foldable title, laid again after every drawing. */
+function placeFolds() {
+  for (const old of chartStage.querySelectorAll(".chart-fold")) old.remove();
+  for (const fold of folds(shownDays, unfolded)) {
+    const name = texts.chart.folds[fold.key];
+    const button = el(
+      "button",
+      {
+        className: "chart-fold",
+        text: fold.open ? "−" : "+",
+        attrs: {
+          type: "button",
+          "data-fold": fold.key,
+          "aria-expanded": String(fold.open),
+          "aria-label": fold.open ? texts.chart.foldHide(name) : texts.chart.foldShow(name),
+          title: fold.open ? texts.chart.foldHide(name) : texts.chart.foldShow(name),
+        },
+      },
+    );
+    button.style.left = `${fold.x * 100}%`;
+    button.style.top = `${fold.y * 100}%`;
+    button.addEventListener("click", () => {
+      unfolded[fold.key] = !unfolded[fold.key];
+      if (fold.key === "soil" && hasSoilNote) soilNote.hidden = !unfolded.soil;
+      redraw({ days: shownDays }, lastCompared, lastLabel);
+      chartStage.querySelector(`.chart-fold[data-fold="${fold.key}"]`)?.focus();
+    });
+    chartStage.append(button);
+  }
+}
+
 async function show(series) {
   wait.hidden = true;
   warning.hidden = !series.has_simulated;
@@ -466,14 +507,18 @@ async function show(series) {
       else calendar.append(next);
     };
     drawLegend(calendar.dataset.shown === "low");
-    drawn = chart(series.days, scale);
-    chartPanel.append(drawn);
+    drawn = chart(series.days, scale, { open: unfolded });
+    chartStage.append(drawn);
+    chartPanel.append(chartStage);
+    shownDays = series.days;
+    placeFolds();
     chartPanel.hidden = false;
     const soilLine = present.soilLow(series.days);
     if (soilLine) {
       soilNoteText.textContent = soilLine;
       soilNoteMethod.textContent = texts.soil.method(series.has_simulated);
-      soilNote.hidden = false;
+      hasSoilNote = true;
+      soilNote.hidden = !unfolded.soil;
     }
     offer(series, config);
     offerShare(series, config);
@@ -1193,9 +1238,12 @@ function url({ start, end }) {
  * keeping.
  */
 function redraw(series, compared, label = null) {
-  const next = chart(series.days, scale, { compared, label });
+  lastCompared = compared;
+  lastLabel = label;
+  const next = chart(series.days, scale, { compared, label, open: unfolded });
   drawn.replaceWith(next);
   drawn = next;
+  placeFolds();
 }
 
 function fail(message) {
