@@ -33,7 +33,7 @@ def client(store_path) -> TestClient:
     app.dependency_overrides.clear()
 
 
-@pytest.mark.parametrize("path", ["/", "/resultats", "/documentation", "/mentions-legales"])
+@pytest.mark.parametrize("path", ["/", "/resultats", "/documentation", "/mentions-legales", "/climats"])
 def test_pages_are_served_as_html(client: TestClient, path: str) -> None:
     response = client.get(path)
     assert response.status_code == 200
@@ -56,6 +56,11 @@ def test_pages_are_served_as_html(client: TestClient, path: str) -> None:
         "/static/js/season.js",
         "/static/css/style.css",
         "/static/icon.svg",
+        "/static/js/climates.js",
+        "/static/js/koppenmap.js",
+        "/static/geo/koppen.json",
+        "/static/geo/koppen_1991-2020.png",
+        "/static/geo/koppen_2071-2100.png",
     ],
 )
 def test_static_files_are_served(client: TestClient, path: str) -> None:
@@ -131,7 +136,7 @@ def test_the_results_page_carries_a_season_of_its_own() -> None:
     assert 'data-season="summer"' in (WEB / "pages/results.html").read_text()
 
 
-@pytest.mark.parametrize("page", ["home.html", "results.html", "documentation.html", "legal.html"])
+@pytest.mark.parametrize("page", ["home.html", "results.html", "documentation.html", "legal.html", "climates.html"])
 def test_every_in_page_link_lands_somewhere(page: str) -> None:
     """A `href="#x"` with no `id="x"` under it scrolls nowhere, and says nothing.
 

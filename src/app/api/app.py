@@ -668,6 +668,13 @@ def mount_web(target: FastAPI, directory: Path = WEB) -> bool:
                          "températures, précipitations, nébulosité. " + share.NOT_A_FORECAST)
         return HTMLResponse(page, headers=REVALIDATE)
 
+    @target.get("/climats", include_in_schema=False)
+    def climates_page(request: Request) -> HTMLResponse:
+        page = with_head(read("climates.html"), request, f"Climats de Köppen-Geiger · {share.SITE}",
+                         "Les climats de l'Europe en 1991-2020 et en 2071-2100, selon la classification "
+                         "de Köppen-Geiger. " + share.NOT_A_FORECAST)
+        return HTMLResponse(page, headers=REVALIDATE)
+
     @target.get("/documentation", include_in_schema=False)
     def documentation(request: Request, store: StoreDep) -> HTMLResponse:
         page = fill_simulation(read("documentation.html"), store.simulation)

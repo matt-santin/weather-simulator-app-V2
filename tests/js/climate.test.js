@@ -10,9 +10,10 @@ import { describe, it } from "node:test";
 import { byClass, install } from "./dom-stub.js";
 
 install();
-const { BOX, RAIN_PER_DEGREE, diagram, summary, ticks, window } = await import(
+const { BOX, RAIN_PER_DEGREE, diagram, koppen, summary, ticks, window } = await import(
   "../../web/static/js/climate.js"
 );
+const { texts } = await import("../../web/static/js/i18n.js");
 
 /** Twelve months, with optional overrides by index. */
 const months = (make = () => ({})) =>
@@ -155,5 +156,40 @@ describe("snow on the ground", () => {
       snow(rare).line,
       "Neige au sol : trop rare pour être chiffrée en 2077-2091 ; 1 jour par hiver en 1991-2020.",
     );
+  });
+});
+
+describe("the Köppen-Geiger line", () => {
+  const base = {
+    window: { start_year: 2077, end_year: 2091, origin: "simulated" },
+    reference: { start_year: 1991, end_year: 2020, origin: "observed" },
+  };
+
+  it("titles the section with the class of the window, the reference under it", () => {
+    const changed = koppen({ ...base, koppen: "Cfa", reference_koppen: "Cfb" });
+    assert.equal(changed.title, "Le climat du lieu : tempéré, sans saison sèche, été chaud (Cfa) en 2077\u20112091");
+    assert.equal(
+      changed.line,
+      "Classification de Köppen-Geiger. En 1991-2020 : tempéré, sans saison sèche, été tiède (Cfb).",
+    );
+    const same = koppen({ ...base, koppen: "Cfb", reference_koppen: "Cfb" });
+    assert.equal(same.line, "Classification de Köppen-Geiger, la même qu'en 1991-2020.");
+  });
+
+  it("warns about the model on a simulated window only", () => {
+    const simulated = koppen({ ...base, koppen: "Cfa", reference_koppen: "Cfb" });
+    const observed = koppen({
+      ...base,
+      window: { start_year: 2006, end_year: 2020, origin: "observed" },
+      koppen: "Cfb",
+      reference_koppen: "Cfb",
+    });
+    assert.ok(simulated.method.includes("Beck et al."));
+    assert.ok(simulated.method.length > observed.method.length);
+    assert.equal(observed.method, texts.climate.koppenMethod(false));
+  });
+
+  it("says nothing without a class", () => {
+    assert.equal(koppen({ ...base, koppen: null, reference_koppen: "Cfb" }), null);
   });
 });

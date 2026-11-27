@@ -39,7 +39,7 @@ import { legend, showTemperature, sources, strip, temperaturePick } from "./band
 import { refuse } from "./bounds.js";
 import { chart, folds } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
-import { diagram, snow as snowOf, summary, years as yearsOf } from "./climate.js";
+import { diagram, koppen as koppenOf, snow as snowOf, summary, years as yearsOf } from "./climate.js";
 import { alignByDate, gapTone, referenceYears } from "./compare.js";
 import { applyTexts, el } from "./dom.js";
 import { wireHints } from "./hint.js";
@@ -94,12 +94,18 @@ const compareFailure = document.getElementById("compare-failure");
 
 const climateSection = document.getElementById("climate");
 const climatePanel = document.getElementById("climate-panel");
-const climateSubtitle = document.getElementById("climate-subtitle");
 const climateLegendTemperature = document.getElementById("climate-legend-temperature");
 const climateLegendRain = document.getElementById("climate-legend-rain");
 const climateLegendReference = document.getElementById("climate-legend-reference");
 const climateSummary = document.getElementById("climate-summary");
 const climateSummaryReference = document.getElementById("climate-summary-reference");
+const climateTitle = document.getElementById("climate-title");
+const climateKoppenRow = document.getElementById("climate-koppen-row");
+const climateKoppenMapRow = document.getElementById("climate-koppen-map-row");
+const climateKoppenMap = document.getElementById("climate-koppen-map");
+const climateKoppenMapText = document.getElementById("climate-koppen-map-text");
+const climateKoppen = document.getElementById("climate-koppen");
+const climateKoppenMethod = document.getElementById("climate-koppen-method");
 const climateSnowRow = document.getElementById("climate-snow-row");
 const climateSnow = document.getElementById("climate-snow");
 const climateSnowMethod = document.getElementById("climate-snow-method");
@@ -892,16 +898,19 @@ async function showClimate() {
     const years = yearsOf(answer.window);
     const referenceYears = yearsOf(answer.reference);
     climatePanel.replaceChildren(diagram(answer));
-    climateSubtitle.textContent = texts.climate.subtitle(
-      years,
-      answer.window.source,
-      answer.window.origin === "simulated",
-    );
     climateLegendTemperature.textContent = texts.climate.legendTemperature(years);
     climateLegendRain.textContent = texts.climate.legendRain(years);
     climateLegendReference.textContent = texts.climate.legendReference(referenceYears);
     climateSummary.textContent = sentence(years, summary(answer.months));
     climateSummaryReference.textContent = sentence(referenceYears, summary(answer.reference_months));
+    const classes = koppenOf(answer);
+    climateTitle.textContent = classes ? classes.title : texts.climate.title;
+    climateKoppenRow.hidden = !classes;
+    climateKoppenMapRow.hidden = !classes;
+    climateKoppenMap.href = `/climats${window.location.search}`;
+    climateKoppenMapText.textContent = texts.climate.koppenMap(answer.window.origin === "simulated");
+    climateKoppen.textContent = classes ? classes.line : "";
+    climateKoppenMethod.textContent = classes ? classes.method : "";
     const snow = snowOf(answer);
     climateSnowRow.hidden = !snow;
     climateSnow.textContent = snow ? snow.line : "";
@@ -909,6 +918,9 @@ async function showClimate() {
   } catch (error) {
     if (turn !== climateTurn) return;
     climatePanel.replaceChildren();
+    climateTitle.textContent = texts.climate.title;
+    climateKoppenRow.hidden = true;
+    climateKoppenMapRow.hidden = true;
     climateSnowRow.hidden = true;
     climateFailure.hidden = false;
     climateFailure.textContent =

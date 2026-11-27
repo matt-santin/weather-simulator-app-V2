@@ -5,6 +5,9 @@ and never mixes two sources: it is shifted to stay inside the served period
 that holds that year (ERA5 1970-2025, corrected CORDEX 2027-2100). 2020 gives
 2011-2025, 2030 gives 2027-2041, 2098 gives 2086-2100.
 
+With each set of twelve months, its Köppen-Geiger class (src.app.domain.koppen),
+computed on the very means drawn: 15 years for the window, 30 for the reference.
+
 Beside it, the same twelve months over a reference period of the normals
 (normals.REFERENCES), always ERA5.
 
@@ -32,7 +35,7 @@ import numpy as np
 
 from src.app.api import normals
 from src.app.api.contract import Climate, ClimateMonth, ClimateSnow, ClimateWindow, rounded
-from src.app.domain import snow, thresholds
+from src.app.domain import koppen, snow, thresholds
 from src.app.store import FINE, PERIODS, Cell, Period, Store
 
 SPAN = 15
@@ -153,24 +156,33 @@ def run(store: Store, cell: Cell, year: int, reference: int) -> Climate:
     period, first, last = window(year)
     ref_start, ref_end = normals.reference(reference)
     own, ref = snows(store, cell, period, first, last, ref_start.year, ref_end.year)
+    shown = months(store, period.source, cell, first, last)
+    reference_months = months(store, normals.SOURCE, cell, ref_start.year, ref_end.year)
     return Climate(
         snow=own,
         reference_snow=ref,
+        koppen=class_of(shown),
+        reference_koppen=class_of(reference_months),
         window=ClimateWindow(
             start_year=first,
             end_year=last,
             origin="simulated" if period.source == "cordex" else "observed",
             source=source(store, period.source, cell),
         ),
-        months=months(store, period.source, cell, first, last),
+        months=shown,
         reference=ClimateWindow(
             start_year=ref_start.year,
             end_year=ref_end.year,
             origin="observed",
             source=source(store, normals.SOURCE, cell),
         ),
-        reference_months=months(store, normals.SOURCE, cell, ref_start.year, ref_end.year),
+        reference_months=reference_months,
     )
+
+
+def class_of(diagram: list[ClimateMonth]) -> str | None:
+    """The Köppen-Geiger class of the twelve months the diagram draws."""
+    return koppen.of_place([m.temperature_mean for m in diagram], [m.precipitation for m in diagram])
 
 
 def _mean(values: np.ndarray) -> float | None:

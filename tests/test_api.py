@@ -254,6 +254,12 @@ def test_the_climate_diagram_is_twelve_monthly_means(client: TestClient) -> None
     assert served["precipitation"] == pytest.approx(rain, abs=0.051)
     assert served["dry"] is (rain <= 2 * temperature)
 
+    # The Köppen-Geiger class of each set of twelve months, from the means served.
+    from src.app.domain.koppen import of_place
+    for months, key in ((answer["months"], "koppen"), (answer["reference_months"], "reference_koppen")):
+        expected_class = of_place([m["temperature_mean"] for m in months], [m["precipitation"] for m in months])
+        assert expected_class and answer[key] == expected_class
+
 
 def test_the_climate_diagram_follows_the_reference(client: TestClient) -> None:
     answer = client.get("/api/climate", params={**GRENOBLE, "start": "1985-01-01", "end": "1985-01-31",
@@ -835,7 +841,7 @@ def test_an_address_that_is_no_search_still_gets_its_page_and_nothing_unescaped(
 
 
 def test_the_other_pages_carry_a_title_a_description_and_a_picture(client: TestClient) -> None:
-    for path in ("/", "/cartes", "/documentation"):
+    for path in ("/", "/cartes", "/documentation", "/climats"):
         head = client.get(path).text.split("</head>")[0]
         assert head.count("<title>") == 1 and 'name="description"' in head
         assert 'property="og:image"' in head and "static/share.png" in head

@@ -391,9 +391,6 @@ export const texts = {
     title: "Le climat du lieu, mois par mois",
     hint: "Comment lire le diagramme",
     months: ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"],
-    subtitle: (years, source, simulated) =>
-      `Moyennes mensuelles ${years}, ${source}` +
-      (simulated ? " : une simulation, pas une prévision." : "."),
     legendTemperature: (years) => `Température moyenne ${years}`,
     legendRain: (years) => `Précipitations ${years}`,
     legendReference: (years) => `${years}, en gris`,
@@ -430,6 +427,45 @@ export const texts = {
     snowRare: (years, reference, referenceYears) =>
       `Neige au sol : trop rare pour être chiffrée en ${years} ; ` +
       `${reference} par hiver en ${referenceYears}.`,
+    // The Köppen-Geiger class of the two sets of twelve months (src.app.domain.koppen).
+    koppenHint: "Comment la classe de Köppen-Geiger est calculée",
+    // The way to /climats, under the line: the new climate for a simulated window.
+    koppenMap: (simulated) =>
+      simulated ? "Voir le nouveau climat sur la carte" : "Voir les climats d'Europe sur la carte",
+    // The title of the section once the class is known, and the line under it.
+    // The years joined by a non-breaking hyphen: a title over several lines
+    // must not leave "2086-" at the end of one.
+    titleKoppen: (own, years) => `Le climat du lieu : ${own} en ${years.replace("-", "\u2011")}`,
+    koppen: (reference, referenceYears, same) =>
+      same
+        ? `Classification de Köppen-Geiger, la même qu'en ${referenceYears}.`
+        : `Classification de Köppen-Geiger. En ${referenceYears} : ${reference}.`,
+    koppenClass: (code, name) => (name ? `${name} (${code})` : code),
+    koppenMethod: (simulated) =>
+      "Classification de Köppen-Geiger, selon les critères de Beck et al. (2023), calculée sur les " +
+      "moyennes mensuelles du diagramme : températures et précipitations de chaque mois, sur 15 ans " +
+      "autour de l'année affichée et sur les 30 ans de la référence. Une maille de 10 à 25 km peut " +
+      "différer du climat exact d'une ville, surtout en montagne et sur les côtes." +
+      (simulated
+        ? " Pour une période simulée : ce modèle climatique se réchauffe un peu moins vite que la moyenne " +
+          "des modèles récents. En 2071-2099, il donne la même classe que les cartes de Beck et al. sur " +
+          "70 % de l'Europe, ailleurs le plus souvent une classe plus fraîche (voir « Tout comprendre sur " +
+          "les données affichées »)."
+        : ""),
+    koppenNames: {
+      Af: "tropical, forêt humide", Am: "tropical, mousson", Aw: "tropical, savane",
+      BWh: "aride, désert chaud", BWk: "aride, désert froid", BSh: "aride, steppe chaude",
+      BSk: "aride, steppe froide", Csa: "tempéré, été sec et chaud", Csb: "tempéré, été sec et tiède",
+      Csc: "tempéré, été sec et frais", Cwa: "tempéré, hiver sec, été chaud",
+      Cwb: "tempéré, hiver sec, été tiède", Cwc: "tempéré, hiver sec, été frais",
+      Cfa: "tempéré, sans saison sèche, été chaud", Cfb: "tempéré, sans saison sèche, été tiède",
+      Cfc: "tempéré, sans saison sèche, été frais", Dsa: "froid, été sec et chaud",
+      Dsb: "froid, été sec et tiède", Dsc: "froid, été sec et frais", Dsd: "froid, été sec, hiver très froid",
+      Dwa: "froid, hiver sec, été chaud", Dwb: "froid, hiver sec, été tiède", Dwc: "froid, hiver sec, été frais",
+      Dwd: "froid, hiver sec très froid", Dfa: "froid, sans saison sèche, été chaud",
+      Dfb: "froid, sans saison sèche, été tiède", Dfc: "froid, sans saison sèche, été frais",
+      Dfd: "froid, sans saison sèche, hiver très froid", ET: "polaire, toundra", EF: "polaire, glace",
+    },
     snowMethod: (baseline) =>
       "Jours avec de la neige au sol, de novembre à avril, en moyenne par hiver. Ils sont calculés à " +
       "partir des températures et des précipitations du lieu : la neige s'accumule les jours froids et " +
@@ -489,6 +525,35 @@ export const texts = {
       "référence, bien plus chaud ou froid au-delà d'un écart-type et demi. Précipitations : " +
       "proche de la normale entre 80 et 120 %, bien plus sec sous 50 %, bien plus humide " +
       "au-dessus de 150 %.",
+  },
+
+  // The page /climats: the Köppen-Geiger classes of Europe, then and later.
+  climates: {
+    title: "Climats de Köppen-Geiger",
+    switch: "Période affichée",
+    loading: "Chargement des cartes des climats…",
+    failed: "Les cartes des climats n'ont pas pu être chargées. Réessayez dans un instant.",
+    mapLabel:
+      "Carte des climats de Köppen-Geiger en Europe, sur la période choisie. " +
+      "Les classes présentes sont listées à droite.",
+    observed: "Données passées : réanalyse ERA5, températures E-OBS.",
+    simulated: (scenario) =>
+      `Simulation climatique corrigée${scenario ? `, scénario ${scenario}` : ""} : ` +
+      "un climat plausible, pas une prévision.",
+    legend: "Classes (en grisé : absentes de la période affichée)",
+    classLine: (period, code, name) => `${period} : ${name ? `${name} (${code})` : code}`,
+    none: (period) => `${period} : pas de classe`,
+    back: (place) => `Revenir aux résultats de ${place}`,
+    methodTitle: "Comment ces cartes sont calculées",
+    method:
+      "Classification de Köppen-Geiger selon les critères de Beck et al. (2023), calculée sur chaque " +
+      "maille de 0,1° (environ 10 km) à partir des températures et des précipitations de chaque mois, " +
+      "moyennées sur 30 ans. Les températures sont celles de la maille, sans correction d'altitude : en " +
+      "montagne, la classe d'un village peut différer de celle de sa recherche, qui porte aussi sur 15 ans " +
+      "autour de l'année choisie. 2071-2100 vient d'un seul modèle climatique, qui se réchauffe un peu " +
+      "moins vite que la moyenne des modèles récents : comparé aux cartes de Beck et al. (2071-2099), il " +
+      "donne la même classe sur 70 % de l'Europe, ailleurs le plus souvent une classe plus fraîche. " +
+      "Détails dans « Tout comprendre sur les données affichées ».",
   },
 
   // The map page. Every sentence it shows, as on every other page.

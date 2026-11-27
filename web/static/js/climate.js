@@ -92,6 +92,24 @@ export function snow(answer) {
   return { line, method: words.snowMethod(baseline) };
 }
 
+/**
+ * The Köppen-Geiger classes: the title of the section, naming the class of the
+ * window ("Le climat du lieu : tempéré, sans saison sèche, été chaud (Cfa) en
+ * 2086-2100"), the line under it with the class of the reference, and the note
+ * of its "?". Null where the server gives none.
+ */
+export function koppen(answer) {
+  const { koppen: own, reference_koppen: reference } = answer;
+  if (!own || !reference) return null;
+  const words = texts.climate;
+  const named = (code) => words.koppenClass(code, words.koppenNames[code]);
+  return {
+    title: words.titleKoppen(named(own), years(answer.window)),
+    line: words.koppen(named(reference), years(answer.reference), own === reference),
+    method: words.koppenMethod(answer.window.origin === "simulated"),
+  };
+}
+
 export function diagram(answer, box = BOX) {
   const span = window(answer.months, answer.reference_months);
   const plot = { from: box.left, to: box.width - box.right, top: box.top, bottom: box.height - box.bottom };

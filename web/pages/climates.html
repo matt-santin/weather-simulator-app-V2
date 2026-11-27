@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Climats de Köppen-Geiger · Météo 2100</title>
+    <link rel="icon" href="/static/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <script type="module" src="/static/js/climates.js"></script>
+  </head>
+  <!--
+    The Köppen-Geiger classes of Europe, 1991-2020 and 2071-2100, one map and a
+    switch between the two (climates.js, koppenmap.js; the classes are static
+    files written by src/store/koppen.py). Opened on the whole of Europe; a
+    place may come with it (&lieu&lat&lon, from the results page): it is
+    marked, and the panel gives its two classes and the way back. Laid out as
+    the map page, whose stylesheet it shares (body.maps).
+  -->
+  <body class="maps climates">
+    <nav class="site-nav" data-attr-aria-label="nav.label">
+      <a class="site-nav-home" href="/">
+        <span class="site-nav-icon" aria-hidden="true"></span>
+        <span class="site-nav-name" data-text="nav.home"></span>
+      </a>
+      <p id="nav-context" class="site-nav-context"></p>
+      <ul class="site-nav-tabs">
+        <li><a id="nav-place" class="site-nav-tab" hidden></a></li>
+        <li><a id="nav-map" class="site-nav-tab" data-text="nav.map" hidden></a></li>
+      </ul>
+    </nav>
+    <main class="maps-page">
+      <aside class="maps-left">
+        <h1 class="maps-title" data-text="climates.title"></h1>
+        <div class="climates-switch" role="group" data-attr-aria-label="climates.switch">
+          <button type="button" class="toggle" data-period="1991-2020" aria-pressed="false">1991-2020</button>
+          <button type="button" class="toggle" data-period="2071-2100" aria-pressed="true">2071-2100</button>
+        </div>
+        <p id="climates-origin" class="maps-note"></p>
+        <p id="maps-status" class="maps-note" aria-live="polite"></p>
+        <p id="climates-failure" class="failure" role="alert" hidden></p>
+      </aside>
+
+      <section id="climates-stage" class="maps-stage" hidden>
+        <div id="maps-main" class="maps-main">
+          <div class="maps-map">
+            <canvas id="map" data-attr-aria-label="climates.mapLabel" role="img"></canvas>
+            <div id="maps-tip" class="maps-tip" hidden></div>
+            <div class="maps-zoom">
+              <button type="button" id="maps-zoom-in" data-attr-aria-label="maps.zoomIn" data-attr-title="maps.zoomIn"><span aria-hidden="true">+</span></button>
+              <button type="button" id="maps-zoom-out" data-attr-aria-label="maps.zoomOut" data-attr-title="maps.zoomOut"><span aria-hidden="true">−</span></button>
+              <button type="button" id="maps-zoom-whole" data-attr-aria-label="maps.zoomWhole" data-attr-title="maps.zoomWhole"><span aria-hidden="true">⤢</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="maps-panel">
+        <!-- The place the visitor came from: its two classes and the way back. -->
+        <div id="climates-here" class="maps-here" hidden>
+          <p id="climates-here-label" class="maps-label"></p>
+          <p id="climates-here-past" class="climates-here-line"></p>
+          <p id="climates-here-future" class="climates-here-line"></p>
+          <a id="climates-here-link" class="maps-here-link"></a>
+        </div>
+        <p class="maps-label" data-text="climates.legend"></p>
+        <ul id="climates-legend" class="climates-legend"></ul>
+        <details class="maps-details">
+          <summary data-text="climates.methodTitle"></summary>
+          <p class="maps-note maps-source" data-text="climates.method"></p>
+        </details>
+      </aside>
+    </main>
+  </body>
+</html>

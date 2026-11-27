@@ -1315,6 +1315,11 @@ body.home > header.banner {
   gap: calc(var(--space) * 3);
 }
 
+/* A title over several lines must not squeeze its "?" into an oval. */
+.title-row > .hint {
+  flex-shrink: 0;
+}
+
 .title-row > .hint-text,
 .warning > .hint-text,
 .compare-bar > .hint-text {
@@ -4398,7 +4403,8 @@ body.results .ways[hidden] {
   display: none;
 }
 
-.ways .pill {
+.ways .pill,
+.climate-koppen-map .pill {
   display: inline-flex;
   align-items: center;
   gap: calc(var(--space) * 2);
@@ -4413,12 +4419,15 @@ body.results .ways[hidden] {
 }
 
 .ways .pill:hover,
-.ways .pill:focus-visible {
+.ways .pill:focus-visible,
+.climate-koppen-map .pill:hover,
+.climate-koppen-map .pill:focus-visible {
   background: var(--cool);
   color: #fff;
 }
 
-.ways .pill:focus-visible {
+.ways .pill:focus-visible,
+.climate-koppen-map .pill:focus-visible {
   outline: 2px solid var(--cool);
   outline-offset: 2px;
 }
@@ -5024,4 +5033,77 @@ body.maps .maps-step:focus-visible {
 
 .share-dialog #share-status:empty {
   display: none;
+}
+
+
+/* --- the climates of Köppen-Geiger (/climats), on the map page's layout ----- */
+.climates-switch {
+  display: flex;
+  gap: calc(var(--space) * 2);
+}
+
+.climates-switch .toggle {
+  flex: 1;
+  padding-inline: calc(var(--space) * 2);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stacked on a narrow screen: the title, the switch and its note, then the map. */
+@media (max-width: 999px) {
+  .climates .climates-switch { order: 2; }
+  .climates #climates-origin,
+  .climates #climates-failure { order: 3; }
+}
+
+.climates-legend {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+}
+
+.climates-legend li {
+  display: grid;
+  grid-template-columns: 12px 2.2rem 1fr;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+}
+
+.climates-legend li.empty {
+  color: var(--ink-soft);
+  opacity: 0.6;
+}
+
+.climates-code {
+  font-weight: 600;
+}
+
+.climates-here-line {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+body.maps .climates-tip-line {
+  display: block;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+body.maps strong.climates-tip-line {
+  color: #14202e;
+}
+
+/* The way to /climats, under the Köppen-Geiger line of the results: a pill of
+   the ways (summary), a little smaller. */
+.climate-koppen-map {
+  margin: calc(var(--space) * 3) 0 0;
+}
+
+.climate-koppen-map .pill {
+  font-size: 0.9375rem;
 }

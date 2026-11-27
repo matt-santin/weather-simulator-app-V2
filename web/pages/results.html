@@ -316,7 +316,7 @@
       -->
       <section id="climate" class="climate-section" hidden>
         <div class="title-row">
-          <h2 class="climate-title" data-text="climate.title"></h2>
+          <h2 id="climate-title" class="climate-title" data-text="climate.title"></h2>
           <button
             type="button"
             class="hint"
@@ -327,7 +327,24 @@
           >?</button>
           <p id="climate-criterion" class="hint-text" role="tooltip" data-text="climate.criterion" hidden></p>
         </div>
-        <p id="climate-subtitle" class="compare-note"></p>
+        <!-- Under the title, which names the Köppen-Geiger class of the window: what
+             the classification is, and the class of the reference (climate.js). -->
+        <div id="climate-koppen-row" class="title-row snow-row" hidden>
+          <p id="climate-koppen" class="compare-note"></p>
+          <button
+            type="button"
+            class="hint"
+            data-hint
+            aria-expanded="false"
+            aria-controls="climate-koppen-method"
+            data-attr-aria-label="climate.koppenHint"
+          >?</button>
+          <p id="climate-koppen-method" class="hint-text" role="tooltip" hidden></p>
+        </div>
+        <!-- The way to the map of the climates (/climats), with the query of this page. -->
+        <p id="climate-koppen-map-row" class="climate-koppen-map" hidden>
+          <a id="climate-koppen-map" class="pill"><svg class="pill-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5 5.5 2l5 1.5 4-1.5v10.5l-4 1.5-5-1.5-4 1.5zM5.5 2v10.5M10.5 3.5V14" /></svg><span id="climate-koppen-map-text"></span></a>
+        </p>
         <div id="climate-panel" class="chart-panel"></div>
         <ul class="climate-legend">
           <li><span class="climate-swatch line" aria-hidden="true"></span><span id="climate-legend-temperature"></span></li>

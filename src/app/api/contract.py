@@ -172,6 +172,8 @@ class Climate(BaseModel):
     reference_months: list[ClimateMonth]
     snow: ClimateSnow | None = None
     reference_snow: ClimateSnow | None = None
+    koppen: str | None = Field(default=None, description="Köppen-Geiger class of the window (src.app.domain.koppen)")
+    reference_koppen: str | None = Field(default=None, description="Köppen-Geiger class of the reference period")
 
 
 class SnowCover(BaseModel):

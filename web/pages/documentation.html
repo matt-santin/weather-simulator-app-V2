@@ -116,6 +116,68 @@
           produirait une météo fictive pour une année dont chacun se
           souvient.
         </p>
+
+        <h3>Les climats de Köppen-Geiger&nbsp;: attendus et obtenus</h3>
+
+        <p>
+          La classification de Köppen-Geiger range les climats en une
+          trentaine de classes d'après les températures et les précipitations
+          de chaque mois&nbsp;: Cfb est un climat tempéré sans saison sèche à
+          été tiède (Paris aujourd'hui), Csa un climat tempéré à été sec et
+          chaud (Rome), BSk une steppe froide. Le climat du lieu, sous chaque
+          recherche, en donne la classe, calculée sur les moyennes du
+          diagramme.
+        </p>
+
+        <p>
+          Pour vérifier les données, ces classes sont recalculées sur toute
+          l'Europe, à 0,25°, et comparées aux cartes de référence de Beck et
+          al. (2023), établies à 1&nbsp;km d'après les observations pour
+          1991-2020, et d'après une trentaine de modèles climatiques récents,
+          dans le même scénario ({{scenario}}), pour la fin du siècle.
+        </p>
+
+        <ul class="rules">
+          <li>
+            <strong>1991-2020, données passées</strong>&nbsp;: même classe sur
+            87&nbsp;% des terres, même grande famille (tempéré, froid,
+            aride…) sur 92&nbsp;%. Les écarts tiennent surtout aux marges des
+            steppes, classées un peu plus humides ici, et au relief, qu'une
+            maille de 25&nbsp;km lisse.
+          </li>
+          <li>
+            <strong>1991-2020, modèle corrigé</strong>&nbsp;: même classe sur
+            86&nbsp;% des terres, presque autant que les données passées.
+          </li>
+          <li>
+            <strong>2071-2099, modèle</strong>&nbsp;: même classe sur
+            70&nbsp;% des terres, même famille sur 87&nbsp;%. Le modèle
+            utilisé ici se réchauffe un peu moins vite que la moyenne des
+            modèles récents&nbsp;: là où les deux divergent, il donne le plus
+            souvent la classe immédiatement plus fraîche (été tiède plutôt
+            que chaud, hiver encore sous 0&nbsp;°C). La fin du siècle affichée
+            ici est donc plutôt du côté frais des projections.
+          </li>
+        </ul>
+
+        <figure class="doc-figure">
+          <a href="/static/img/koppen_comparaison.webp">
+            <img
+              src="/static/img/koppen_comparaison.webp"
+              width="2486"
+              height="1483"
+              loading="lazy"
+              alt="Six cartes de l'Europe. En haut, 1991-2020&nbsp;: les classes de Köppen-Geiger calculées sur les données passées, celles de Beck et al. 2023, et leur accord (87&nbsp;% de même classe). En bas, 2071-2099, scénario {{scenario}}&nbsp;: les classes calculées sur le modèle {{driving}} / {{regional}}, celles de Beck et al., et leur accord (70&nbsp;% de même classe, désaccords surtout en Europe centrale et orientale)."
+            />
+          </a>
+          <figcaption>
+            À gauche, les classes calculées sur les données du site&nbsp;; au
+            milieu, celles de Beck et al. (2023), ramenées à 0,25°&nbsp;; à
+            droite, l'accord (vert&nbsp;: même classe, jaune&nbsp;: même
+            famille, rouge&nbsp;: famille différente). En haut 1991-2020, en
+            bas 2071-2099. Cliquer pour agrandir.
+          </figcaption>
+        </figure>
       </section>
 
       <section>
@@ -375,6 +437,15 @@
             CORDEX {{domain}}&nbsp;: <span class="mono">{{driving_id}}</span>
             ({{member}}) et <span class="mono">{{regional_id}}</span>, historique puis
             {{scenario}}, via {{provider}}
+          </dd>
+
+          <dt>Climats de Köppen-Geiger</dt>
+          <dd>
+            Beck, H.E. et al., 2023&nbsp;: High-resolution (1&nbsp;km)
+            Köppen-Geiger maps for 1901-2099 based on constrained CMIP6
+            projections, <i>Scientific Data</i>, 10, 724,
+            <a href="https://doi.org/10.1038/s41597-023-02549-6">doi:10.1038/s41597-023-02549-6</a>,
+            licence CC0. Critères de classement du même article.
           </dd>
 
           <dt>Recherche de lieux</dt>
