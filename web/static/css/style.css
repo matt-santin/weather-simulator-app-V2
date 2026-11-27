@@ -4049,21 +4049,21 @@ body.results .card--zoom {
   font-variant-numeric: tabular-nums;
 }
 
-/* Snow on the ground. On a card: a white bar laid inside its foot, clear of the
-   edges (a white edge would read as a shorter card on the white page), with a
-   hairline that keeps it visible on the palest tints. The same mark as a sample
-   in the legend of the calendar; on the chart, a bluish ground under the bars
-   of the rain. */
-body.results .card--snow:not(.card--zoom)::after {
+/* Snow on the ground. On a card: a white drift with soft waves laid inside its
+   foot, clear of the edges (a white edge would read as a shorter card on the
+   white page), with a hairline along the waves that keeps it visible on the
+   palest tints; the card keeps its tint (asked on 26/11/2026, in place of the
+   white lower part of 15/11/2026). The same mark as a sample in the legend of
+   the calendar; on the chart, a bluish ground under the bars of the rain. */
+body.results .card--snow:not(.card--zoom)::after,
+.snow-sample::after {
   content: "";
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 4px;
-  height: 5px;
-  border-radius: 3px;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(28, 20, 8, 0.35);
+  left: 8px;
+  right: 8px;
+  bottom: 3px;
+  height: 10px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10'%3E%3Cpath d='M0 10V6Q6 1 12 6T24 6V10Z' fill='white'/%3E%3Cpath d='M0 6Q6 1 12 6T24 6' fill='none' stroke='rgba(28,20,8,0.35)'/%3E%3C/svg%3E") repeat-x center bottom / 24px 10px;
   pointer-events: none;
 }
 
@@ -4082,42 +4082,11 @@ body.results .card--snow:not(.card--zoom)::after {
 }
 
 .snow-sample::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  right: 3px;
-  bottom: 2px;
-  height: 4px;
-  border-radius: 2px;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(28, 20, 8, 0.35);
-}
-
-/* On the calendar of a wide window, the lower part of the card is white instead
-   (asked on 15/11/2026; cut at 40 %, just above the pictogram and the figure): the day keeps its tint above, the pictogram and the
-   maximum stand on the snow, in the dark ink whatever the band. The list of a
-   narrow window keeps the bar: its lines are read across, not top to bottom. */
-@media (min-width: 60rem) {
-  body.results .card--snow:not(.card--zoom) {
-    background: linear-gradient(var(--tile, var(--raised)) 0 40%, #fff 40% 100%);
-  }
-
-  body.results .card--snow:not(.card--zoom)::after {
-    content: none;
-  }
-
-  body.results .card--snow:not(.card--zoom) .card-temperatures {
-    color: #1c1408;
-  }
-
-  .snow-sample {
-    border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
-    background: linear-gradient(var(--tile, #5c95e8) 0 40%, #fff 40% 100%);
-  }
-
-  .snow-sample::after {
-    content: none;
-  }
+  left: 2px;
+  right: 2px;
+  bottom: 1px;
+  height: 6px;
+  background-size: 12px 6px;
 }
 
 /* The water left in the soil: the blue of the water panels, as an area. */

@@ -198,7 +198,7 @@ export function card(day, namesMonth, reservesHumidHeat = false, opensSimulation
         degrees(day.temperature_min, "low", celsius),
       ]),
       el("p", { className: "card-sky", text: label }),
-      // The white lower part of the card says it to the eye (stylesheet).
+      // The white drift at the foot of the card says it to the eye (stylesheet).
       ...(snow ? [el("p", { className: "sr-only", text: texts.snow.onGround })] : []),
       el("dl", { className: "card-measures" }, [
         ...measure(texts.measure.precipitation, day.precipitation, present.precipitation, millimetres),
