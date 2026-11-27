@@ -1,0 +1,193 @@
+Essai de villes analogues, 721 villes candidates (>= 100000 habitants), climat 1991-2020 ; cible en 2041-2070 et 2071-2100 (simulation corrigée).
+
+== Paris
+  2041-2070 : Tn DJF +0.9 °C, Tx JJA +1.1 °C, P JJA -23 %, P DJF +8 %
+    diag      nu=12 : Paris (FR, 0.3σ, 0 km) ; Angers (FR, 0.6σ, 265 km) ; Bordeaux (FR, 0.6σ, 499 km)
+                    la plus proche sous 1σ : Paris (FR, 0.3σ, 0 km)
+    maha99t   nu= 9 : Paris (FR, 1.7σ, 0 km) ; Tekirdağ (TR, 1.7σ, 2153 km) ; Çorlu (TR, 1.8σ, 2163 km)
+                    la plus proche sous 2σ : Paris (FR, 1.7σ, 0 km)
+  2071-2100 : Tn DJF +1.8 °C, Tx JJA +2.0 °C, P JJA -23 %, P DJF +6 %
+    diag      nu=12 : Toulouse (FR, 0.1σ, 588 km) ; Bordeaux (FR, 0.3σ, 499 km) ; Samsun (TR, 1.3σ, 2772 km)
+                    la plus proche sous 1σ : Bordeaux (FR, 0.3σ, 499 km)
+    maha99t   nu= 9 : Tekirdağ (TR, 0.6σ, 2153 km) ; Esenyurt (TR, 1.1σ, 2233 km) ; Arnavutköy (TR, 1.3σ, 2228 km)
+                    la plus proche sous 1σ : Tekirdağ (TR, 0.6σ, 2153 km)
+
+== Londres
+  2041-2070 : Tn DJF +0.8 °C, Tx JJA +1.0 °C, P JJA -21 %, P DJF +2 %
+    diag      nu=12 : Rennes (FR, 0.0σ, 394 km) ; Nantes (FR, 0.1σ, 488 km) ; Angers (FR, 0.1σ, 450 km)
+                    la plus proche sous 1σ : Londres (GB, 0.5σ, 0 km)
+    maha99t   nu=10 : Harrow (GB, 0.2σ, 16 km) ; Londres (GB, 0.3σ, 0 km) ; Caen (FR, 0.5σ, 259 km)
+                    la plus proche sous 1σ : Londres (GB, 0.3σ, 0 km)
+  2071-2100 : Tn DJF +1.6 °C, Tx JJA +2.0 °C, P JJA -22 %, P DJF +2 %
+    diag      nu=12 : Paris (FR, 0.4σ, 344 km) ; Angers (FR, 0.5σ, 450 km) ; Nantes (FR, 0.5σ, 488 km)
+                    la plus proche sous 1σ : Paris (FR, 0.4σ, 344 km)
+    maha99t   nu=10 : Paris (FR, 1.0σ, 344 km) ; Marne La Vallée (FR, 1.7σ, 357 km) ; Lille (FR, 2.3σ, 243 km)
+                    la plus proche sous 2σ : Paris (FR, 1.0σ, 344 km)
+
+== Madrid
+  2041-2070 : Tn DJF +1.3 °C, Tx JJA +2.4 °C, P JJA -18 %, P DJF +14 %
+    diag      nu=12 : Denizli (TR, 0.0σ, 2829 km) ; Bou Saâda (DZ, 0.1σ, 902 km) ; Turgutlu (TR, 0.4σ, 2690 km)
+                    la plus proche sous 1σ : Taza (MA, 0.5σ, 691 km)
+    maha99t   nu=10 : Bou Saâda (DZ, 0.1σ, 902 km) ; Taza (MA, 0.4σ, 691 km) ; Denizli (TR, 0.6σ, 2829 km)
+                    la plus proche sous 1σ : Taza (MA, 0.4σ, 691 km)
+  2071-2100 : Tn DJF +2.1 °C, Tx JJA +3.5 °C, P JJA -36 %, P DJF +32 %
+    diag      nu=12 : Bou Saâda (DZ, 0.2σ, 902 km) ; M'Sila (DZ, 0.3σ, 891 km) ; Nazilli (TR, 0.7σ, 2760 km)
+                    la plus proche sous 1σ : M'Sila (DZ, 0.3σ, 891 km)
+    maha99t   nu=10 : Bou Saâda (DZ, 0.3σ, 902 km) ; M'Sila (DZ, 1.3σ, 891 km) ; Al Bāb (SY, 1.5σ, 3588 km)
+                    la plus proche sous 1σ : Bou Saâda (DZ, 0.3σ, 902 km)
+
+== Stockholm
+  2041-2070 : Tn DJF +2.6 °C, Tx JJA +1.2 °C, P JJA +5 %, P DJF -1 %
+    diag      nu=12 : Gdańsk (PL, 0.0σ, 555 km) ; Rostock (DE, 0.1σ, 685 km) ; Copenhague (DK, 0.1σ, 522 km)
+                    la plus proche sous 1σ : Helsingborg (SE, 0.5σ, 485 km)
+    maha99t   nu= 9 : Rostock (DE, 0.1σ, 685 km) ; Copenhague (DK, 0.1σ, 522 km) ; Gdańsk (PL, 0.3σ, 555 km)
+                    la plus proche sous 1σ : Copenhague (DK, 0.1σ, 522 km)
+  2071-2100 : Tn DJF +3.5 °C, Tx JJA +2.3 °C, P JJA -2 %, P DJF +4 %
+    diag      nu=12 : Berlin (DE, 0.3σ, 810 km) ; Zielona Góra (PL, 0.6σ, 838 km) ; Rostock (DE, 0.7σ, 685 km)
+                    la plus proche sous 1σ : Copenhague (DK, 0.8σ, 522 km)
+    maha99t   nu= 9 : Bremerhaven (DE, 1.1σ, 866 km) ; Rostock (DE, 1.2σ, 685 km) ; Copenhague (DK, 1.3σ, 522 km)
+                    la plus proche sous 2σ : Copenhague (DK, 1.3σ, 522 km)
+
+== Berlin
+  2041-2070 : Tn DJF +1.8 °C, Tx JJA +0.7 °C, P JJA -10 %, P DJF +2 %
+    diag      nu=12 : Vienne (AT, 0.1σ, 523 km) ; Paris (FR, 0.1σ, 878 km) ; Francfort-sur-le-Main (DE, 0.2σ, 423 km)
+                    la plus proche sous 1σ : Berlin (DE, 0.8σ, 1 km)
+    maha99t   nu= 9 : Simferopol (UA, 1.3σ, 1727 km) ; Vienne (AT, 1.8σ, 523 km) ; Lille (FR, 2.0σ, 745 km)
+                    la plus proche sous 2σ : Berlin (DE, 2.0σ, 1 km)
+  2071-2100 : Tn DJF +2.7 °C, Tx JJA +1.9 °C, P JJA -5 %, P DJF -2 %
+    diag      nu=12 : Varna (BG, 0.6σ, 1492 km) ; Budapest (HU, 0.6σ, 688 km) ; Vienne (AT, 0.7σ, 523 km)
+                    la plus proche sous 1σ : Vienne (AT, 0.7σ, 523 km)
+    maha99t   nu= 9 : Varna (BG, 1.6σ, 1492 km) ; Budapest (HU, 1.8σ, 688 km) ; Simferopol (UA, 2.4σ, 1727 km)
+                    la plus proche sous 2σ : Budapest (HU, 1.8σ, 688 km)
+
+== Grenoble
+  2041-2070 : Tn DJF +1.5 °C, Tx JJA +1.9 °C, P JJA -17 %, P DJF -7 %
+    diag      nu=12 : Genève (CH, 0.5σ, 117 km) ; Zenica (BA, 0.5σ, 968 km) ; Grenoble (FR, 0.6σ, 1 km)
+                    la plus proche sous 1σ : Grenoble (FR, 0.6σ, 1 km)
+    maha99t   nu=10 : Grenoble (FR, 0.9σ, 1 km) ; Tuzla (BA, 1.5σ, 1021 km) ; Tokat (TR, 1.9σ, 2558 km)
+                    la plus proche sous 1σ : Grenoble (FR, 0.9σ, 1 km)
+  2071-2100 : Tn DJF +2.6 °C, Tx JJA +2.9 °C, P JJA -27 %, P DJF +3 %
+    diag      nu=12 : Düzce (TR, 0.6σ, 2115 km) ; Arezzo (IT, 0.7σ, 526 km) ; Banja Luka (BA, 0.8σ, 903 km)
+                    la plus proche sous 1σ : Arezzo (IT, 0.7σ, 526 km)
+    maha99t   nu=10 : İnegol (TR, 0.6σ, 2019 km) ; Tuzla (BA, 1.2σ, 1021 km) ; Banja Luka (BA, 1.8σ, 903 km)
+                    la plus proche sous 1σ : İnegol (TR, 0.6σ, 2019 km)
+
+== Brest
+  2041-2070 : Tn DJF +0.7 °C, Tx JJA +1.1 °C, P JJA -35 %, P DJF +4 %
+    diag      nu=12 : Brest (FR, 0.5σ, 0 km) ; Eastbourne (GB, 2.1σ, 434 km) ; Le Havre (FR, 2.4σ, 357 km)
+                    la plus proche sous 1σ : Brest (FR, 0.5σ, 0 km)
+    maha99t   nu=11 : Brest (FR, 0.6σ, 0 km) ; Eastbourne (GB, 1.9σ, 434 km) ; Le Havre (FR, 3.3σ, 357 km)
+                    la plus proche sous 1σ : Brest (FR, 0.6σ, 0 km)
+  2071-2100 : Tn DJF +1.3 °C, Tx JJA +1.8 °C, P JJA -39 %, P DJF +4 %
+    diag      nu=12 : La Corogne (ES, 2.6σ, 635 km) ; Santander (ES, 3.2σ, 550 km) ; Gijón (ES, 3.4σ, 547 km)
+                    la plus proche sous infσ : La Corogne (ES, 2.6σ, 635 km)
+    maha99t   nu=11 : Brest (FR, 4.0σ, 0 km) ; Santander (ES, 4.1σ, 550 km) ; La Corogne (ES, 4.1σ, 635 km)
+                    la plus proche sous infσ : Brest (FR, 4.0σ, 0 km)
+
+== Lyon
+  2041-2070 : Tn DJF +1.2 °C, Tx JJA +1.3 °C, P JJA -3 %, P DJF +6 %
+    diag      nu=12 : Lyon (FR, 0.1σ, 2 km) ; Toulouse (FR, 0.2σ, 360 km) ; Turin (IT, 0.2σ, 235 km)
+                    la plus proche sous 1σ : Lyon (FR, 0.1σ, 2 km)
+    maha99t   nu= 9 : Izmit (TR, 0.2σ, 2097 km) ; Lyon (FR, 0.3σ, 2 km) ; Turin (IT, 0.5σ, 235 km)
+                    la plus proche sous 1σ : Lyon (FR, 0.3σ, 2 km)
+  2071-2100 : Tn DJF +2.3 °C, Tx JJA +2.3 °C, P JJA -17 %, P DJF +13 %
+    diag      nu=12 : Rimini (IT, 0.1σ, 637 km) ; Toulouse (FR, 0.1σ, 360 km) ; Izmit (TR, 0.2σ, 2097 km)
+                    la plus proche sous 1σ : Nîmes (FR, 1.0σ, 218 km)
+    maha99t   nu= 9 : Adapazarı (TR, 0.2σ, 2133 km) ; Padoue (IT, 0.3σ, 550 km) ; Bologne (IT, 0.3σ, 529 km)
+                    la plus proche sous 1σ : Brescia (IT, 0.8σ, 419 km)
+
+== Bordeaux
+  2041-2070 : Tn DJF +0.9 °C, Tx JJA +1.9 °C, P JJA -27 %, P DJF -4 %
+    diag      nu=12 : Toulon (FR, 0.1σ, 554 km) ; Terrassa (ES, 0.2σ, 420 km) ; Toulouse (FR, 0.3σ, 212 km)
+                    la plus proche sous 1σ : Bordeaux (FR, 0.4σ, 0 km)
+    maha99t   nu=10 : Terrassa (ES, 0.9σ, 420 km) ; Bordeaux (FR, 0.9σ, 0 km) ; Toulouse (FR, 1.0σ, 212 km)
+                    la plus proche sous 1σ : Bordeaux (FR, 0.9σ, 0 km)
+  2071-2100 : Tn DJF +1.7 °C, Tx JJA +2.3 °C, P JJA -21 %, P DJF -1 %
+    diag      nu=12 : Mataró (ES, 0.5σ, 441 km) ; Perpignan (FR, 0.5σ, 367 km) ; Marseille (FR, 0.6σ, 506 km)
+                    la plus proche sous 1σ : Perpignan (FR, 0.5σ, 367 km)
+    maha99t   nu=10 : Nîmes (FR, 1.4σ, 408 km) ; Pescara (IT, 1.4σ, 1217 km) ; Mataró (ES, 1.5σ, 441 km)
+                    la plus proche sous 2σ : Toulouse (FR, 1.9σ, 212 km)
+
+== Strasbourg
+  2041-2070 : Tn DJF +1.0 °C, Tx JJA +1.1 °C, P JJA -6 %, P DJF +2 %
+    diag      nu=12 : Lyon (FR, 0.0σ, 383 km) ; Strasbourg (FR, 0.2σ, 1 km) ; Zagreb (HR, 0.4σ, 693 km)
+                    la plus proche sous 1σ : Strasbourg (FR, 0.2σ, 1 km)
+    maha99t   nu=10 : Strasbourg (FR, 0.2σ, 1 km) ; Lyon (FR, 0.4σ, 383 km) ; Székesfehérvár (HU, 1.0σ, 809 km)
+                    la plus proche sous 1σ : Strasbourg (FR, 0.2σ, 1 km)
+  2071-2100 : Tn DJF +1.9 °C, Tx JJA +2.1 °C, P JJA -8 %, P DJF +7 %
+    diag      nu=12 : Toulouse (FR, 0.2σ, 736 km) ; Turin (IT, 0.3σ, 389 km) ; Lyon (FR, 0.5σ, 383 km)
+                    la plus proche sous 1σ : Lyon (FR, 0.5σ, 383 km)
+    maha99t   nu=10 : Zagreb (HR, 0.8σ, 693 km) ; Lyon (FR, 1.2σ, 383 km) ; Belgrade (RS, 1.6σ, 1055 km)
+                    la plus proche sous 1σ : Zagreb (HR, 0.8σ, 693 km)
+
+== Rome
+  2041-2070 : Tn DJF +1.2 °C, Tx JJA +1.3 °C, P JJA -18 %, P DJF -13 %
+    diag      nu=12 : Silifke (TR, 0.4σ, 1943 km) ; Annaba (DZ, 0.5σ, 687 km) ; Tarse (TR, 1.0σ, 1997 km)
+                    la plus proche sous 1σ : Annaba (DZ, 0.5σ, 687 km)
+    maha99t   nu=10 : Silifke (TR, 0.4σ, 1943 km) ; Adana (TR, 1.5σ, 2029 km) ; Rome (IT, 1.5σ, 2 km)
+                    la plus proche sous 1σ : Silifke (TR, 0.4σ, 1943 km)
+  2071-2100 : Tn DJF +2.4 °C, Tx JJA +2.6 °C, P JJA -28 %, P DJF -3 %
+    diag      nu=12 : Samandağ (TR, 1.4σ, 2123 km) ; Antioche (TR, 1.5σ, 2132 km) ; Arsuz (TR, 1.8σ, 2101 km)
+                    la plus proche sous 2σ : Tunis (TN, 2.0σ, 598 km)
+    maha99t   nu=10 : Adana (TR, 2.4σ, 2029 km) ; Samandağ (TR, 2.7σ, 2123 km) ; Silifke (TR, 2.7σ, 1943 km)
+                    la plus proche sous infσ : Adana (TR, 2.4σ, 2029 km)
+
+== Moscou
+  2041-2070 : Tn DJF +2.5 °C, Tx JJA +1.5 °C, P JJA +12 %, P DJF -0 %
+    diag      nu=12 : Koursk (RU, 0.0σ, 458 km) ; Soumy (UA, 0.0σ, 570 km) ; Khmelnytskyï (UA, 0.1σ, 1004 km)
+                    la plus proche sous 1σ : Moscou (RU, 0.9σ, 0 km)
+    maha99t   nu= 9 : Koursk (RU, 0.3σ, 458 km) ; Kaliningrad (RU, 0.5σ, 1088 km) ; Minsk (BY, 0.6σ, 675 km)
+                    la plus proche sous 1σ : Briansk (RU, 0.7σ, 349 km)
+  2071-2100 : Tn DJF +3.9 °C, Tx JJA +2.5 °C, P JJA +2 %, P DJF +13 %
+    diag      nu=12 : Kiev (UA, 0.0σ, 755 km) ; Brovary (UA, 0.1σ, 739 km) ; Bila Tserkva (UA, 0.1σ, 832 km)
+                    la plus proche sous 1σ : Koursk (RU, 0.8σ, 458 km)
+    maha99t   nu= 9 : Kaliningrad (RU, 1.1σ, 1088 km) ; Berlin (DE, 1.1σ, 1608 km) ; Kalisz (PL, 1.1σ, 1353 km)
+                    la plus proche sous 2σ : Koursk (RU, 1.3σ, 458 km)
+
+== Varsovie
+  2041-2070 : Tn DJF +2.1 °C, Tx JJA +0.4 °C, P JJA +5 %, P DJF +8 %
+    diag      nu=12 : Berlin (DE, 0.0σ, 517 km) ; Prague (CZ, 0.0σ, 517 km) ; Francfort-sur-le-Main (DE, 0.0σ, 890 km)
+                    la plus proche sous 1σ : Varsovie (PL, 0.5σ, 0 km)
+    maha99t   nu=10 : Berlin (DE, 0.1σ, 517 km) ; Zielona Góra (PL, 0.2σ, 378 km) ; Francfort-sur-le-Main (DE, 0.2σ, 890 km)
+                    la plus proche sous 1σ : Zielona Góra (PL, 0.2σ, 378 km)
+  2071-2100 : Tn DJF +3.1 °C, Tx JJA +1.9 °C, P JJA -2 %, P DJF +9 %
+    diag      nu=12 : Pécs (HU, 0.0σ, 713 km) ; Vienne (AT, 0.0σ, 556 km) ; Budapest (HU, 0.0σ, 545 km)
+                    la plus proche sous 1σ : Miskolc (HU, 0.5σ, 459 km)
+    maha99t   nu=10 : Vienne (AT, 0.2σ, 556 km) ; Budapest (HU, 0.2σ, 545 km) ; Paris (FR, 1.2σ, 1367 km)
+                    la plus proche sous 1σ : Budapest (HU, 0.2σ, 545 km)
+
+== Lisbonne
+  2041-2070 : Tn DJF +0.8 °C, Tx JJA +1.3 °C, P JJA -39 %, P DJF +21 %
+    diag      nu=12 : Rabat (MA, 0.1σ, 563 km) ; Cadix (ES, 0.2σ, 350 km) ; Larache (MA, 0.3σ, 473 km)
+                    la plus proche sous 1σ : Lisbonne (PT, 0.9σ, 1 km)
+    maha99t   nu=11 : Larache (MA, 1.2σ, 473 km) ; Lisbonne (PT, 1.4σ, 1 km) ; Tanger (MA, 2.6σ, 442 km)
+                    la plus proche sous 2σ : Lisbonne (PT, 1.4σ, 1 km)
+  2071-2100 : Tn DJF +1.5 °C, Tx JJA +1.6 °C, P JJA -50 %, P DJF +27 %
+    diag      nu=12 : Rabat (MA, 0.0σ, 563 km) ; Cadix (ES, 0.7σ, 350 km) ; Larache (MA, 0.8σ, 473 km)
+                    la plus proche sous 1σ : Cadix (ES, 0.7σ, 350 km)
+    maha99t   nu=11 : Larache (MA, 1.3σ, 473 km) ; Rabat (MA, 2.2σ, 563 km) ; Lisbonne (PT, 2.8σ, 1 km)
+                    la plus proche sous 2σ : Larache (MA, 1.3σ, 473 km)
+
+== Athènes
+  2041-2070 : Tn DJF +1.8 °C, Tx JJA +1.8 °C, P JJA -33 %, P DJF -2 %
+    diag      nu=12 : Nicosie (CY, 2.0σ, 914 km) ; Antioche (TR, 2.3σ, 1119 km) ; Sousse (TN, 2.6σ, 1187 km)
+                    la plus proche sous 2σ : Nicosie (CY, 2.0σ, 914 km)
+    maha99t   nu=10 : Athènes (GR, 1.3σ, 0 km) ; Tarse (TR, 3.7σ, 992 km) ; Annaba (DZ, 4.9σ, 1413 km)
+                    la plus proche sous 2σ : Athènes (GR, 1.3σ, 0 km)
+  2071-2100 : Tn DJF +3.0 °C, Tx JJA +3.2 °C, P JJA -42 %, P DJF -25 %
+    diag      nu=12 : Biskra (DZ, 2.9σ, 1645 km) ; Nicosie (CY, 3.1σ, 914 km) ; Sfax (TN, 4.2σ, 1215 km)
+                    la plus proche sous infσ : Biskra (DZ, 2.9σ, 1645 km)
+    maha99t   nu=10 : Athènes (GR, 4.0σ, 0 km) ; Biskra (DZ, 4.7σ, 1645 km) ; Tarse (TR, 5.2σ, 992 km)
+                    la plus proche sous infσ : Athènes (GR, 4.0σ, 0 km)
+
+== Édimbourg
+  2041-2070 : Tn DJF +1.1 °C, Tx JJA +0.9 °C, P JJA -17 %, P DJF -2 %
+    diag      nu=12 : Huddersfield (GB, 0.0σ, 272 km) ; Belfast (GB, 0.0σ, 230 km) ; Stoke-on-Trent (GB, 0.0σ, 334 km)
+                    la plus proche sous 1σ : Édimbourg (GB, 0.5σ, 1 km)
+    maha99t   nu=10 : Belfast (GB, 0.0σ, 230 km) ; Stoke-on-Trent (GB, 0.0σ, 334 km) ; Huddersfield (GB, 0.1σ, 272 km)
+                    la plus proche sous 1σ : Édimbourg (GB, 0.9σ, 1 km)
+  2071-2100 : Tn DJF +1.6 °C, Tx JJA +1.7 °C, P JJA -20 %, P DJF +7 %
+    diag      nu=12 : Newport (GB, 0.0σ, 486 km) ; St Helens (GB, 0.0σ, 280 km) ; Bristol (GB, 0.0σ, 502 km)
+                    la plus proche sous 1σ : Middlesbrough (GB, 0.7σ, 197 km)
+    maha99t   nu=10 : Newport (GB, 0.0σ, 486 km) ; St Helens (GB, 0.0σ, 280 km) ; Exeter (GB, 0.1σ, 582 km)
+                    la plus proche sous 1σ : Belfast (GB, 0.3σ, 230 km)
