@@ -103,7 +103,7 @@ async function getJson(url, message, { timeout = UPSTREAM_TIMEOUT_MS } = {}) {
 
 // Two sentences, because the two failures are not the visitor's to confuse.
 // Why they read the way they do is explained where they are written, in i18n.js.
-const { upstreamFailed: UPSTREAM_FAILED, serviceFailed: SERVICE_FAILED } = texts.transport;
+const { serviceFailed: SERVICE_FAILED } = texts.transport;
 
 /**
  * The constants the API enforces, so the form can refuse the same things it
@@ -114,24 +114,29 @@ export function loadConfig() {
   return getJson("/api/config", SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
 }
 
-/**
- * Turn a place name into candidate locations.
- *
- * The geocoding address comes from the config rather than being written here,
- * so this file holds no knowledge of Open-Meteo at all. Nominatim is not used:
- * its terms forbid intensive use.
- */
-export async function geocode(name, config, { count = 10, language = "fr" } = {}) {
-  const url = new URL(config.geocoding_url);
-  url.searchParams.set("name", name);
-  url.searchParams.set("count", String(count));
-  url.searchParams.set("language", language);
-  url.searchParams.set("format", "json");
+/** Country names in French, from the ISO codes the server gives. */
+const COUNTRY_NAMES = new Intl.DisplayNames(["fr"], { type: "region" });
 
-  const payload = await getJson(url.toString(), UPSTREAM_FAILED);
-  // Absent rather than empty when nothing matches. Not a decision about the
-  // data — an empty list and a missing key mean the same thing here.
-  return payload.results ?? [];
+function countryName(code) {
+  try {
+    return code ? COUNTRY_NAMES.of(code) ?? "" : "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Turn a place name into candidate locations: name, region (`admin1`),
+ * country, coordinates, altitude, and whether the site covers it (`covered`).
+ *
+ * Asked of the site's own server (/api/geocode, GeoNames) since 27/11/2026,
+ * no longer of Open-Meteo: no name typed and no address leaves for a third
+ * party.
+ */
+export async function geocode(name, { count = 10 } = {}) {
+  const query = new URLSearchParams({ name, count: String(count) });
+  const payload = await getJson(`/api/geocode?${query}`, SERVICE_FAILED, { timeout: API_TIMEOUT_MS });
+  return (payload.results ?? []).map((place) => ({ ...place, country: countryName(place.country_code) }));
 }
 
 /**

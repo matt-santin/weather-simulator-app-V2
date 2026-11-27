@@ -18,7 +18,6 @@ import { afterEach, describe, it } from "node:test";
 import { geocode, loadConfig, search, SearchError } from "../../web/static/js/fetch.js";
 import { texts } from "../../web/static/js/i18n.js";
 
-const CONFIG = { geocoding_url: "https://geocoding-api.open-meteo.com/v1/search" };
 const SEARCH = { latitude: 48.85, longitude: 2.35, start: "2046-07-01", end: "2046-07-20" };
 
 /** Every call the module made, so a test can look at what it asked for. */
@@ -53,10 +52,18 @@ describe("every request goes out under a clock", () => {
     assert.ok(calls[0].options.signal instanceof AbortSignal, "aucun signal sur /api/config");
   });
 
-  it("puts one on an upstream call too", async () => {
+  it("puts one on the place search, asked of our own server", async () => {
     stubFetch(() => answers({ results: [] }));
-    await geocode("Pontarlier", CONFIG);
-    assert.ok(calls[0].options.signal instanceof AbortSignal, "aucun signal sur Open-Meteo");
+    await geocode("Pontarlier");
+    assert.match(calls[0].url, /^\/api\/geocode\?name=Pontarlier&count=10$/);
+    assert.ok(calls[0].options.signal instanceof AbortSignal, "aucun signal sur /api/geocode");
+  });
+
+  it("names the country of each place in French", async () => {
+    stubFetch(() => answers({ results: [{ name: "Szetlew", country_code: "PL", covered: true }, { name: "X" }] }));
+    const [found, bare] = await geocode("Szetlew");
+    assert.equal(found.country, "Pologne");
+    assert.equal(bare.country, "");
   });
 
   it("puts one on a search, a single GET carrying the query", async () => {
@@ -79,12 +86,12 @@ describe("every request goes out under a clock", () => {
 describe("a clock that ran out is told apart", () => {
   it("says so rather than blaming the rate limit", async () => {
     stubFetch(timedOut);
-    await assert.rejects(geocode("Pontarlier", CONFIG), (error) => {
+    await assert.rejects(geocode("Pontarlier"), (error) => {
       assert.ok(error instanceof SearchError);
       assert.equal(error.message, texts.transport.tookTooLong);
       // The advice differs, which is the whole reason for a fourth sentence:
       // nothing was refused here, so there is no rate limit to sit out.
-      assert.notEqual(error.message, texts.transport.upstreamFailed);
+      assert.notEqual(error.message, texts.transport.serviceFailed);
       return true;
     });
   });
@@ -109,16 +116,16 @@ describe("a clock that ran out is told apart", () => {
 describe("the other failures keep their own words", () => {
   it("leaves a refused connection with the caller's sentence", async () => {
     stubFetch(refused);
-    await assert.rejects(geocode("Pontarlier", CONFIG), (error) => {
-      assert.equal(error.message, texts.transport.upstreamFailed);
+    await assert.rejects(geocode("Pontarlier"), (error) => {
+      assert.equal(error.message, texts.transport.serviceFailed);
       return true;
     });
   });
 
   it("leaves a rate limit with the caller's sentence, and its status", async () => {
     stubFetch(() => answers(null, { ok: false, status: 429 }));
-    await assert.rejects(geocode("Pontarlier", CONFIG), (error) => {
-      assert.equal(error.message, texts.transport.upstreamFailed);
+    await assert.rejects(geocode("Pontarlier"), (error) => {
+      assert.equal(error.message, texts.transport.serviceFailed);
       assert.equal(error.status, 429);
       return true;
     });

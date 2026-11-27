@@ -3,7 +3,7 @@
     uvicorn src.app.api.app:app --port 8765
 
 ``/api/config`` serves the constants the form shares with the API: served
-periods, maximum range, temperature scale, geocoding address. ``/api/days``
+periods, maximum range, temperature scale. ``/api/days``
 reads one series from the store and returns the classified days;
 ``/api/normals`` serves the seasonal normals of the same dates (1971-2000,
 1981-2010 or 1991-2020). ``/api/climate`` serves the climate diagram
@@ -15,7 +15,7 @@ maps of the page /cartes (src.app.maps), when the map store is there;
 
 The store is opened at start-up, not on the first visit: a missing or
 unfinished array stops the boot rather than failing on a visitor. Geocoding
-stays in the browser (Open-Meteo, limited per visitor's address).
+is the site's own too (``/api/geocode``, GeoNames; Open-Meteo until 27/11/2026).
 """
 
 from __future__ import annotations
@@ -42,13 +42,12 @@ from pydantic import BaseModel, ValidationError
 from starlette.responses import Response
 
 from src.app import maps
-from src.app.api import climate, errors, kinds, normals, pipeline, places, share, summary, validation, years
+from src.app.api import climate, errors, geocode, kinds, normals, pipeline, places, share, summary, validation, years
 from src.app.api.contract import Climate, Kinds, Normals, Place, Series, Summary, Years
 from src.app.domain import thresholds
 from src.app.maps import MapStore
 from src.app.store import PERIODS, STORE, Simulation, Store
 
-GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 WEB = Path(__file__).resolve().parents[3] / "web"
 
 
@@ -174,7 +173,6 @@ class SimulationInfo(BaseModel):
 
 
 class Config(BaseModel):
-    geocoding_url: str
     coverage_start: str
     coverage_end: str
     periods: list[Coverage]
@@ -213,11 +211,18 @@ def get_places() -> places.Places | None:
 PlacesDep = Annotated[places.Places | None, Depends(get_places)]
 
 
+@lru_cache(maxsize=1)
+def get_geocoder() -> geocode.Geocoder | None:
+    return geocode.open_geocoder()
+
+
+GeocoderDep = Annotated[geocode.Geocoder | None, Depends(get_geocoder)]
+
+
 @app.get("/api/config", response_model=Config)
 def config(store: StoreDep, map_store: MapStoreDep) -> Config:
     sim = store.simulation
     return Config(
-        geocoding_url=GEOCODING_URL,
         coverage_start=PERIODS[0].start.isoformat(),
         coverage_end=PERIODS[-1].end.isoformat(),
         periods=[
@@ -268,6 +273,23 @@ def health(response: Response, store: StoreDep, map_store: MapStoreDep, found: P
 
 class Covered(BaseModel):
     covered: list[bool]
+
+
+@app.get("/api/geocode")
+def geocode_name(
+    store: StoreDep,
+    found: GeocoderDep,
+    name: Annotated[str, Query(min_length=1, max_length=100)],
+    count: Annotated[int, Query(ge=1, le=geocode.MAX_COUNT)] = 10,
+) -> dict:
+    """The places a name may mean, each saying whether the site covers it
+    (what /api/covered says), in one call: the home form offers those."""
+    if found is None:
+        raise errors.GeocoderUnavailable()
+    results = found.search(name, count)
+    for place in results:
+        place["covered"] = store.cell(place["latitude"], place["longitude"]) is not None
+    return {"results": results}
 
 
 @app.get("/api/covered", response_model=Covered)

@@ -58,7 +58,7 @@ envoyer_code() {
 }
 
 envoyer_donnees() {
-  for f in point.zarr map.zarr places.tsv; do
+  for f in point.zarr map.zarr places.tsv geocode.sqlite; do
     [ -e "$SERVE/$f" ] || { echo "Manque $SERVE/$f" >&2; exit 1; }
   done
   local lien=()
@@ -69,7 +69,7 @@ envoyer_donnees() {
   # caffeinate : le Mac ne se met pas en veille pendant l'envoi.
   caffeinate -i rsync -a --delete --partial ${lien[@]+"${lien[@]}"} \
     --exclude=/point.zarr/era5/psl --exclude=/point.zarr/cordex/psl \
-    "$SERVE/point.zarr" "$SERVE/map.zarr" "$SERVE/places.tsv" \
+    "$SERVE/point.zarr" "$SERVE/map.zarr" "$SERVE/places.tsv" "$SERVE/geocode.sqlite" \
     "$HOTE:$RACINE/data/serve.next/"
   echo "Bascule de serve.next en serve..."
   ssh "$HOTE" "set -e; cd $RACINE/data; rm -rf serve.old; \

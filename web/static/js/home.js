@@ -21,7 +21,7 @@
  * (kinds.js). No `<select>` carries a `name`, so nothing of the modes leaves.
  */
 
-import { covered, geocode, loadConfig, SearchError, seasonKinds } from "./fetch.js";
+import { geocode, loadConfig, SearchError, seasonKinds } from "./fetch.js";
 import { periodsText, refuse } from "./bounds.js";
 import { pad } from "./calendar.js";
 import { applyTexts, el } from "./dom.js";
@@ -151,7 +151,7 @@ place.addEventListener("input", () => {
     return;
   }
   // Not on every keystroke: someone typing "Pontarlier" would fire ten
-  // searches, and Open-Meteo counts every one of them against their address.
+  // searches, each a request to the server.
   pending = setTimeout(() => propose(name), PAUSE_MS);
 });
 
@@ -163,11 +163,11 @@ async function propose(name) {
   aboutPlace(texts.form.searching);
   try {
     // `matches`, not `candidates`: that name is the list element above.
-    const matches = await geocode(name, config ?? (await loadConfig()));
+    const matches = await geocode(name);
     // Only the places a search would accept are offered: a name found outside
-    // the domain is said here, not after the form has been sent. If the server
-    // cannot be asked, every place is offered and the search refuses as before.
-    const inside = await covered(matches).catch(() => matches.map(() => true));
+    // the domain is said here, not after the form has been sent. The server
+    // says it with each place (`covered`).
+    const inside = matches.map((match) => match.covered !== false);
     // A slower answer to an older query must not overwrite a newer one.
     if (place.value.trim() !== name) return;
     const shown = matches.filter((_, index) => inside[index]).slice(0, OFFERED);
