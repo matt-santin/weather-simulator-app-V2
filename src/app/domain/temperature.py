@@ -1,7 +1,8 @@
 """The temperature band: one degree reading turned into one of ten steps.
 
-One function for the maximum and the minimum, on one shared scale, so that
-12 degC is the same colour on both. The band is a rule and travels in the
+One function for the maximum and the minimum, each on its own ladder: the
+minimum's edges sit ten degrees lower (thresholds.TEMPERATURE_MIN_BAND_EDGES,
+2026-11-27; one shared scale before). The band is a rule and travels in the
 contract; the colours stay in the stylesheet.
 """
 
@@ -15,7 +16,7 @@ from src.app.domain.records import DailyRecord
 BAND_COUNT = len(thresholds.TEMPERATURE_BAND_EDGES) + 1
 
 
-def band(temperature: float | None) -> int | None:
+def band(temperature: float | None, edges: tuple[float, ...] = thresholds.TEMPERATURE_BAND_EDGES) -> int | None:
     """Which of the ten bands a temperature falls in, or ``None`` for a gap.
 
     Band 0 is everything below the first edge and band 9 everything at or above
@@ -27,12 +28,15 @@ def band(temperature: float | None) -> int | None:
     """
     if temperature is None:
         return None
-    for index, edge in enumerate(thresholds.TEMPERATURE_BAND_EDGES):
+    for index, edge in enumerate(edges):
         if temperature < edge:
             return index
-    return len(thresholds.TEMPERATURE_BAND_EDGES)
+    return len(edges)
 
 
 def bands_of(record: DailyRecord) -> tuple[int | None, int | None]:
-    """The two bands of one day of the assembled series, minimum first."""
-    return band(record.temperature_min), band(record.temperature_max)
+    """The two bands of one day of the assembled series, minimum first, each on its ladder."""
+    return (
+        band(record.temperature_min, thresholds.TEMPERATURE_MIN_BAND_EDGES),
+        band(record.temperature_max),
+    )

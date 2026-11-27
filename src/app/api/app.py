@@ -182,6 +182,8 @@ class Config(BaseModel):
     normals: list[Reference]
     normals_default: int
     temperature_band_edges: list[float]
+    # The ladder of the minima, ten degrees lower (thresholds.py).
+    temperature_min_band_edges: list[float]
     temperature_band_step: float
     epochs: list[EpochInfo]
     epochs_default: str
@@ -230,6 +232,7 @@ def config(store: StoreDep, map_store: MapStoreDep) -> Config:
         normals=[Reference(first=f, label=normals.label(f)) for f in normals.REFERENCES],
         normals_default=normals.DEFAULT,
         temperature_band_edges=list(thresholds.TEMPERATURE_BAND_EDGES),
+        temperature_min_band_edges=list(thresholds.TEMPERATURE_MIN_BAND_EDGES),
         temperature_band_step=thresholds.TEMPERATURE_BAND_STEP_C,
         epochs=[EpochInfo(id=e.id, first=e.first, last=e.last) for e in kinds.EPOCHS],
         epochs_default=kinds.DEFAULT,

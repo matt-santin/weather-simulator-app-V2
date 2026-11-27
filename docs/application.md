@@ -455,3 +455,7 @@ Code : `web/static/js/suggest.js` (choix, sans DOM, `tests/js/suggest.test.js`),
 ## 20. Export retiré (26/11/2026)
 
 Le bouton « Exporter mes données » (fichier CSV des journées affichées) est retiré de la page de résultats, avec `web/static/js/csv.js` et ses tests. Retrouvable dans l'historique git.
+
+## 21. Calendrier : maximales ou minimales (27/11/2026)
+
+Au-dessus du calendrier, « Températures [maximales ▾] », menu dessiné comme le mot de saison du titre de la synthèse : maximales (par défaut) ou minimales. Le choix change la couleur des tuiles (classe de la Tx ou de la Tn, `temperature_max_band` ou `temperature_min_band` de `/api/days`, les deux portées par chaque tuile), le grand chiffre (sur écran étroit, les deux restent affichés et la grandeur choisie passe en tête) et la légende. Les Tn ont leur propre échelle, mêmes dix couleurs décalées de 10 °C vers le froid : bleu profond sous -10 °C, noir à 30 °C et plus (`TEMPERATURE_MIN_BAND_EDGES` dans `src/app/domain/thresholds.py`, publiées par `/api/config` en `temperature_min_band_edges`) ; une même valeur n'a donc pas la même couleur en Tx et en Tn. Légende des Tn écrite « -10 à -5 » dès qu'une borne est négative. Inchangés : tuile agrandie (elle donne les deux), graphique, image de partage (Tx). Choix non gardé d'une page à l'autre ni dans l'adresse. `temperaturePick` et `showTemperature` dans `web/static/js/band.js`.

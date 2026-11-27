@@ -54,6 +54,9 @@ class StubNode extends EventTarget {
     delete this.attrs[name];
   }
 
+  // The menu above the calendar hands the focus back to its button.
+  focus() {}
+
   append(...nodes) {
     this.children.push(...nodes);
   }
@@ -70,6 +73,11 @@ export function install() {
   const stub = new EventTarget();
   stub.createElement = (tag) => new StubNode(tag);
   stub.createElementNS = (namespace, tag) => new StubNode(tag, namespace);
+  stub.createTextNode = (text) => {
+    const node = new StubNode("#text");
+    node.textContent = text;
+    return node;
+  };
   stub.hidden = false;
   globalThis.document = stub;
 }

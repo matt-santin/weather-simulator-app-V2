@@ -35,7 +35,7 @@ import {
   summaryOf,
   years as everyYear,
 } from "./fetch.js";
-import { legend, sources, strip } from "./band.js";
+import { legend, showTemperature, sources, strip, temperaturePick } from "./band.js";
 import { refuse } from "./bounds.js";
 import { chart } from "./chart.js";
 import { attachZoom } from "./dayzoom.js";
@@ -416,12 +416,28 @@ function rowBottom(top, gap) {
   return next ? next.offsetTop - gap : band.scrollHeight;
 }
 
+// Draws the legend of the calendar for the maxima or the minima, once the
+// config is in (show).
+let drawLegend = () => {};
+
 async function show(series) {
   wait.hidden = true;
   warning.hidden = !series.has_simulated;
   count.textContent = texts.results.count(series.days.length);
   band.append(...strip(series.days, series.humid_heat_peak));
   foldDays(series.days.length);
+  // Maxima by default, minima on demand; not kept from one page to the next.
+  const pick = temperaturePick((which) => {
+    showTemperature(calendar, which);
+    drawLegend(which === "low");
+  });
+  calendar.prepend(pick.element);
+  document.addEventListener("click", (event) => {
+    if (!pick.element.contains(event.target)) pick.close();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && pick.isOpen()) pick.close();
+  });
   calendar.hidden = false;
   ways.hidden = false;
   attachZoom(band, bandScroll, dayToMap);
@@ -441,7 +457,15 @@ async function show(series) {
   const config = await settings;
   if (config) {
     scale = { edges: config.temperature_band_edges, step: config.temperature_band_step };
-    calendar.append(legend(config.temperature_band_edges, (series.snow?.days ?? 0) > 0));
+    const snowy = (series.snow?.days ?? 0) > 0;
+    drawLegend = (low) => {
+      const edges = low ? config.temperature_min_band_edges : config.temperature_band_edges;
+      const next = legend(edges, snowy, low);
+      const shown = calendar.querySelector(".band-legend");
+      if (shown) shown.replaceWith(next);
+      else calendar.append(next);
+    };
+    drawLegend(calendar.dataset.shown === "low");
     drawn = chart(series.days, scale);
     chartPanel.append(drawn);
     chartPanel.hidden = false;

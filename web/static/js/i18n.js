@@ -220,8 +220,15 @@ export const texts = {
     weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
     // The legend under the calendar: its title, and the bounds of each band.
     legendTitle: "Température maximale (°C)",
+    legendTitleLow: "Température minimale (°C)",
+    // The menu above the calendar: which temperature colours the cards and
+    // stands as their large figure.
+    shownLead: "Températures",
+    shownSwitch: "Choisir la température affichée",
+    shown: { high: "maximales", low: "minimales" },
     legendBelow: (edge) => `< ${edge}`,
-    legendBetween: (low, high) => `${low}-${high}`,
+    // "à" once a bound is negative: "-10--5" reads as a typo.
+    legendBetween: (low, high) => (low < 0 ? `${low} à ${high}` : `${low}-${high}`),
     legendAbove: (edge) => `≥ ${edge}`,
   },
 

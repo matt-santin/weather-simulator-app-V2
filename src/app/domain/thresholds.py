@@ -101,6 +101,12 @@ CLOUDY_PERCENT = 30.0
 TEMPERATURE_BAND_STEP_C = 5.0
 TEMPERATURE_BAND_EDGES = tuple(0.0 + TEMPERATURE_BAND_STEP_C * step for step in range(9))
 
+# The minima on their own ladder, the same ten colours ten degrees lower
+# (project owner, 2026-11-27): deep blue under -10 °C, black from 30 °C. On the
+# scale of the maxima a winter of minima was one block of deep blue.
+TEMPERATURE_MIN_BAND_SHIFT_C = -10.0
+TEMPERATURE_MIN_BAND_EDGES = tuple(edge + TEMPERATURE_MIN_BAND_SHIFT_C for edge in TEMPERATURE_BAND_EDGES)
+
 # Humid heat: two levels on the daily mean wet-bulb temperature, in degrees
 # Celsius. Settled by the project owner on 2026-09-07, on the measurements below.
 #

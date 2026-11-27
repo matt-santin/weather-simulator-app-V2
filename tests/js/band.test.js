@@ -14,7 +14,7 @@ import { byClass, install, reads, textOf, walk } from "./dom-stub.js";
 // Before the import, not after: `el` reaches for the global on its first call.
 install();
 
-const { card, legend, sources, strip } = await import("../../web/static/js/band.js");
+const { card, legend, showTemperature, sources, strip, temperaturePick } = await import("../../web/static/js/band.js");
 const { texts } = await import("../../web/static/js/i18n.js");
 
 /** Every text under the first node carrying that class, in reading order. */
@@ -438,5 +438,63 @@ describe("snow on the ground", () => {
   it("names its mark in the legend of the calendar only when asked", () => {
     assert.equal(byClass(legend([5, 10]), "band-legend-snow").length, 0);
     assert.equal(said(legend([5, 10], true), "band-legend-snow"), texts.snow.legend);
+  });
+});
+
+describe("maxima or minima on the calendar", () => {
+  it("carries both bands on the card, the maximum shown", () => {
+    const both = card(day("2050-12-21", "simulated", { temperature_max_band: 3, temperature_min_band: 1 }), false);
+    assert.equal(both.attrs["data-band"], "3");
+    assert.equal(both.attrs["data-band-high"], "3");
+    assert.equal(both.attrs["data-band-low"], "1");
+    const none = card(day("2050-12-21", "simulated", { temperature_max_band: 3, temperature_min_band: null }), false);
+    assert.equal(none.attrs["data-band-low"], undefined);
+  });
+
+  /** A calendar as showTemperature reads it: cards with their dataset. */
+  function calendarOf(...bands) {
+    const cards = bands.map(([high, low]) => ({ dataset: { band: high, bandHigh: high, bandLow: low } }));
+    return { cards, dataset: {}, querySelectorAll: () => cards };
+  }
+
+  it("swaps the tint to the minimum, and back", () => {
+    const calendar = calendarOf(["3", "1"], ["4", undefined]);
+    showTemperature(calendar, "low");
+    assert.equal(calendar.dataset.shown, "low");
+    assert.equal(calendar.cards[0].dataset.band, "1");
+    // A day without a band for its minimum keeps the plain paper.
+    assert.ok(!("band" in calendar.cards[1].dataset));
+    showTemperature(calendar, "high");
+    assert.equal(calendar.dataset.shown, "high");
+    assert.deepEqual(calendar.cards.map((one) => one.dataset.band), ["3", "4"]);
+  });
+
+  it("titles and bounds the legend of the minima on their own ladder", () => {
+    const edges = [-10, -5, 0, 5, 10, 15, 20, 25, 30];
+    const [title, list] = legend(edges, false, true).children;
+    assert.equal(title.textContent, texts.results.legendTitleLow);
+    assert.equal(list.children[0].textContent, "< -10");
+    assert.equal(list.children[1].textContent, "-10 à -5");
+    assert.equal(list.children[2].textContent, "-5 à 0");
+    assert.equal(list.children[3].textContent, "0-5");
+    assert.equal(list.children[9].textContent, "≥ 30");
+    assert.equal(legend(edges).children[0].textContent, texts.results.legendTitle);
+  });
+
+  it("opens on the maxima and reports the choice", () => {
+    const picked = [];
+    const pick = temperaturePick((which) => picked.push(which));
+    const [button] = byClass(pick.element, "season-switch");
+    const items = byClass(pick.element, "season-item");
+    assert.equal(walk(button).map((node) => node.textContent).join(""), `${texts.results.shown.high}▾`);
+    assert.equal(items[0].attrs["aria-current"], "true");
+    assert.equal(pick.isOpen(), false);
+    button.dispatchEvent(new Event("click"));
+    assert.equal(pick.isOpen(), true);
+    items[1].dispatchEvent(new Event("click"));
+    assert.deepEqual(picked, ["low"]);
+    assert.equal(pick.isOpen(), false);
+    assert.equal(items[1].attrs["aria-current"], "true");
+    assert.equal(items[0].attrs["aria-current"], undefined);
   });
 });

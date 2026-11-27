@@ -72,16 +72,13 @@ def test_a_day_is_read_minimum_first() -> None:
         temperature_min=19.0,
         temperature_max=32.0,
     )
-    assert bands_of(record) == (band(19.0), band(32.0))
-    assert bands_of(record) == (4, 7)
+    assert bands_of(record) == (band(19.0, thresholds.TEMPERATURE_MIN_BAND_EDGES), band(32.0))
+    assert bands_of(record) == (6, 7)
 
 
-def test_the_two_temperatures_share_one_scale() -> None:
-    """The same reading gets the same band, whichever of the two it is.
-
-    It is what makes the two numbers on a card comparable, and it is also why the
-    minimum lives in the cold half of the ramp.
-    """
+def test_the_minimum_has_its_own_ladder_ten_degrees_lower() -> None:
+    """-10 to 30 degC for the minima, so that a winter of nights is not one block of deep blue."""
+    assert thresholds.TEMPERATURE_MIN_BAND_EDGES == (-10.0, -5.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0)
     warm_night = DailyRecord(
         date=date(2046, 7, 14),
         origin=Origin.SIMULATED,
@@ -90,4 +87,6 @@ def test_the_two_temperatures_share_one_scale() -> None:
         temperature_max=22.0,
     )
     low, high = bands_of(warm_night)
-    assert low == high
+    assert (low, high) == (7, 5)
+    assert band(-12.0, thresholds.TEMPERATURE_MIN_BAND_EDGES) == 0
+    assert band(30.0, thresholds.TEMPERATURE_MIN_BAND_EDGES) == 9

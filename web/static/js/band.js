@@ -77,10 +77,12 @@ export function strip(days, humidHeatPeak = 0) {
  * The legend of the calendar: one chip per band, coloured by the stylesheet
  * through `data-band` exactly like a card, with its bounds written in it. The
  * edges are the server's (`/api/config`), so the legend cannot drift from the
- * bands the cards carry.
+ * bands the cards carry: those of the maxima, or with `low` those of the minima,
+ * ten degrees lower.
  */
-export function legend(edges, snow = false) {
-  const { legendTitle, legendBelow, legendBetween, legendAbove } = texts.results;
+export function legend(edges, snow = false, low = false) {
+  const { legendBelow, legendBetween, legendAbove } = texts.results;
+  const legendTitle = low ? texts.results.legendTitleLow : texts.results.legendTitle;
   const chips = [legendBelow(edges[0])];
   for (let index = 1; index < edges.length; index += 1) {
     chips.push(legendBetween(edges[index - 1], edges[index]));
@@ -103,6 +105,80 @@ export function legend(edges, snow = false) {
         ]
       : []),
   ]);
+}
+
+/** A band as an attribute, or no attribute for a day without one. */
+function bandText(band) {
+  return band === null || band === undefined ? undefined : String(band);
+}
+
+/**
+ * The temperature the calendar shows, "high" (the default) or "low": the
+ * band that tints each card and the large figure (the stylesheet, through
+ * `data-shown` on the calendar). The minima have their own ladder, ten degrees
+ * lower (server); the legend is redrawn with it (results.js).
+ */
+export function showTemperature(calendar, which) {
+  const low = which === "low";
+  calendar.dataset.shown = low ? "low" : "high";
+  for (const card of calendar.querySelectorAll(".card[data-date]")) {
+    const band = low ? card.dataset.bandLow : card.dataset.bandHigh;
+    if (band === undefined) delete card.dataset.band;
+    else card.dataset.band = band;
+  }
+}
+
+/**
+ * The menu above the calendar, drawn as the season word of the summary title:
+ * "Températures [maximales ▾]". `onPick` is called with "high" or "low".
+ * Returns the element and a `close` for a click outside or Escape.
+ */
+export function temperaturePick(onPick) {
+  const words = texts.results;
+  let shown = "high";
+  const label = el("span", { text: words.shown.high });
+  const button = el(
+    "button",
+    {
+      className: "season-switch",
+      attrs: { type: "button", "aria-expanded": "false", "aria-controls": "shown-menu", title: words.shownSwitch },
+    },
+    [label, el("span", { className: "season-caret", text: "▾", attrs: { "aria-hidden": "true" } })],
+  );
+  const choices = ["high", "low"];
+  const items = choices.map((which) =>
+    el("button", {
+      className: "season-item",
+      text: words.shown[which],
+      attrs: { type: "button", "data-shown": which, "aria-current": which === shown ? "true" : undefined },
+    }),
+  );
+  const menu = el("ul", { className: "season-menu", attrs: { id: "shown-menu", "aria-label": words.shownSwitch } },
+    items.map((item) => el("li", {}, [item])));
+  menu.hidden = true;
+  const toggle = (open) => {
+    menu.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+  };
+  button.addEventListener("click", () => toggle(menu.hidden));
+  for (const [index, item] of items.entries()) {
+    item.addEventListener("click", () => {
+      shown = choices[index];
+      label.textContent = words.shown[shown];
+      for (const other of items) {
+        if (other === item) other.setAttribute("aria-current", "true");
+        else other.removeAttribute("aria-current");
+      }
+      toggle(false);
+      button.focus();
+      onPick(shown);
+    });
+  }
+  const pick = el("p", { className: "calendar-shown" }, [
+    document.createTextNode(`${words.shownLead} `),
+    el("span", { className: "season-pick" }, [button, menu]),
+  ]);
+  return { element: pick, close: () => toggle(false), isOpen: () => !menu.hidden };
 }
 
 /** 0 for a Monday, 6 for a Sunday. */
@@ -135,14 +211,19 @@ export function card(day, namesMonth, reservesHumidHeat = false, opensSimulation
   // the stylesheet, exactly as the pictogram lives here rather than in the JSON.
   // A day with no maximum carries no attribute and keeps the plain paper: a gap
   // is not a shade of cold.
-  const band = day.temperature_max_band;
+  //
+  // Both bands ride on the card, `data-band` holding the one shown: the menu
+  // above the calendar swaps it for the band of the minimum (showTemperature).
+  const band = bandText(day.temperature_max_band);
   return el("li", {
     className,
     attrs: {
       title: day.source,
       // The day, for what a card leads to (the map of that day, dayzoom.js).
       "data-date": day.date,
-      "data-band": band === null || band === undefined ? undefined : String(band),
+      "data-band": band,
+      "data-band-high": band,
+      "data-band-low": bandText(day.temperature_min_band),
     },
   }, [
     // The tinted band. The month line is rendered on every card, empty where the
