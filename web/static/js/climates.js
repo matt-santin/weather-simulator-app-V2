@@ -21,6 +21,8 @@ import { texts } from "./i18n.js";
 import { MAX_ZOOM, WHOLE, boxFrame, pan, projection, unzoom, zoomAt } from "./mapview.js";
 import { classAt, COLORS, paint, present } from "./koppenmap.js";
 import { fillNav } from "./nav.js";
+import { mapHref, seasonYear } from "./links.js";
+import { dominantSeason } from "./season.js";
 
 /** The width of the images painted, in pixels of the map drawn whole. */
 const BASE = 2400;
@@ -141,6 +143,18 @@ function choose(period) {
   draw();
 }
 
+/** The weather map of the place, on the season of its results when the dates are one. */
+function weatherMap(place) {
+  const query = new URLSearchParams(window.location.search);
+  const start = query.get("debut");
+  const end = query.get("fin");
+  const season = start && end ? dominantSeason({ start, end, latitude: place.latitude }) : null;
+  const year = season ? seasonYear(season, start, end) : null;
+  if (!season || year === null) return "/cartes";
+  return mapHref({ season, year, place: place.name, latitude: place.latitude, longitude: place.longitude,
+    elevation: query.get("alt") });
+}
+
 /** The place of the URL, or null; the query is kept for the way back. */
 function placeOf(query) {
   const name = query.get("lieu");
@@ -162,8 +176,9 @@ function described(lon, lat) {
 function fillPlace() {
   const place = state.place;
   here.hidden = !place;
+  const thisPage = `${window.location.pathname}${window.location.search}`;
   if (!place) {
-    fillNav({ current: null });
+    fillNav({ current: "climate", mapHref: "/cartes", climateHref: thisPage });
     return;
   }
   const [past, future] = described(place.longitude, place.latitude);
@@ -172,7 +187,7 @@ function fillPlace() {
   hereFuture.textContent = future.line || texts.climates.none(future.period);
   hereLink.href = place.back;
   hereLink.textContent = texts.climates.back(place.name);
-  fillNav({ current: null, place: place.name, placeHref: place.back });
+  fillNav({ current: "climate", place: place.name, placeHref: place.back, mapHref: weatherMap(place), climateHref: thisPage });
 }
 
 /** The classes of either period, those absent from the one shown softened. */

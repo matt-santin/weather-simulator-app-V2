@@ -37,9 +37,14 @@ export const texts = {
   nav: {
     label: "Navigation entre le lieu et la carte",
     home: "Météo 2100",
-    map: "Carte",
+    map: "Carte météo",
+    climate: "Carte climatique",
+    // The same two on a phone, where three tabs and a town name must fit.
+    mapShort: "Météo",
+    climateShort: "Climat",
     placeTitle: (place) => `La saison à ${place}, jour par jour`,
     mapTitle: "La même saison sur la carte d'Europe",
+    climateTitle: "Les climats de Köppen-Geiger de l'Europe, 1991-2020 et 2071-2100",
   },
 
   // The banner asks before it explains. A site name at the top said what the

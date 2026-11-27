@@ -493,3 +493,6 @@ Non retenu, pour trois raisons de fond :
 
 Le message risquait de rassurer à tort (« Paris deviendra Bordeaux »). Le titre Köppen, la carte `/climats`, les mois secs du diagramme et les journées du calendrier disent mieux le changement. Une reprise demanderait une comparaison mois par mois, des indicateurs d'extrêmes (jours au-dessus de 35 °C, maximale annuelle), une distance absolue plutôt que rapportée à la variabilité, et un « aucun équivalent » assumé.
 
+## 26. Barre : trois onglets (27/11/2026)
+
+La barre des résultats, de la carte météo et de la carte des climats porte trois onglets : le lieu, « Carte météo » (ex-« Carte ») et « Carte climatique » (`/climats`), l'onglet de la page courante plein. Chacun garde le lieu et la saison : `climatesHref` (`web/static/js/links.js`) porte la requête des résultats vers `/climats`, la carte des climats retrouve la saison des dates (`dominantSeason`) pour son lien vers la carte météo. Sur téléphone (moins de 560 px), « Météo » et « Climat », le nom du lieu coupé au-delà de 9,5 rem ; le libellé long reste pour les lecteurs d'écran (`web/static/js/nav.js`).

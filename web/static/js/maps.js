@@ -42,7 +42,7 @@ import {
   zoomAt,
 } from "./mapview.js";
 import * as present from "./present.js";
-import { elevationOf, insideMap, MAP_LATITUDE, resultsHref } from "./links.js";
+import { climatesHref, elevationOf, insideMap, MAP_LATITUDE, resultsHref } from "./links.js";
 import { fillNav } from "./nav.js";
 import { rangeOf, yearsFor } from "./season.js";
 
@@ -881,6 +881,7 @@ function bar() {
     // The tab leads to the top of the results; the link of the panel, to the day.
     placeHref: place ? resultsHref({ ...place, ...shownPeriod(), day: null }) : null,
     mapHref: `${window.location.pathname}${window.location.search}`,
+    climateHref: place ? climatesHref({ ...place, ...shownPeriod(), day: null }) : "/climats",
   });
 }
 

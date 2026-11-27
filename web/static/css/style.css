@@ -4756,7 +4756,13 @@ body.results > .site-nav {
   color: var(--nav-ground);
 }
 
-/* A phone: the sun alone for home, no season (the page says it). */
+.site-nav-short {
+  display: none;
+}
+
+/* A phone: the sun alone for home, no season (the page says it); the two maps
+   in a word each, a long town name cut, so that three tabs fit. The long label
+   stays for screen readers. */
 @media (max-width: 560px) {
   .site-nav-name,
   .site-nav-context {
@@ -4764,7 +4770,31 @@ body.results > .site-nav {
   }
 
   .site-nav-tabs {
+    min-width: 0;
     margin-left: auto;
+  }
+
+  .site-nav-tab {
+    padding-inline: 0.75rem;
+  }
+
+  #nav-place {
+    max-width: 9.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .site-nav-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .site-nav-short {
+    display: inline;
   }
 }
 

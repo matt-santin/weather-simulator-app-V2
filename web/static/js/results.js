@@ -327,6 +327,7 @@ const navSeason = {
   year: season ? seasonYear(season, asked.start, asked.end) : null,
   place: asked.place,
   placeHref: `${window.location.pathname}${window.location.search}`,
+  climateHref: `/climats${window.location.search}`,
 };
 fillNav(navSeason);
 

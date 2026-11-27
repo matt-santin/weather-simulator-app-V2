@@ -71,6 +71,14 @@ export function mapHref({ season, year, place, latitude, longitude, elevation = 
   return `/cartes?${query}`;
 }
 
+/**
+ * The map of the climates (/climats) for a place, with the query of its
+ * results: the page marks the place and leads back to them.
+ */
+export function climatesHref(where) {
+  return resultsHref(where).replace(/^\/resultats\?/, "/climats?");
+}
+
 /** The results of a season at a place. */
 export function resultsHref({ season, year, place, latitude, longitude, elevation = null, day = null }) {
   const range = rangeOf(season, year, MAP_LATITUDE);
