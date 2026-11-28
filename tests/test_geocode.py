@@ -28,6 +28,12 @@ PLACES = [
     (4, "Munich", "Bavière", "DE", 48.14, 11.58, 1260000, 524, ["Munich", "München"]),
     (5, "München", "Brandebourg", "DE", 52.0, 14.0, 0, 85, ["München"]),
     (6, "Szetlew", "voïvodie de Grande-Pologne", "PL", 52.13, 18.0, 0, 85, ["Szetlew"]),
+    (7, "Valence", "Communauté Valencienne", "ES", 39.47, -0.38, 824340, 10, ["Valence", "València"]),
+    (8, "Valence", "Auvergne-Rhône-Alpes", "FR", 44.93, 4.89, 63864, 126, ["Valence"]),
+    (9, "Rome", "Latium", "IT", 41.89, 12.48, 2318895, 20, ["Rome", "Roma"]),
+    (10, "Rome", "Grand Est", "FR", 48.0, 6.0, 0, 300, ["Rome"]),
+    (11, "Bergen", "Vestland", "NO", 60.39, 5.32, 294029, 20, ["Bergen"]),
+    (12, "Mons", "Wallonie", "BE", 50.45, 3.95, 95299, 50, ["Mons", "Bergen"]),
 ]
 
 
@@ -86,3 +92,14 @@ def test_no_database_no_search(client: TestClient) -> None:
         assert client.get("/api/geocode", params={"name": "Paris"}).status_code == 503
     finally:
         api.app.dependency_overrides.pop(api.get_geocoder, None)
+
+
+def test_the_countries_of_the_site_s_language_come_first_all_else_equal(geocoder: Geocoder) -> None:
+    """The Valence of the Drôme before the one of Spain; Rome still before a French hamlet."""
+    assert [p["country_code"] for p in geocoder.search("Valence")] == ["FR", "ES"]
+    assert [p["country_code"] for p in geocoder.search("Rome")] == ["IT", "FR"]
+
+
+def test_no_bonus_for_a_name_in_another_language(geocoder: Geocoder) -> None:
+    """Mons is Bergen in Dutch: typed Bergen, Norway comes first."""
+    assert [p["name"] for p in geocoder.search("Bergen")] == ["Bergen", "Mons"]

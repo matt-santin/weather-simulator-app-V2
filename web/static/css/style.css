@@ -4738,7 +4738,12 @@ body.results > .site-nav {
   border-radius: 0 999px 999px 0;
 }
 
+/* The first tab shown when the place is hidden (a map opened without one). */
 .site-nav-tabs li:has(> [hidden]) + li .site-nav-tab {
+  border-radius: 999px 0 0 999px;
+}
+
+.site-nav-tabs li:has(> [hidden]) + li:last-child .site-nav-tab {
   border-radius: 999px;
 }
 

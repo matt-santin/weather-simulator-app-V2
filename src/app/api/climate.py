@@ -9,7 +9,7 @@ With each set of twelve months, its Köppen-Geiger class (src.app.domain.koppen)
 computed on the very means drawn: 15 years for the window, 30 for the reference.
 
 Beside it, the same twelve months over a reference period of the normals
-(normals.REFERENCES), always ERA5.
+(normals.REFERENCES), always the past data (temperatures E-OBS, rain ERA5).
 
 Per month: mean temperature (tas), mean minimum and maximum, and the rain of
 an average month (mean daily rain x mean length of that month). A month is dry

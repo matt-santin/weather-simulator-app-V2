@@ -2,7 +2,8 @@
 
 Nos données : le stockage de service (data/serve/point.zarr), grille à 0,25°,
 `tas` (température moyenne journalière, calée sur E-OBS) et `pr`.
-  - ERA5 1991-2020 (le passé servi par le site) ;
+  - 1991-2020, le passé servi par le site : températures E-OBS (ERA5 où E-OBS
+    manque), précipitations ERA5 ;
   - MPI-ESM1-2-HR / ICON-CLM corrigé, SSP3-7.0 : 1991-2020, 2041-2070, 2071-2099
     (mêmes périodes que Beck ; 2071-2099 compte 29 ans chez Beck comme ici).
 Par maille : température moyenne de chaque mois (moyenne des jours), précipitation
@@ -27,7 +28,7 @@ plus fréquente des pixels terrestres de chaque maille.
     (mailles où Beck a des terres), à garder ; les classes couvrent tout le
     domaine, mer comprise ;
   - figures/climat/koppen_nous_vs_beck.png : nos classes, celles de Beck et
-    l'accord, pour 1991-2020 (ERA5) et 2071-2099 (MPI / ICON) ;
+    l'accord, pour 1991-2020 (températures E-OBS, pluie ERA5) et 2071-2099 (MPI / ICON) ;
   - web/static/img/koppen_comparaison.webp : la même figure pour la page de
     documentation du site ;
   - les taux d'accord et la classe de quelques villes, à l'écran.
@@ -179,7 +180,7 @@ def sauver(T, Pm, classes, lat, lon, terre):
         },
         coords={"period": keys, "month": np.arange(1, 13), "latitude": lat, "longitude": lon},
         attrs={
-            "title": "Köppen-Geiger à 0,25° calculé sur le stockage de service (ERA5 1991-2020, MPI-ESM1-2-HR / ICON-CLM SSP3-7.0 corrigé)",
+            "title": "Köppen-Geiger à 0,25° calculé sur le stockage de service (1991-2020 : températures E-OBS, précipitations ERA5 ; MPI-ESM1-2-HR / ICON-CLM SSP3-7.0 corrigé)",
             "criteria": "Beck et al. 2023, Sci. Data 10, 724, tableau 1 (B prioritaire, C/D à 0 °C, s/w exclusifs)",
             "legend": "; ".join(f"{k}={leg[k][0]}" for k in sorted(leg)),
             "script": "figures/climat/koppen_nous.py",
@@ -216,7 +217,7 @@ def figure(classes, becks, lat, lon, leg):
             pays += [np.array(ring).T for ring in poly]
     ext = (lon.min() - 0.125, lon.max() + 0.125, lat.min() - 0.125, lat.max() + 0.125)
     code = np.array([leg[k][0] if k else "" for k in range(31)], dtype=object)
-    lignes = [("era5_1991_2020", "1991-2020", "ERA5"), ("mpi_2071_2099", "2071-2099", "MPI / ICON, SSP3-7.0")]
+    lignes = [("era5_1991_2020", "1991-2020", "temp. E-OBS, pluie ERA5"), ("mpi_2071_2099", "2071-2099", "MPI / ICON, SSP3-7.0")]
     fig, axes = plt.subplots(2, 3, figsize=(20, 11.5))
     accord_cmap = ListedColormap(["#ffffff", "#2e8b57", "#e6b800", "#c0392b"])
     terre = becks["era5_1991_2020"] > 0
